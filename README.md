@@ -1,4 +1,4 @@
-# Das verrückte Labyrinth
+# Das verrückte Labyrinth :)
 
 
 
