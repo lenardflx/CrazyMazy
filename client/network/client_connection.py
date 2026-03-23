@@ -2,8 +2,8 @@
 
 import socket
 
-from shared.health import is_pong, make_ping
 from shared.network import recv_line, send_msg
+from shared.protocol import EventType, Message
 
 
 class ClientConnection:
@@ -21,9 +21,7 @@ class ClientConnection:
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.settimeout(2)
             self._sock.connect((host, port))
-            send_msg(self._sock, make_ping())
-            msg, self._buffer = recv_line(self._buffer, self._sock)
-            if not (msg and is_pong(msg)):
+            if not self._healthcheck():
                 self._sock.close()
                 self._sock = None
                 return False
@@ -32,6 +30,13 @@ class ClientConnection:
         except OSError:
             self._sock = None
             return False
+
+    def _healthcheck(self) -> bool:
+        """Send a ping and verify the server responds with a pong."""
+        assert self._sock is not None
+        send_msg(self._sock, Message(type=EventType.CLIENT_HEALTH_PING).to_dict())
+        msg, self._buffer = recv_line(self._buffer, self._sock)
+        return bool(msg and msg.get("type") == EventType.SERVER_HEALTH_PONG)
 
     def disconnect(self) -> None:
         """Disconnect from the server."""

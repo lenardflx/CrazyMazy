@@ -3,9 +3,10 @@
 import socket
 import threading
 
+import server.handlers
 from server.config import HOST, PORT
-from shared.health import is_ping, make_pong
-from shared.network import recv_line, send_msg
+from server.dispatch import dispatcher
+from shared.network import recv_line
 
 
 def handle_client(conn: socket.socket, addr: tuple) -> None:
@@ -18,8 +19,7 @@ def handle_client(conn: socket.socket, addr: tuple) -> None:
                 msg, buffer = recv_line(buffer, conn)
                 if msg is None:
                     continue
-                if is_ping(msg):
-                    send_msg(conn, make_pong())
+                dispatcher.dispatch(conn, msg)
             except OSError:
                 break
     print(f"[server] {addr} disconnected")
