@@ -1,8 +1,14 @@
 import pygame
+from pathlib import Path
 
-CORNER = pygame.image.load("../../assets/images/tiles/corner.png")
-T_PIECE = pygame.image.load("../../assets/images/tiles/t_shape.png")
-STRAIGHT = pygame.image.load("../../assets/images/tiles/straight.png")
+BASE_DIR = Path(__file__).resolve().parent
+
+def image_load(path):
+    return pygame.image.load(BASE_DIR / path)
+
+CORNER = image_load("../../assets/images/tiles/corner.png")
+T_PIECE = image_load("../../assets/images/tiles/t_shape.png")
+STRAIGHT = image_load("../../assets/images/tiles/straight.png")
 
 TILE_IMAGES = {
     "STRAIGHT": STRAIGHT,
