@@ -1,4 +1,4 @@
-# CrazyMaze
+# CrazyMazy
 > Software Engineering, Group 1, Team Spirit
 
 ## Run & Debug 
