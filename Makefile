@@ -7,7 +7,7 @@ client:
 	python -m client.main
 
 dev:
-	honcho start
+	PYTHONUNBUFFERED=1 honcho start
 
 dev2:
-	honcho start --concurrency client=2
+	PYTHONUNBUFFERED=1 honcho start --concurrency client=2
