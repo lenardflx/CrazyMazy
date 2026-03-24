@@ -24,6 +24,7 @@ class EventDispatcher(Generic[TContext, TReturn]):
         self,
         event_type: type[TEvent],
     ) -> Callable[[Callable[[TContext, TEvent], TReturn]], Callable[[TContext, TEvent], TReturn]]:
+        """Register the handler for one concrete event class."""
         def decorator(
             fn: Callable[[TContext, TEvent], TReturn],
         ) -> Callable[[TContext, TEvent], TReturn]:
@@ -35,6 +36,7 @@ class EventDispatcher(Generic[TContext, TReturn]):
         return decorator
 
     def dispatch(self, ctx: TContext, event: Event) -> TReturn | None:
+        """Dispatch one parsed event to its registered handler."""
         fn = self._handlers.get(type(event))
         if fn is None:
             logger.warning("Unhandled event type: %s", type(event).__name__)

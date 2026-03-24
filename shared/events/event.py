@@ -1,29 +1,55 @@
+# Author: Lenard Felix
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import ClassVar, Self
+from dataclasses import dataclass, field
+from typing import Any, ClassVar, Self
 
-from shared.protocol import Message
+from shared.protocol import Message, make_message
+from shared.schema import ErrorPayload, parse_error_payload
+from shared.utils.ids import new_message_id
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Event(ABC):
+    """Typed protocol event used by dispatchers and handlers."""
+
     message_type: ClassVar[str]
-    message_id: str
+    message_id: str = field(default_factory=new_message_id)
+
+    @abstractmethod
+    def to_payload(self) -> dict[str, Any]:
+        """Serialize the event-specific payload for transport."""
+        raise NotImplementedError
+
+    def to_message(self) -> Message:
+        """Serialize the event into the wire-level message envelope."""
+        msg = make_message(self.message_type, self.to_payload())
+        msg["id"] = self.message_id
+        return msg
 
     @classmethod
     @abstractmethod
     def from_message(cls, msg: Message) -> Self | None:
+        """Parse a validated wire message into a typed event."""
         raise NotImplementedError
 
 
 @dataclass(frozen=True)
 class ClientJoinRoomEvent(Event):
+    """Client request to join a room with a player name."""
+
     message_type = "client.room.join"
 
     room_id: str
     player_name: str
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "room_id": self.room_id,
+            "player_name": self.player_name,
+        }
 
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
@@ -38,4 +64,47 @@ class ClientJoinRoomEvent(Event):
             message_id=msg["id"],
             room_id=room_id.strip(),
             player_name=player_name.strip(),
+        )
+
+
+@dataclass(frozen=True)
+class ServerRoomSnapshotEvent(Event):
+    """Server snapshot response with raw payload until the schema is finalized."""
+
+    message_type = "room.snapshot"
+
+    payload: dict[str, Any]
+
+    def to_payload(self) -> dict[str, Any]:
+        return self.payload
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        return cls(message_id=msg["id"], payload=msg["payload"])
+
+
+@dataclass(frozen=True)
+class ServerResponseErrorEvent(Event):
+    """Server error response."""
+
+    message_type = "response.error"
+
+    code: str
+    message: str
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "code": self.code,
+            "message": self.message,
+        }
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        payload: ErrorPayload | None = parse_error_payload(msg["payload"])
+        if payload is None:
+            return None
+        return cls(
+            message_id=msg["id"],
+            code=payload["code"],
+            message=payload["message"],
         )
