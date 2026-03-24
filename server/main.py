@@ -3,23 +3,31 @@
 import socket
 import threading
 
-import server.handlers
 from server.config import HOST, PORT
-from server.dispatch import dispatcher
-from shared.network import recv_line
+from server.network.dispatch import dispatcher
+from server.network.models import OutgoingMessage, RequestContext
+from shared.network import recv_line, send_msg
 
 
-def handle_client(conn: socket.socket, addr: tuple) -> None:
-    """Handle a client connection, including the initial handshake and responding to pings."""
+def flush_outgoing(messages: list[OutgoingMessage]) -> None:
+    for outgoing in messages:
+        send_msg(outgoing.conn, outgoing.msg)
+
+
+def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:
+    """Handle a client connection and dispatch inbound protocol messages."""
     print(f"[server] {addr} connected")
     buffer = ""
+    ctx = RequestContext(conn=conn, addr=addr)
     with conn:
         while True:
             try:
                 msg, buffer = recv_line(buffer, conn)
                 if msg is None:
                     continue
-                dispatcher.dispatch(conn, msg)
+                outgoing = dispatcher.dispatch(ctx, msg)
+                if outgoing is not None:
+                    flush_outgoing(outgoing)
             except OSError:
                 break
     print(f"[server] {addr} disconnected")

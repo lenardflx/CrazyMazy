@@ -2,37 +2,46 @@
 
 from __future__ import annotations
 
-import json
-import socket
-from dataclasses import dataclass, field
+from typing import Any, TypedDict
+
+from shared.utils.ids import new_message_id
 
 
 class EventType:
-    """
-      client_<module>_<action> for client-to-server messages
-      server_<module>_<action> for server-to-client messages
-    """
+    # Client to Server
+    CLIENT_ROOM_CREATE = "client.room.create"
+    CLIENT_ROOM_JOIN = "client.room.join"
+    CLIENT_ROOM_LEAVE = "client.room.leave"
+    CLIENT_ROOM_START_GAME = "client.room.start_game"
 
-    # Health
-    CLIENT_HEALTH_PING = "client_health_ping"
-    SERVER_HEALTH_PONG = "server_health_pong"  # TODO: replace with models since this is not a real event type
-
-    # Lobby
-    CLIENT_CREATE_LOBBY  = "client_create_lobby"
-    CLIENT_JOIN_LOBBY    = "client_join_lobby"
-    CLIENT_LEAVE_LOBBY   = "client_leave_lobby"
-    SERVER_LOBBY_CREATED = "server_lobby_created"
-    SERVER_LOBBY_JOINED  = "server_lobby_joined"
+    # Server to Client
+    SERVER_SNAPSHOT = "server.snapshot"
+    SERVER_RESPONSE_ERROR = "server.response.error"
 
 
-@dataclass
-class Message:
+class ErrorCode:
+    INVALID_MESSAGE = "INVALID_MESSAGE"
+    INVALID_PAYLOAD = "INVALID_PAYLOAD"
+
+    ROOM_NOT_FOUND = "ROOM_NOT_FOUND"
+    ROOM_FULL = "ROOM_FULL"
+
+
+class Message(TypedDict, total=False):
+    id: str
     type: str
-    payload: dict = field(default_factory=dict)
+    reply_to: str
+    payload: dict[str, Any]
 
-    @staticmethod
-    def from_dict(data: dict) -> Message:
-        return Message(type=data["type"], payload=data.get("payload", {}))
 
-    def to_dict(self) -> dict:
-        return {"type": self.type, "payload": self.payload}
+def make_message(msg_type: str, payload: dict[str, Any] | None = None) -> Message:
+    return {
+        "id": new_message_id(),
+        "type": msg_type,
+        "payload": payload or {},
+    }
+
+
+def get_message_type(msg: Message) -> str:
+    value = msg.get("type")
+    return value if isinstance(value, str) else ""
