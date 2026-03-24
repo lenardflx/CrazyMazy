@@ -1,4 +1,7 @@
 from enum import Enum
+from shared.state.textures import *
+from collections import deque
+from shared.state.errors import TileError
 from random import randint, shuffle
 
 
@@ -53,6 +56,43 @@ class Tile:
         self.type = type
         self.orientation = orientation
         self._treasure = treasure
+        self.texture = None
+        self.path = deque([0,0,0,0])
+        self.set_paths()
+
+    def set_paths(self):
+        if self.type == TileType.STRAIGHT.value:
+            self.path = deque([1,0,1,0]) #north east south west
+        elif self.type == TileType.CORNER.value:
+            self.path = deque([1,1,0,0])
+        elif self.type == TileType.T_PIECE.value:
+            self.path = deque([1,1,0,1])
+        else:
+            raise TileError(f"Unbekannter Tile-Typ: '{self.type}'")
+        self.path.rotate(TileOrientation(self.orientation).value)
+        self.path = list(self.path)
+
+    def load_texture(self):
+        texture = TILE_IMAGES[TileType(self.type).name]
+        if self.orientation == TileOrientation.NORTH.value:
+            self.texture = texture
+        elif self.orientation == TileOrientation.EAST.value:
+            self.texture =  pygame.transform.rotate(texture, 270)
+        elif self.orientation == TileOrientation.SOUTH.value:
+            self.texture =  pygame.transform.rotate(texture, 180)
+        elif self.orientation == TileOrientation.WEST.value:
+            self.texture = pygame.transform.rotate(texture, 90)
+
+    def rotate_left(self):
+        self.orientation = (TileOrientation(self.orientation).value - 1) %4
+        self.load_texture()
+        self.set_paths()
+
+    def rotate_right(self):
+        self.orientation = (TileOrientation(self.orientation).value + 1) %4
+        self.load_texture()
+        set.paths = self.paths
+
 
 class Board:
     def __init__(self, width: int = 7):
