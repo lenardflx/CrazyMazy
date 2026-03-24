@@ -51,47 +51,70 @@ class TreasureType(Enum):
     FLY =  26
     RAT =  27
 
+
 class Tile:
     def __init__(self, type: TileType, orientation: TileOrientation, treasure: None | TreasureType = None):
+        # store tile metadata
         self.type = type
         self.orientation = orientation
         self._treasure = treasure
+
+        # will be filled by load_texture()
         self.texture = None
+
+        # path = [N, E, S, W]
         self.path = deque([0,0,0,0])
+
+        # initialize path + texture based on type + orientation
         self.set_paths()
 
     def set_paths(self):
+        # base path pattern for orientation NORTH
         if self.type == TileType.STRAIGHT.value:
-            self.path = deque([1,0,1,0]) #north east south west
+            self.path = deque([1,0,1,0])  # N E S W
         elif self.type == TileType.CORNER.value:
             self.path = deque([1,1,0,0])
         elif self.type == TileType.T_PIECE.value:
             self.path = deque([1,1,0,1])
         else:
+            # invalid tile type → fail fast
             raise TileError(f"Unbekannter Tile-Typ: '{self.type}'")
+
+        # rotate path according to orientation
         self.path.rotate(TileOrientation(self.orientation).value)
+
+        # convert to list for easier use elsewhere
         self.path = list(self.path)
 
     def load_texture(self):
+        # lookup base texture from table
         texture = TILE_IMAGES[TileType(self.type).name]
+
+        # rotate texture depending on orientation
         if self.orientation == TileOrientation.NORTH.value:
             self.texture = texture
         elif self.orientation == TileOrientation.EAST.value:
-            self.texture =  pygame.transform.rotate(texture, 270)
+            self.texture = pygame.transform.rotate(texture, 270)
         elif self.orientation == TileOrientation.SOUTH.value:
-            self.texture =  pygame.transform.rotate(texture, 180)
+            self.texture = pygame.transform.rotate(texture, 180)
         elif self.orientation == TileOrientation.WEST.value:
             self.texture = pygame.transform.rotate(texture, 90)
 
     def rotate_left(self):
-        self.orientation = (TileOrientation(self.orientation).value - 1) %4
+        # rotate orientation counter‑clockwise
+        self.orientation = (TileOrientation(self.orientation).value - 1) % 4
+
+        # update texture + path
         self.load_texture()
         self.set_paths()
 
     def rotate_right(self):
-        self.orientation = (TileOrientation(self.orientation).value + 1) %4
+        # rotate orientation clockwise
+        self.orientation = (TileOrientation(self.orientation).value + 1) % 4
+
+        # update texture + path
         self.load_texture()
-        set.paths = self.paths
+        self.set_paths()
 
 
 class Board:
