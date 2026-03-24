@@ -1,6 +1,6 @@
 # Author: Lenard Felix
 
 from client.network.state import ClientState
-from shared.dispatch import Dispatcher
+from shared.events import EventDispatcher
 
-dispatcher: Dispatcher[ClientState, None] = Dispatcher()
+dispatcher: EventDispatcher[ClientState, None] = EventDispatcher()

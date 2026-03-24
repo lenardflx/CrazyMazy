@@ -11,8 +11,9 @@ class FakeSendSocket:
     def __init__(self) -> None:
         self.sent = b""
 
-    def sendall(self, data: bytes) -> None:
-        self.sent += data
+    def sendall(self, data: bytes | bytearray | memoryview, flags: int = 0) -> None:
+        del flags
+        self.sent += bytes(data)
 
 
 class FakeRecvSocket:
@@ -20,8 +21,9 @@ class FakeRecvSocket:
         self._chunks = list(chunks)
         self._raises_blocking = raises_blocking
 
-    def recv(self, size: int) -> bytes:
-        del size
+    def recv(self, bufsize: int, flags: int = 0) -> bytes:
+        del bufsize
+        del flags
         if self._raises_blocking:
             raise BlockingIOError
         if not self._chunks:
