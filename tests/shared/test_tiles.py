@@ -2,7 +2,7 @@ from shared.state.game_state import Tile
 import pygame
 
 def test_tile_texture():
-    tile : Tile = Tile(2, 0)
+    tile : Tile = Tile(0, 0)
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     tile.load_texture()
@@ -20,7 +20,7 @@ def test_tile_texture():
 
 
 def test_tile_rotation():
-    tile = Tile(1, 0)
+    tile = Tile(2, 2)
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     tile.load_texture()
@@ -38,7 +38,7 @@ def test_tile_rotation():
         screen.blit(bild, (100, 100))
         pygame.display.flip()
 
-        pygame.time.wait(1000)
+        pygame.time.wait(100)
 
         tile.rotate_left()
         bild = pygame.transform.scale(tile.texture, (400, 400))
@@ -47,7 +47,7 @@ def test_tile_rotation():
         screen.blit(bild, (100, 100))
         pygame.display.flip()
 
-        pygame.time.wait(1000)
+        pygame.time.wait(100)
 
         tile.rotate_right()
         bild = pygame.transform.scale(tile.texture, (400, 400))
@@ -56,7 +56,7 @@ def test_tile_rotation():
         screen.blit(bild, (100, 100))
         pygame.display.flip()
 
-        pygame.time.wait(1000)
+        pygame.time.wait(100)
 
         tile.rotate_right()
         bild = pygame.transform.scale(tile.texture, (400, 400))
@@ -65,14 +65,8 @@ def test_tile_rotation():
         screen.blit(bild, (100, 100))
         pygame.display.flip()
 
-        pygame.time.wait(1000)
+        pygame.time.wait(100)
 
-        tile.rotate_right()
-        bild = pygame.transform.scale(tile.texture, (400, 400))
-
-        screen.fill((0, 0, 0))
-        screen.blit(bild, (100, 100))
-        pygame.display.flip()
 
     pygame.quit()
 
