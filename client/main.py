@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Christopher Ionescu
 
 import pygame
 
@@ -7,6 +7,7 @@ from client.screens.base_screen import BaseScreen
 from client.screens.main_menu_screen import MainMenuScreen
 from client.screens.no_server_screen import NoServerScreen
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
+from client.screens.scene_manager import SceneManager
 
 
 def main() -> None:
@@ -18,12 +19,16 @@ def main() -> None:
 
     # Connect to the server
     conn = ClientConnection()
+    scene_manager = SceneManager()
+    
+    #Wenn eine Verbindung zum Server aufgebaut werden kann, gehe ins Hauptmenü, sonst zeige eine Fehlermeldung.
 
-    # Choose the initial screen based on whether the connection was successful
-    screen: BaseScreen = (
-        MainMenuScreen(surface) if conn.connect(SERVER_HOST, SERVER_PORT)
-        else NoServerScreen(surface)
-    )
+    if conn.connect(SERVER_HOST, SERVER_PORT):
+        current_scene = "Main Menu"
+    else:
+        current_scene = "Server Down"
+
+    screen: BaseScreen = (scene_manager.switch_scene(current_scene, surface))
 
     # Main game loop
     running = True
