@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 from shared.utils.ids import new_message_id
 
@@ -27,11 +27,11 @@ class ErrorCode:
     ROOM_FULL = "ROOM_FULL"
 
 
-class Message(TypedDict, total=False):
+class Message(TypedDict):
     id: str
     type: str
-    reply_to: str
     payload: dict[str, Any]
+    reply_to: NotRequired[str]
 
 
 def make_message(msg_type: str, payload: dict[str, Any] | None = None) -> Message:
@@ -43,5 +43,18 @@ def make_message(msg_type: str, payload: dict[str, Any] | None = None) -> Messag
 
 
 def get_message_type(msg: Message) -> str:
-    value = msg.get("type")
-    return value if isinstance(value, str) else ""
+    return msg["type"]
+
+
+def parse_message(raw: object) -> Message | None:
+    if not isinstance(raw, dict):
+        return None
+    if not (
+        isinstance(raw.get("id"), str)
+        and isinstance(raw.get("type"), str)
+        and isinstance(raw.get("payload"), dict)
+    ):
+        return None
+    if "reply_to" in raw and not isinstance(raw["reply_to"], str):
+        return None
+    return cast(Message, raw)
