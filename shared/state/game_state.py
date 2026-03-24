@@ -16,15 +16,15 @@ class TileOrientation(Enum):
     SOUTH = 2
     WEST = 3
 
-class TileSymbol(Enum):
+class TreasureType(Enum):
     STAR = 0
     FROG = 1
 
 class Tile:
-    def __init__(self, type: TileType, orientation: TileOrientation, symbol: None | TileSymbol = None):
+    def __init__(self, type: TileType, orientation: TileOrientation, treasure: None | TreasureType = None):
         self.type = type
         self.orientation = orientation
-        self._symbol = symbol
+        self._treasure = treasure
 
 class Board:
     def __init__(self, width: int):
