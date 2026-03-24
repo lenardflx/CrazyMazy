@@ -38,9 +38,6 @@ class Dispatcher(Generic[TContext, TReturn]):
     def get_handler(self, msg: Message) -> Callable[[TContext, Message], TReturn] | None:
         """Resolve the registered handler for a message."""
         message_type = get_message_type(msg)
-        if not message_type:
-            logger.warning("Dropped message without valid type: %r", msg)
-            return None
         return self._handlers.get(message_type)
 
     def dispatch(self, ctx: TContext, msg: Message) -> TReturn | None:

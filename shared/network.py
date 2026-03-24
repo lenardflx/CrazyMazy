@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import json
-import socket
-from typing import cast
+from typing import Protocol
 
-from shared.protocol import Message
+from shared.protocol import Message, parse_message
 
 
-def send_msg(sock: socket.socket, msg: Message) -> None:
+class SupportsSendall(Protocol):
+    def sendall(self, data: bytes) -> None: ...
+
+
+class SupportsRecv(Protocol):
+    def recv(self, size: int) -> bytes: ...
+
+
+def send_msg(sock: SupportsSendall, msg: Message) -> None:
     sock.sendall((json.dumps(msg) + "\n").encode())
 
 
-def recv_line(buffer: str, sock: socket.socket) -> tuple[Message | None, str]:
+def recv_line(buffer: str, sock: SupportsRecv) -> tuple[Message | None, str]:
     try:
         buffer += sock.recv(4096).decode()
     except BlockingIOError:
@@ -21,7 +28,5 @@ def recv_line(buffer: str, sock: socket.socket) -> tuple[Message | None, str]:
     if "\n" in buffer:
         line, buffer = buffer.split("\n", 1)
         raw = json.loads(line)
-        if not isinstance(raw, dict):
-            return None, buffer
-        return cast(Message, raw), buffer
+        return parse_message(raw), buffer
     return None, buffer

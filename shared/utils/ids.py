@@ -13,16 +13,12 @@ def new_message_id() -> str:
     return _new_id("msg")
 
 
-def new_room_id() -> str:
-    return _new_id("room")
+def new_game_id() -> str:
+    return _new_id("game")
 
 
 def new_member_id() -> str:
     return _new_id("member")
-
-
-def new_match_id() -> str:
-    return _new_id("match")
 
 
 def new_connection_id() -> str:
