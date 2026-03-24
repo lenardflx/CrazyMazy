@@ -1,6 +1,6 @@
 # Author: Lenard Felix
 
 from server.network.models import OutgoingMessage, RequestContext
-from shared.dispatch import Dispatcher
+from shared.events import EventDispatcher
 
-dispatcher: Dispatcher[RequestContext, list[OutgoingMessage]] = Dispatcher()
+dispatcher: EventDispatcher[RequestContext, list[OutgoingMessage]] = EventDispatcher()

@@ -7,18 +7,6 @@ from typing import Any, NotRequired, TypedDict, cast
 from shared.utils.ids import new_message_id
 
 
-class EventType:
-    # Client to Server
-    CLIENT_ROOM_CREATE = "client.room.create"
-    CLIENT_ROOM_JOIN = "client.room.join"
-    CLIENT_ROOM_LEAVE = "client.room.leave"
-    CLIENT_ROOM_START_GAME = "client.room.start_game"
-
-    # Server to Client
-    SERVER_SNAPSHOT = "server.snapshot"
-    SERVER_RESPONSE_ERROR = "server.response.error"
-
-
 class ErrorCode:
     INVALID_MESSAGE = "INVALID_MESSAGE"
     INVALID_PAYLOAD = "INVALID_PAYLOAD"
@@ -40,10 +28,6 @@ def make_message(msg_type: str, payload: dict[str, Any] | None = None) -> Messag
         "type": msg_type,
         "payload": payload or {},
     }
-
-
-def get_message_type(msg: Message) -> str:
-    return msg["type"]
 
 
 def parse_message(raw: object) -> Message | None:

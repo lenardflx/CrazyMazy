@@ -3,9 +3,11 @@
 import socket
 import threading
 
+import server.handlers
 from server.config import HOST, PORT
 from server.network.dispatch import dispatcher
 from server.network.models import OutgoingMessage, RequestContext
+from shared.events import parse_event
 from shared.network import recv_line, send_msg
 
 
@@ -25,7 +27,10 @@ def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:
                 msg, buffer = recv_line(buffer, conn)
                 if msg is None:
                     continue
-                outgoing = dispatcher.dispatch(ctx, msg)
+                event = parse_event(msg)
+                if event is None:
+                    continue
+                outgoing = dispatcher.dispatch(ctx, event)
                 if outgoing is not None:
                     flush_outgoing(outgoing)
             except OSError:

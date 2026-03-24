@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from shared.protocol import get_message_type, make_message, parse_message
+from shared.protocol import make_message, parse_message
 
 
 def test_make_message_sets_id_type_and_default_payload() -> None:
@@ -15,12 +15,6 @@ def test_make_message_preserves_payload() -> None:
     msg = make_message("server.response.error", {"code": "INVALID_MESSAGE"})
 
     assert msg["payload"] == {"code": "INVALID_MESSAGE"}
-
-
-def test_get_message_type_returns_string_type() -> None:
-    msg = make_message("server.snapshot")
-
-    assert get_message_type(msg) == "server.snapshot"
 
 
 def test_parse_message_returns_none_for_missing_type() -> None:

@@ -9,11 +9,11 @@ from shared.protocol import Message, parse_message
 
 
 class SupportsSendall(Protocol):
-    def sendall(self, data: bytes) -> None: ...
+    def sendall(self, data: bytes | bytearray | memoryview, flags: int = 0, /) -> None: ...
 
 
 class SupportsRecv(Protocol):
-    def recv(self, size: int) -> bytes: ...
+    def recv(self, bufsize: int, flags: int = 0, /) -> bytes: ...
 
 
 def send_msg(sock: SupportsSendall, msg: Message) -> None:
