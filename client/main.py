@@ -33,6 +33,7 @@ def main() -> None:
     # Main game loop
     running = True
     while running:
+        #Die Zeit des Frames in Sekunden
         dt = clock.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
@@ -41,13 +42,10 @@ def main() -> None:
             else:
                 screen.handle_event(event)
 
-        screen.update(dt)
-        screen.draw()
-        pygame.display.flip()
+        scene_manager.update_screen(screen, dt)
 
     conn.disconnect()
     pygame.quit()
-
 
 if __name__ == "__main__":
     main()

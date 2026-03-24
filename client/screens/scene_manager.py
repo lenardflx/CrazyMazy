@@ -35,6 +35,9 @@ class SceneManager:
         return scene
 
     #Rendere den Screen in jedem Frame
-    def update_screen(self):
-        pass
+    def update_screen(self, screen, dt):
+        
+        screen.update(dt)
+        screen.draw()
+        pygame.display.flip()
 
