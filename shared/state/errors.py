@@ -1,0 +1,2 @@
+class TileError(Exception):
+    pass
