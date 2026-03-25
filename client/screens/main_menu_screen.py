@@ -13,15 +13,15 @@ class MainMenuScreen(BaseScreen):
         
         #Erzeuge den Quit Button
         self.quit_button = Button(
-        self.surface, 300, 300, 400, 200, text='Quit',
-        fontSize=50, margin=20,
-        image = pg.image.load("assets\\images\\Buttons and UI\\PlaceholderMenuButton.png"),
-        pressedColour=(0, 200, 200), radius=20,
+        self.surface, 300, 300, 120, 40, text='Quit',
+        fontSize=20,
+        margin=0,
+        image = pg.transform.scale(pg.image.load("assets\\images\\Buttons and UI\\PlaceholderMenuButton.png"), (120, 40)),
         onClick=lambda: pg.event.post(pg.event.Event(pg.QUIT))
         )
 
     def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
-        print(event)
+        pass
 
     def update(self, dt: float) -> None:
         events = pg.event.get()
