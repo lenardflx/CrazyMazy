@@ -50,4 +50,5 @@ class SceneManager:
         screen.update(dt)
         screen.draw()
         pygame.display.flip()
+        pygame.display.update()
 
