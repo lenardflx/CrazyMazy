@@ -13,6 +13,9 @@ class SnapshotEvent(Event):
     message_type: ClassVar[str] = "test.snapshot"
     label: str
 
+    def to_payload(self) -> dict[str, str]:
+        return {"label": self.label}
+
     @classmethod
     def from_message(cls, msg: Message) -> "SnapshotEvent | None":
         return cls(message_id=msg["id"], label="snapshot")
@@ -22,6 +25,9 @@ class SnapshotEvent(Event):
 class ErrorEvent(Event):
     message_type: ClassVar[str] = "test.error"
     code: str
+
+    def to_payload(self) -> dict[str, str]:
+        return {"code": self.code}
 
     @classmethod
     def from_message(cls, msg: Message) -> "ErrorEvent | None":
