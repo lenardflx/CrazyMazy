@@ -26,7 +26,6 @@ class TreasureType(Enum):
     BLUE = 1
     RED = 2
     GREEN = 3
-
     SKULL = 4
     SWORD = 5
     GOLDBAG = 6
@@ -133,7 +132,7 @@ class Board:
         self.stack = stack
 
     def get_neighbour(self, position: Tuple[int, int], direction: TileOrientation) -> Tuple[int, int]:
-        # position on border
+        # position on border => no neighbor
         if self.tiles[position[1]] == 0 and direction == TileOrientation.NORTH:
             return None
         if self.tiles[position[1]] == self.width - 1 and direction == TileOrientation.SOUTH:
@@ -143,6 +142,7 @@ class Board:
         if self.tiles[position[0]] == self.width - 1 and direction == TileOrientation.EAST:
             return None
 
+        # return neighbour
         if direction == TileOrientation.NORTH:
             return position[0], position[1]-1
         if direction == TileOrientation.EAST:
@@ -153,31 +153,35 @@ class Board:
             return position[0]-1, position[1]
 
     def move_possible(self, position: Tuple[int, int], direction: TileOrientation):
-        #wall on tile your standing on
+        # wall on tile your standing on
         if self.tiles[position].path[direction.value] == 0:
             return False
 
-        #wall of neighbour in way
+        # wall of neighbour in your way
         if self.get_neighbour(position, direction).path[(direction.value+2)%4] == 0:
             return False
 
-        # not going out of the board
+        # end of board
         if self.get_neighbour(position, direction) == None:
             return False
 
         return True
 
-    def pathfind(self, position: Tuple[int, int], visited = []):
+    def pathfind(self, position: Tuple[int, int], visited=[]):
+        # Add the current position to the visited list
         visited.append(position)
 
+        # Explore all 4 possible directions (0–3)
         for d in range(4):
-            if self.move_possible(position, TileOrientation(d)) and self.get_neighbour(position, TileOrientation(d)) is not None:
-                visited = self.pathfind(self.get_neighbour(position, TileOrientation(d)), visited)
+            # Check if movement in direction d is allowed AND the neighbour exists
+            neighbour = self.get_neighbour(position, TileOrientation(d))
+            if self.move_possible(position, TileOrientation(d)) and neighbour is not None:
+                # Recursively continue pathfinding from the neighbour
+                # The recursive call mutates 'visited' in place, so no reassignment is needed
+                self.pathfind(neighbour, visited)
 
+        # Return the accumulated list of visited positions
         return visited
-
-
-
 
     def create_board(self):
         treasure_order = [i+4 for i in range(12)]
