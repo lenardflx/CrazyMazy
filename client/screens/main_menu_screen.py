@@ -8,7 +8,7 @@ import pygame_widgets as pw
 from pygame_widgets.button import Button
 from typing import Optional
 from client.screens.base_screen import BaseScreen
-from shared.state.textures import TILE_IMAGES
+from shared.state.textures import UI_IMAGES
 
 class MainMenuScreen(BaseScreen):
     def __init__(self, surface: pg.Surface) -> None:
@@ -19,7 +19,7 @@ class MainMenuScreen(BaseScreen):
         self.surface, 300, 300, 120, 40, text='Quit',
         fontSize=20,
         margin=0,
-        image = pg.transform.scale(TILE_IMAGES["BUTTONS"], (120, 40)),
+        image = pg.transform.scale(UI_IMAGES["BUTTONS"], (120, 40)),
         onClick=lambda: pg.event.post(pg.event.Event(pg.QUIT))
         )
 
