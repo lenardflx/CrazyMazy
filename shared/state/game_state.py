@@ -1,7 +1,7 @@
 from enum import Enum
 from shared.state.textures import *
 from collections import deque
-from shared.state.errors import TileError
+from shared.state.errors import TileError, BoardError
 from random import randint, shuffle
 
 
@@ -121,6 +121,7 @@ class Board:
     def __init__(self, width: int = 7):
         self.width = width # may at a scaling feature in the future
         self.tiles = {}
+        self.spare = None
 
         # stack with moving tiles
         stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for i in range(9)] # corner without treasures
@@ -180,8 +181,7 @@ class Board:
                 if self.tiles[(j,i)] is None:
                     self.tiles.update({(j,i) : self.stack[counter]})
                     counter += 1
-
-        self.tiles.update({"spare" : self.stack[counter]})
+        self.spare = self.stack[counter]
 
     def print_board(self):
         board = self._randomBoard()
@@ -192,3 +192,40 @@ class Board:
                 else:
                     print("0")
             print("\n")
+
+    def insert_tile(self, x, y):
+        # check if tile is inserted at the border
+        if (x != 0 and y != 0) and (x != self.width-1 and y != self.width-1):
+            raise BoardError("You can't insert a tile in the middle")
+        # check if the tile is placed outside the board
+        if (x<0 or x>=self.width) or (y<0 or y>=self.width):
+            raise BoardError("You can't insert a tile outside the board")
+        # check if tile is movable
+        if x % 2 == 0 and y % 2 == 0:
+            raise BoardError("That tile isn't movable")
+
+        # horizontal from the left
+        if x == 0:
+            for i in range(self.width):
+                ram = self.tiles[(i,y)]
+                self.tiles.update({(i,y) : self.spare})
+                self.spare = ram
+        #horizontal from the right
+        if x == self.width-1:
+            for i in range(self.width-1, -1, -1):
+                ram = self.tiles[(i,y)]
+                self.tiles.update({(i,y) : self.spare})
+                self.spare = ram
+
+        # vertical from the top
+        if y == 0:
+            for i in range(self.width):
+                ram = self.tiles[(x, i)]
+                self.tiles.update({(x, i) : self.spare})
+                self.spare = ram
+        # vertical from the bottom
+        if y == self.width-1:
+            for i in range(self.width-1, -1, -1):
+                ram = self.tiles[(x, i)]
+                self.tiles.update({(x, i) : self.spare})
+                self.spare = ram
