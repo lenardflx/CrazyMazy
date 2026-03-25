@@ -23,9 +23,9 @@ def main() -> None:
     
     #Wenn eine Verbindung zum Server aufgebaut werden kann, gehe ins Hauptmenü, sonst zeige eine Fehlermeldung.
     if conn.connect(SERVER_HOST, SERVER_PORT):
-        current_scene = "Main Menu"
+        current_scene = SceneTypes.MAIN_MENU
     else:
-        current_scene = "Server Down"
+        current_scene = SceneTypes.SERVER_DOWN
 
     screen = scene_manager.switch_scene(current_scene, surface)
 
