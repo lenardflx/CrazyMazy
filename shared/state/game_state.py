@@ -167,6 +167,10 @@ class Board:
 
         return True
 
+    def way_possible(self, start_position: Tuple[int, int], end_position: Tuple[int, int]):
+        return (end_position in self.pathfind(start_position))
+
+
     def pathfind(self, position: Tuple[int, int], visited=[]):
         # Add the current position to the visited list
         visited.append(position)
