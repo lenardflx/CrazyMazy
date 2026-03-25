@@ -1,4 +1,4 @@
-# Author: Tamay Engin, Lenard Felix
+# Author: Tamay Engin, Lenard Felix, Raphael Eiden
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ class InsertionSide(StrEnum):
     LEFT = "LEFT"
 
 
-class Player(SQLModel, table=True):
+class PlayerData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid4, primary_key=True)
 
     user_id: uuid.UUID = Field(default=None, foreign_key="user.id")
@@ -100,11 +100,11 @@ class Player(SQLModel, table=True):
     finished_at: Optional[datetime] = Field(default=None)
     left_at: Optional[datetime] = Field(default=None)
 
-    game: Optional["Game"] = Relationship(back_populates="players")
-    treasure_cards: list["Treasure"] = Relationship(back_populates="player")
+    game: list["GameData"] = []
+    treasure_cards: list["TreasureData"] = []
 
 
-class Tile(SQLModel, table=True):
+class TileData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     game_id: uuid.UUID = Field(default=None, foreign_key="game.id", index=True)
@@ -129,11 +129,10 @@ class Tile(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
-    game: Optional["Game"] = Relationship(back_populates="tiles")
+    game: list["GameData"] = []
 
 
-
-class Treasure(SQLModel, table=True):
+class TreasureData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     # The player who needs collect this treasure
@@ -151,10 +150,10 @@ class Treasure(SQLModel, table=True):
     # When this treasure was collected
     collected_at: Optional[datetime] = Field(default=None)
 
-    player: Optional["Player"] = Relationship(back_populates="treasure_cards")
+    player: list["PlayerData"] = []
 
 
-class Game(SQLModel, table=True):
+class GameData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     # code used for joining a game
@@ -193,5 +192,5 @@ class Game(SQLModel, table=True):
     started_at: Optional[datetime] = Field(default=None)
     ended_at: Optional[datetime] = Field(default=None)
 
-    players: list["Player"] = Relationship(back_populates="game")
-    tiles: list["Tile"] = Relationship(back_populates="game")
+    players: list["PlayerData"] = []
+    tiles: list["TileData"] = []
