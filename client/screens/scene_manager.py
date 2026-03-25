@@ -1,12 +1,12 @@
 # Author: Christopher Ionescu
 
-#from __future__ import annotations
 import pygame
 from enum import Enum
 from client.screens.base_screen import BaseScreen
 from client.screens.main_menu_screen import MainMenuScreen
 from client.screens.no_server_screen import NoServerScreen
 
+#Die Scenes, die erlaubt sind
 class SceneTypes(Enum):
     MAIN_MENU       = "Main Menu"
     SERVER_DOWN     = "Server Down"
@@ -20,7 +20,7 @@ class SceneManager:
     def __init__(self):
         self.current_scene = ""
 
-    #Zeige die Correcte Scene
+    #Wechsle zur korrekten Scene
     def switch_scene(self, scene_name: SceneTypes, surface) -> BaseScreen:
         scene = surface
         match scene_name:
@@ -36,15 +36,17 @@ class SceneManager:
                 pass
             case SceneTypes.START_GAME:
                 pass
-            #Wenn keine vernünftige Scene übergeben wurde, tu nichts
+            #Wenn keine vernünftige Scene übergeben wurde, tu nichts. Sollte nie passieren.
             case _:
                 return surface
-            
+        
+        #Speichere, in welcher Scene wir gerade sind
         self.current_scene = scene_name
         return scene
 
     #Rendere den Screen in jedem Frame
     def update_screen(self, screen, dt):
+        
         screen.update(dt)
         screen.draw()
         pygame.display.flip()
