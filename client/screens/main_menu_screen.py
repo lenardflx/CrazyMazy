@@ -19,7 +19,7 @@ class MainMenuScreen(BaseScreen):
         self.quit_button = Button(
         self.surface, 300, 300, 300, 200, text='Quit',
         fontSize=50, margin=20,
-        image = pg.image.load("assets/images/Buttons_and_UI/PlaceholderMenuButton.png"),
+        image = pg.image.load("assets\\images\\Buttons and UI\\PlaceholderMenuButton.png"),
         #inactiveColour=(200, 200, 0),
         pressedColour=(0, 200, 200), radius=20,
         onClick=lambda: print('Click'))
