@@ -23,11 +23,11 @@ def main() -> None:
     
     #Wenn eine Verbindung zum Server aufgebaut werden kann, gehe ins Hauptmenü, sonst zeige eine Fehlermeldung.
     if conn.connect(SERVER_HOST, SERVER_PORT):
-        current_scene = SceneTypes.MAIN_MENU
+        scene_manager.set_next_scene(SceneTypes.MAIN_MENU)
     else:
-        current_scene = SceneTypes.SERVER_DOWN
+        scene_manager.set_next_scene(SceneTypes.SERVER_DOWN)
 
-    screen = scene_manager.switch_scene(current_scene, surface)
+    screen = scene_manager.switch_scene(surface)
 
     # Main game loop
     running = True
@@ -43,7 +43,7 @@ def main() -> None:
             else:
                 screen.handle_event(event)
 
-        scene_manager.update_screen(screen, dt)
+        screen = scene_manager.update_screen(screen, surface, dt)
 
     conn.disconnect()
     pygame.quit()
