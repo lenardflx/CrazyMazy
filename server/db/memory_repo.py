@@ -1,7 +1,19 @@
-from __future__ import annotations
+# Author: Raphael Eiden
+"""
+This file provides a naive implementation for all database repositories
+by simply managing the entities in python dictionaries that are kept in
+memory. These repositories do not persist data across application restarts
+and should exclusively be used for testing purposes.
+
+Note that only "Data" objects are used here as "Table" objects require
+a database and their relations to be present.
+
+You can change the implementation used by the server in the `__init__` file
+of this package.
+"""
 
 import random
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
 from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
@@ -21,7 +33,7 @@ class GameRepositoryInMemory(GameRepository):
             return None
         return self._games.get(game_id)
 
-    def create_game(self, board_size: int, leader_player_id: UUID) -> GameData:
+    def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
         game = GameData(
             code=self._new_code(),
             leader_player_id=leader_player_id,
@@ -62,10 +74,8 @@ class PlayerRepositoryInMemory(PlayerRepository):
         game_id: UUID,
         join_order: int,
         piece_color: PlayerColor,
-        user_id: UUID | None = None,
     ) -> PlayerData:
         player = PlayerData(
-            user_id=user_id or uuid4(),
             game_id=game_id,
             connection_id=connection_id,
             display_name=display_name,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository
 from server.lib.game import can_join_game, is_valid_board_size, normalize_join_code
@@ -15,7 +15,7 @@ from server.lib.player import (
     next_join_order,
     normalize_display_name,
 )
-from shared.models import GameData, PlayerData, PlayerStatus, utcnow
+from shared.models import GameData, GameEndReason, GamePhase, PlayerData, PlayerResult, PlayerStatus, utcnow
 
 
 @dataclass(slots=True)
@@ -40,22 +40,18 @@ class GameService:
         board_size: int,
         leader_display_name: str,
         connection_id: str,
-        user_id: UUID | None = None,
     ) -> ConnectionState:
         if not is_valid_board_size(board_size):
             raise ValueError(f"Invalid board size: {board_size}")
 
-        provisional_leader_id = uuid4()  # TODO: replace with a repo/service flow that avoids this placeholder id
-        game = self.game_repo.create_game(board_size, provisional_leader_id)
+        game = self.game_repo.create_game(board_size)
         leader = self._create_player_for_game(
             game=game,
             display_name=leader_display_name,
             connection_id=connection_id,
-            user_id=user_id,
         )
 
         game.leader_player_id = leader.id
-        game.admin = leader.id
         game = self.game_repo.update_game(game)
         return ConnectionState(game=game, player=leader)
 
@@ -64,7 +60,6 @@ class GameService:
         join_code: str,
         display_name: str,
         connection_id: str,
-        user_id: UUID | None = None,
     ) -> ConnectionState:
         game = self.find_game_by_code(join_code)
         if game is None:
@@ -78,7 +73,6 @@ class GameService:
             game=game,
             display_name=display_name,
             connection_id=connection_id,
-            user_id=user_id,
         )
         return ConnectionState(game=game, player=player)
 
@@ -115,14 +109,41 @@ class GameService:
         if game is None:
             return None
 
-        if player.status != PlayerStatus.LEFT:
-            player.status = PlayerStatus.LEFT
-            player.connection_id = None
-            player.left_at = utcnow()
+        players = self._mark_player_departed(player)
+
+        return self._after_player_departure(game, player, players)
+
+    def give_up(self, player_id: UUID) -> GameState | None:
+        player = self.player_repo.find_by_id(player_id)
+        if player is None:
+            return None
+
+        game = self.game_repo.find_by_game_id(player.game_id)
+        if game is None:
+            return None
+
+        if player.result == PlayerResult.NONE:
+            player.result = PlayerResult.FORFEITED
             self.player_repo.update_player(player)
 
-        players = self.player_repo.list_by_game_id(game.id)
+        players = self._mark_player_departed(player)
+        return self._after_player_departure(game, player, players)
+
+    def _after_player_departure(
+        self,
+        game: GameData,
+        player: PlayerData,
+        players: list[PlayerData],
+    ) -> GameState | None:
         remaining_players = active_players(players)
+
+        if game.game_phase == GamePhase.GAME and len(remaining_players) < 2:
+            game.game_phase = GamePhase.POSTGAME
+            game.end_reason = GameEndReason.PLAYERS_LEFT
+            game.current_player_id = None
+            game.ended_at = utcnow()
+            game = self.game_repo.update_game(game)
+            return GameState(game=game, players=players)
 
         if not remaining_players:
             self.game_repo.delete_game(game.id)
@@ -131,17 +152,24 @@ class GameService:
         if game.leader_player_id == player.id:
             next_leader = min(remaining_players, key=lambda current: current.join_order)
             game.leader_player_id = next_leader.id
-            game.admin = next_leader.id
             game = self.game_repo.update_game(game)
 
         return GameState(game=game, players=players)
+
+    def _mark_player_departed(self, player: PlayerData) -> list[PlayerData]:
+        if player.status != PlayerStatus.DEPARTED:
+            player.status = PlayerStatus.DEPARTED
+            player.connection_id = None
+            player.left_at = utcnow()
+            self.player_repo.update_player(player)
+
+        return self.player_repo.list_by_game_id(player.game_id)
 
     def _create_player_for_game(
         self,
         game: GameData,
         display_name: str,
         connection_id: str,
-        user_id: UUID | None = None,
     ) -> PlayerData:
         players = self.player_repo.list_by_game_id(game.id)
         if not is_valid_display_name(display_name):
@@ -160,7 +188,6 @@ class GameService:
             game_id=game.id,
             join_order=join_order,
             piece_color=piece_color,
-            user_id=user_id,
         )
 
 

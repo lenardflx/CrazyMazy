@@ -7,23 +7,67 @@ from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureD
 
 
 class GameRepository(ABC):
+    """
+    An abstraction for all database operations related to Game objects.
+    Note that this repository is strictly responsible for direct database
+    operations and any business logic or resulting queries are made by the
+    Service classes.
+    """
+
     @abstractmethod
-    def find_by_game_id(self, game_id: UUID) -> GameData | None: ...
+    def find_by_game_id(self, game_id: UUID) -> GameData | None:
+        """
+        Find a game by its unique game id, which is equivalent to
+        the primary key (id) of the game entity and may NOT necessarily be
+        the (join) code.
+
+        :param game_id: The id of the game entity to look for.
+        :return: A GameData object if found, None otherwise.
+        """
+        ...
 
     @abstractmethod
     def find_by_join_code(self, join_code: str) -> GameData | None: ...
 
     @abstractmethod
-    def create_game(self, board_size: int, leader_player_id: UUID) -> GameData: ...
+    def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
+        """
+        Create a new game entity.
+
+        :param board_size: The width of the board. This must be an odd number
+                           and at least 7 (which is also the default).
+        :param leader_player_id: The id of the player who created the game, if known yet.
+        :return: The GameData entity including generated data such as the primary key.
+        """
+        ...
 
     @abstractmethod
-    def delete_game(self, game_id: UUID) -> None: ...
+    def delete_game(self, game_id: UUID) -> None:
+        """
+        Delete a game by its game id.
+
+        :param game_id: The id of the game to delete. This is the primary key (id) and not the join code.
+        """
+        ...
 
     @abstractmethod
-    def update_game(self, new_game: GameData) -> GameData: ...
+    def update_game(self, new_game: GameData) -> GameData:
+        """
+        Update the given GameData object in the database.
+
+        :param new_game: The game data to be written into the database.
+        """
+        ...
 
 
 class PlayerRepository(ABC):
+    """
+    An abstraction for all database operations related to Player objects.
+    Note that this repository is strictly responsible for direct database
+    operations and any business logic or resulting queries are made by the
+    Service classes.
+    """
+
     @abstractmethod
     def create_player(
         self,
@@ -32,7 +76,6 @@ class PlayerRepository(ABC):
         game_id: UUID,
         join_order: int,
         piece_color: PlayerColor,
-        user_id: UUID | None = None,
     ) -> PlayerData: ...
 
     @abstractmethod

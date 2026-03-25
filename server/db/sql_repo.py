@@ -39,7 +39,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
             ).first()
         )
 
-    def create_game(self, board_size: int, leader_player_id: UUID) -> GameData:
+    def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
         def op(session: Session) -> GameData:
             game = GameTable(
                 code="0000",
@@ -79,7 +79,6 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
         game_id: UUID,
         join_order: int,
         piece_color: PlayerColor,
-        user_id: UUID | None = None,
     ) -> PlayerData:
         def op(session: Session) -> PlayerData:
             player = PlayerTable(
@@ -88,7 +87,6 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
                 game_id=game_id,
                 join_order=join_order,
                 piece_color=piece_color,
-                user_id=user_id,
             )
             session.add(player)
             session.flush()

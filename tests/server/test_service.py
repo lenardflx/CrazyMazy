@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from server.db.memory_repo import GameRepositoryInMemory, PlayerRepositoryInMemory
-from server.db.service import GameService
-from shared.models import GamePhase, PlayerStatus
+from server.service import GameService
+from shared.models import GameEndReason, GamePhase, PlayerResult, PlayerStatus
 
 
 def make_service() -> GameService:
@@ -22,7 +22,6 @@ def test_create_lobby_creates_game_and_leader() -> None:
     assert state.player.display_name == "Ada"
     assert state.player.join_order == 0
     assert state.game.leader_player_id == state.player.id
-    assert state.game.admin == state.player.id
 
 
 def test_create_lobby_rejects_invalid_board_size() -> None:
@@ -95,7 +94,7 @@ def test_leave_game_transfers_leadership_to_next_active_player() -> None:
     assert state is not None
     assert state.game.leader_player_id == joined.player.id
     former_leader = next(player for player in state.players if player.id == created.player.id)
-    assert former_leader.status == PlayerStatus.LEFT
+    assert former_leader.status == PlayerStatus.DEPARTED
     assert former_leader.connection_id is None
 
 
@@ -107,3 +106,56 @@ def test_leave_game_deletes_empty_game() -> None:
 
     assert state is None
     assert service.find_game(created.game.id) is None
+
+
+def test_leave_game_moves_active_game_to_postgame_when_one_player_remains() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = created.player.id
+    service.game_repo.update_game(created.game)
+
+    state = service.leave_game(created.player.id)
+
+    assert state is not None
+    assert state.game.game_phase == GamePhase.POSTGAME
+    assert state.game.end_reason == GameEndReason.PLAYERS_LEFT
+    assert state.game.current_player_id is None
+    assert state.game.ended_at is not None
+    assert state.game.leader_player_id == joined.player.id
+
+
+def test_leave_game_moves_active_game_to_postgame_when_everyone_has_left() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = created.player.id
+    service.game_repo.update_game(created.game)
+
+    state = service.leave_game(created.player.id)
+
+    assert state is not None
+    assert state.game.game_phase == GamePhase.POSTGAME
+    assert state.game.end_reason == GameEndReason.PLAYERS_LEFT
+    assert state.game.current_player_id is None
+    assert state.game.ended_at is not None
+    assert service.find_game(created.game.id) is not None
+
+
+def test_give_up_marks_player_forfeited_and_ends_active_game() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = joined.player.id
+    service.game_repo.update_game(created.game)
+
+    state = service.give_up(joined.player.id)
+
+    assert state is not None
+    forfeiting_player = next(player for player in state.players if player.id == joined.player.id)
+    assert forfeiting_player.result == PlayerResult.FORFEITED
+    assert forfeiting_player.status == PlayerStatus.DEPARTED
+    assert state.game.game_phase == GamePhase.POSTGAME
+    assert state.game.end_reason == GameEndReason.PLAYERS_LEFT

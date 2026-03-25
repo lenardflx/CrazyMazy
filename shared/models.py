@@ -8,7 +8,7 @@ from enum import StrEnum
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, SQLModel
 
 
 def utcnow() -> datetime:
@@ -17,13 +17,13 @@ def utcnow() -> datetime:
 class PlayerStatus(StrEnum):
     ACTIVE = "ACTIVE"
     OBSERVER = "OBSERVER"
-    LEFT = "LEFT"
+    DEPARTED = "DEPARTED"
 
 
 class PlayerResult(StrEnum):
     NONE = "NONE"
     WON = "WON"
-    GAVE_UP = "GAVE_UP"
+    FORFEITED = "FORFEITED"
 
 
 class PlayerColor(StrEnum):
@@ -51,6 +51,11 @@ class GamePhase(StrEnum):
     POSTGAME = "POSTGAME"
 
 
+class GameEndReason(StrEnum):
+    PLAYERS_LEFT = "PLAYERS_LEFT"
+    COMPLETED = "COMPLETED"
+
+
 class TurnPhase(StrEnum):
     SHIFT = "SHIFT" # move tile
     MOVE = "MOVE" # move player position
@@ -65,8 +70,6 @@ class InsertionSide(StrEnum):
 
 class PlayerData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid4, primary_key=True)
-
-    user_id: uuid.UUID | None = Field(default=None, foreign_key="user.id")
 
     game_id: uuid.UUID = Field(foreign_key="game.id", index=True)
 
@@ -100,16 +103,11 @@ class PlayerData(SQLModel):
     finished_at: Optional[datetime] = Field(default=None)
     left_at: Optional[datetime] = Field(default=None)
 
-    game: list["GameData"] = []
-    treasure_cards: list["TreasureData"] = []
-
 
 class TileData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     game_id: uuid.UUID = Field(default=None, foreign_key="game.id", index=True)
-
-    treasure_id: uuid.UUID = Field(default=None, foreign_key="treasure.id")
 
     # Position on the board
     row: Optional[int] = Field(default=None, index=True)
@@ -119,7 +117,7 @@ class TileData(SQLModel):
     rotation: int = Field(default=0)
 
     # The one tile currently outside the board
-    is_spare: int = Field(default=0, index=True)
+    is_spare: bool = Field(default=False, index=True)
 
     # Treasure symbol printed on this tile, if any
     treasure_type: Optional[TreasureType] = Field(default=None)
@@ -128,8 +126,6 @@ class TileData(SQLModel):
 
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
-
-    game: list["GameData"] = []
 
 
 class TreasureData(SQLModel):
@@ -145,12 +141,10 @@ class TreasureData(SQLModel):
     order_index: int = Field(index=True)
 
     # Whether this treasure has already been collected
-    collected: int = Field(default=0, index=True)
+    collected: bool = Field(default=False, index=True)
 
     # When this treasure was collected
     collected_at: Optional[datetime] = Field(default=None)
-
-    player: list["PlayerData"] = []
 
 
 class GameData(SQLModel):
@@ -158,12 +152,9 @@ class GameData(SQLModel):
 
     # code used for joining a game
     code: str = Field(index=True, unique=True, max_length=16)
-    
-    # Player who created and controls the game
-    admin: uuid.UUID | None = Field(default=None, foreign_key="player.id")
 
     # Lobby's leader
-    leader_player_id: Optional[UUID] = Field(default=None, index=True)
+    leader_player_id: Optional[UUID] = Field(default=None, foreign_key="player.id", index=True)
 
     # Board size. Must be odd, and enforced in service
     board_size: int = Field(default=7)
@@ -171,14 +162,14 @@ class GameData(SQLModel):
     # lifecycle of the game: lobby -> running match -> rematch screen
     game_phase: GamePhase = Field(default=GamePhase.PREGAME)
 
+    # why the game ended once it reaches postgame
+    end_reason: Optional[GameEndReason] = Field(default=None)
+
     # Turn Phase during an active Match
     turn_phase: Optional[TurnPhase] = Field(default=None)
 
-    # Where card is inserted
-    insertion_side: Optional[int] = Field(default=None)
-
     # Current active player during the running match. Random pick at match start
-    current_player_id: Optional[UUID] = Field(default=None, index=True)
+    current_player_id: Optional[UUID] = Field(default=None, foreign_key="player.id", index=True)
 
     # version for snapshot syncing
     revision: int = Field(default=0)
@@ -191,6 +182,3 @@ class GameData(SQLModel):
     updated_at: datetime = Field(default_factory=utcnow)
     started_at: Optional[datetime] = Field(default=None)
     ended_at: Optional[datetime] = Field(default=None)
-
-    players: list["PlayerData"] = []
-    tiles: list["TileData"] = []
