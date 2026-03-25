@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from shared.models import Player, PlayerColor, PlayerStatus
+from shared.models import PlayerColor, PlayerData, PlayerStatus
 
 
 def normalize_display_name(name: str) -> str:
@@ -14,7 +14,7 @@ def is_valid_display_name(name: str) -> bool:
     return bool(normalized) and len(normalized) <= 32
 
 
-def is_display_name_taken(players: Iterable[Player], display_name: str) -> bool:
+def is_display_name_taken(players: Iterable[PlayerData], display_name: str) -> bool:
     normalized = normalize_display_name(display_name).lower()
 
     for player in players:
@@ -24,7 +24,7 @@ def is_display_name_taken(players: Iterable[Player], display_name: str) -> bool:
     return False
 
 
-def next_join_order(players: Iterable[Player]) -> int:
+def next_join_order(players: Iterable[PlayerData]) -> int:
     highest = -1
     for player in players:
         if player.join_order > highest:
@@ -32,11 +32,11 @@ def next_join_order(players: Iterable[Player]) -> int:
     return highest + 1
 
 
-def active_players(players: Iterable[Player]) -> list[Player]:
+def active_players(players: Iterable[PlayerData]) -> list[PlayerData]:
     return [player for player in players if player.status != PlayerStatus.LEFT]
 
 
-def next_available_color(players: Iterable[Player]) -> PlayerColor | None:
+def next_available_color(players: Iterable[PlayerData]) -> PlayerColor | None:
     used = {player.piece_color for player in active_players(players)}
 
     # TODO: is this a good way to assign colors? Should we rethink the color model

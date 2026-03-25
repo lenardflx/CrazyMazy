@@ -66,7 +66,7 @@ class InsertionSide(StrEnum):
 class PlayerData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid4, primary_key=True)
 
-    user_id: uuid.UUID = Field(default=None, foreign_key="user.id")
+    user_id: uuid.UUID | None = Field(default=None, foreign_key="user.id")
 
     game_id: uuid.UUID = Field(foreign_key="game.id", index=True)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
-from shared.models import Game, GamePhase, Player
+from shared.models import GameData, GamePhase, PlayerData
 from server.lib.player import active_players
 
 MIN_BOARD_SIZE = 7
@@ -27,7 +27,7 @@ def is_valid_join_code(code: str) -> bool:
     return bool(JOIN_CODE_PATTERN.fullmatch(normalized))
 
 
-def can_join_game(game: Game, players: Iterable[Player]) -> bool:
+def can_join_game(game: GameData, players: Iterable[PlayerData]) -> bool:
     if game.game_phase != GamePhase.PREGAME:
         return False
     if not is_valid_board_size(game.board_size):
