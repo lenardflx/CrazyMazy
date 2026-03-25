@@ -1,36 +1,32 @@
-# Author: Lenard Felix, Christopher Ionescu
-
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pygame as pg
-import pygame_widgets as pw
 
-from pygame_widgets.button import Button
-from typing import Optional
-from client.screens.base_screen import BaseScreen
-from shared.state.textures import UI_IMAGES
+from client.config import WINDOW_TITLE
+from client.screens.menu_screen import MenuScreen
+from client.screens.scene_types import SceneTypes
 
-class MainMenuScreen(BaseScreen):
-    def __init__(self, surface: pg.Surface) -> None:
-        self.surface = surface
-        
-        #Erzeuge den Quit Button
-        self.quit_button = Button(
-        self.surface, 300, 300, 120, 40, text='Quit',
-        fontSize=20,
-        margin=0,
-        image = pg.transform.scale(UI_IMAGES["BUTTONS"], (120, 40)),
-        onClick=lambda: pg.event.post(pg.event.Event(pg.QUIT))
+if TYPE_CHECKING:
+    from client.screens.scene_manager import SceneManager
+
+
+class MainMenuScreen(MenuScreen):
+    def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
+        super().__init__(
+            surface,
+            scene_manager,
+            title=WINDOW_TITLE,
+            is_main_menu=True,
+            buttons=[
+                ("Create", SceneTypes.CREATE_LOBBY, "primary"),
+                ("Join", SceneTypes.JOIN_LOBBY, "secondary"),
+                ("Tutorial", SceneTypes.TUTORIAL, "secondary"),
+                ("Options", SceneTypes.SETTINGS, "secondary"),
+                ("Quit", self._quit, "secondary"),
+            ],
         )
 
-    def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
-        pass
-
-    def update(self, dt: float) -> None:
-        events = pg.event.get()
-        pw.update(events)
-
-    def draw(self) -> None:
-        pass
-
-
+    def _quit(self) -> None:
+        pg.event.post(pg.event.Event(pg.QUIT))

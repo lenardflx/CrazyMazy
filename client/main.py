@@ -6,7 +6,8 @@ import client.network.handlers
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
-from client.screens.scene_manager import SceneManager, SceneTypes
+from client.screens.scene_manager import SceneManager
+from client.screens.scene_types import SceneTypes
 
 
 def main() -> None:
@@ -41,7 +42,9 @@ def main() -> None:
             if event.type == pygame.QUIT:
                 running = False
             else:
-                screen.handle_event(event)
+                next_screen = screen.handle_event(event)
+                if next_screen is not None:
+                    screen = next_screen
 
         scene_manager.update_screen(screen, dt)
 

@@ -7,6 +7,9 @@ from client.screens.base_screen import BaseScreen
 
 
 class NoServerScreen(BaseScreen):
+    def __init__(self, surface: pygame.Surface) -> None:
+        super().__init__(surface)
+
     def handle_event(self, event: pygame.event.Event) -> Optional[BaseScreen]:
         return None
 
