@@ -7,9 +7,10 @@ from typing import TYPE_CHECKING
 
 from client.network.dispatch import dispatcher
 from shared.events import Event, parse_event
+from shared.lib.error import parse_error_payload
 from shared.network import recv_line, send_msg
 from shared.protocol import Message
-from shared.schema import ErrorPayload, parse_error_payload
+from shared.schema import ErrorPayload
 
 if TYPE_CHECKING:
     from client.network.state import ClientState
