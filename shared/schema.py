@@ -65,3 +65,66 @@ class RoomSnapshotPayload(TypedDict):
     tiles: list[TilePayload]
     players: list[PublicPlayerPayload]
     viewer: ViewerPayload | None
+
+
+class ClientGameShiftTilePayload(TypedDict):
+    insertion_side: str
+    insertion_index: int
+    rotation: int
+
+
+class ClientGameMovePlayerPayload(TypedDict):
+    x: int
+    y: int
+
+
+class ServerGameStartedPayload(TypedDict):
+    game_id: str
+    revision: int
+    phase: str
+    current_player_id: str | None
+    turn_phase: str | None
+
+
+class ServerGameTileShiftedPayload(TypedDict):
+    game_id: str
+    revision: int
+    insertion_side: str
+    insertion_index: int
+    tile: TilePayload
+    current_player_id: str | None
+    turn_phase: str | None
+    blocked_insertion_side: str | None
+    blocked_insertion_index: int | None
+
+
+class ServerGamePlayerMovedPayload(TypedDict):
+    game_id: str
+    revision: int
+    player_id: str
+    position: PositionPayload
+    active_treasure_type: str | None
+    collected_treasure_type: str | None
+    remaining_treasure_count: int
+
+
+class ServerGameTurnChangedPayload(TypedDict):
+    game_id: str
+    revision: int
+    current_player_id: str | None
+    turn_phase: str | None
+    blocked_insertion_side: str | None
+    blocked_insertion_index: int | None
+
+
+class GamePlacementPayload(TypedDict):
+    player_id: str
+    result: str
+    placement: int | None
+
+
+class ServerGameFinishedPayload(TypedDict):
+    game_id: str
+    revision: int
+    winner_player_id: str | None
+    placements: list[GamePlacementPayload]
