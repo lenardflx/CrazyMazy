@@ -1,8 +1,17 @@
-# Author: Tamay Engin
+# Author: Tamay Engin, Lenard Felix
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
 from enum import StrEnum
+from typing import Optional
+from uuid import UUID, uuid4
 
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 class PlayerStatus(StrEnum):
     ACTIVE = "ACTIVE"
@@ -111,7 +120,7 @@ class Tile(SQLModel, table=True):
     rotation: int = Field(default=0)
 
     # The one tile currently outside the board
-    is_spare: bool = Field(default=False, index=True)
+    is_spare: int = Field(default=0, index=True)
 
     # Treasure symbol printed on this tile, if any
     treasure_type: Optional[TreasureType] = Field(default=None)
@@ -139,7 +148,7 @@ class Treasure(SQLModel, table=True):
     order_index: int = Field(index=True)
 
     # Whether this treasure has already been collected
-    collected: bool = Field(default=False, index=True)
+    collected: int = Field(default=0, index=True)
 
     # When this treasure was collected
     collected_at: Optional[datetime] = Field(default=None)
