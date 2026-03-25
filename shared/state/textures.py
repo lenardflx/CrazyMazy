@@ -1,8 +1,6 @@
 import pygame
 from pathlib import Path
 
-from server.models.treasure import Treasure
-
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 def image_load(path):

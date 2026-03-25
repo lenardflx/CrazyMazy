@@ -17,4 +17,4 @@ def handle_response_error(state: ClientState, event: ServerResponseErrorEvent) -
 
 @dispatcher.handler(ServerRoomSnapshotEvent)
 def handle_room_snapshot(state: ClientState, event: ServerRoomSnapshotEvent) -> None:
-    """TODO: implement room snapshot as soon as the schema is set"""
+    state.room_snapshot = event.payload

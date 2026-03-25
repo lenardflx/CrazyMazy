@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Mapping, Self
 
+from shared.lib.error import parse_error_payload
+from shared.lib.snapshot import parse_room_snapshot_payload
 from shared.protocol import Message, make_message
-from shared.schema import ErrorPayload, parse_error_payload
+from shared.schema import ErrorPayload, RoomSnapshotPayload
 from shared.utils.ids import new_message_id
 
 
@@ -23,7 +25,7 @@ class Event(ABC):
 
 
     @abstractmethod
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> Mapping[str, Any]:
         """Serialize the event-specific payload for transport."""
         raise NotImplementedError
 
@@ -56,7 +58,7 @@ class ClientJoinRoomEvent(Event):
     room_id: str
     player_name: str
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> Mapping[str, Any]:
         return {
             "room_id": self.room_id,
             "player_name": self.player_name,
@@ -80,18 +82,21 @@ class ClientJoinRoomEvent(Event):
 
 @dataclass(frozen=True)
 class ServerRoomSnapshotEvent(Event):
-    """Server snapshot response with raw payload until the schema is finalized."""
+    """Server snapshot response for the current viewer."""
 
     message_type = "room.snapshot"
 
-    payload: dict[str, Any]
+    payload: RoomSnapshotPayload
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> Mapping[str, Any]:
         return self.payload
 
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
-        return cls(message_id=msg["id"], payload=msg["payload"])
+        payload = parse_room_snapshot_payload(msg["payload"])
+        if payload is None:
+            return None
+        return cls(message_id=msg["id"], payload=payload)
 
 
 @dataclass(frozen=True)
@@ -103,7 +108,7 @@ class ServerResponseErrorEvent(Event):
     code: str
     message: str
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> Mapping[str, Any]:
         return {
             "code": self.code,
             "message": self.message,

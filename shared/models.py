@@ -1,13 +1,14 @@
 # Author: Tamay Engin, Lenard Felix
 
-from sqlmodel import Field, Relationship, SQLModel
-
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Optional
 from uuid import UUID, uuid4
+
+from sqlmodel import Field, Relationship, SQLModel
 
 
 def utcnow() -> datetime:
@@ -99,8 +100,8 @@ class Player(SQLModel, table=True):
     finished_at: Optional[datetime] = Field(default=None)
     left_at: Optional[datetime] = Field(default=None)
 
-    game: Optional[Game] = Relationship(back_populates="players")
-    treasure_cards: list["TreasureCard"] = Relationship(back_populates="player")
+    game: Optional["Game"] = Relationship(back_populates="players")
+    treasure_cards: list["Treasure"] = Relationship(back_populates="player")
 
 
 class Tile(SQLModel, table=True):
@@ -123,13 +124,12 @@ class Tile(SQLModel, table=True):
     # Treasure symbol printed on this tile, if any
     treasure_type: Optional[TreasureType] = Field(default=None)
 
-    # Type of tile
-    tile_type: TileType = Field(default=TypeType.STRAIGHT)
+    tile_type: TileType = Field(default=TileType.STRAIGHT)
 
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
-    game: Optional[Game] = Relationship(back_populates="tiles")
+    game: Optional["Game"] = Relationship(back_populates="tiles")
 
 
 
@@ -150,6 +150,8 @@ class Treasure(SQLModel, table=True):
 
     # When this treasure was collected
     collected_at: Optional[datetime] = Field(default=None)
+
+    player: Optional["Player"] = Relationship(back_populates="treasure_cards")
 
 
 class Game(SQLModel, table=True):
