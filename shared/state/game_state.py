@@ -1,11 +1,9 @@
 from collections import deque
+from enum import Enum
 from shared.state.errors import TileError, BoardError
 from random import randint, shuffle
 from typing import Tuple
-
 import pygame
-
-from shared.state.errors import TileError
 from shared.state.textures import TILE_IMAGES
 
 
@@ -161,7 +159,7 @@ class Board:
         shuffle(stack)
         self.stack = stack
 
-    def get_neighbour(self, position: Tuple[int, int], direction: TileOrientation) -> Tuple[int, int]:
+    def get_neighbour(self, position: Tuple[int, int], direction: TileOrientation) -> tuple[int, int] | None:
         # position on border => no neighbor
         if position[1] == 0 and direction == TileOrientation.NORTH:
             return None
@@ -188,7 +186,7 @@ class Board:
             return False
 
         # end of board
-        if self.get_neighbour(position, direction) == None:
+        if self.get_neighbour(position, direction) is None:
             return False
 
         # wall of neighbour in your way
@@ -199,7 +197,7 @@ class Board:
         return True
 
     def pathvalidating(self, start_position: Tuple[int, int], end_position: Tuple[int, int]):
-        return (end_position in self.pathfind(start_position))
+        return end_position in self.pathfind(start_position)
 
 
     def pathfind(self, position: Tuple[int, int], visited=[]):
@@ -277,16 +275,6 @@ class Board:
                     self.tiles.update({(j,i) : self.stack[counter]})
                     counter += 1
         self.spare = self.stack[counter]
-
-    def print_board(self):
-        board = self._randomBoard()
-        for i in range(board.width):
-            for j in range(board.width):
-                if board.tiles[(j, i)] is not None:
-                    print("1")
-                else:
-                    print("0")
-            print("\n")
 
     def insert_tile(self, x, y):
         # check if tile is inserted at the border
