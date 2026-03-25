@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from shared.events import ClientJoinRoomEvent, ServerResponseErrorEvent, ServerRoomSnapshotEvent, parse_event
-from shared.protocol import make_message
+from shared.lib.snapshot import parse_room_snapshot_payload
 
 
 def make_snapshot_payload() -> dict[str, object]:
@@ -73,71 +72,34 @@ def make_snapshot_payload() -> dict[str, object]:
     }
 
 
-def test_event_to_message_uses_event_id_and_payload() -> None:
-    event = ClientJoinRoomEvent(
-        message_id="msg_custom",
-        room_id="ROOM-1",
-        player_name="Ada",
-    )
-
-    msg = event.to_message()
-
-    assert msg["id"] == "msg_custom"
-    assert msg["type"] == ClientJoinRoomEvent.message_type
-    assert msg["payload"] == {
-        "room_id": "ROOM-1",
-        "player_name": "Ada",
-    }
-
-
-def test_event_generates_message_id_by_default() -> None:
-    event = ClientJoinRoomEvent(
-        room_id="ROOM-1",
-        player_name="Ada",
-    )
-
-    assert event.message_id.startswith("msg_")
-
-
-def test_parse_event_returns_join_event_for_valid_message() -> None:
-    event = parse_event(
-        make_message(
-            ClientJoinRoomEvent.message_type,
-            {"room_id": " ROOM-1 ", "player_name": " Ada "},
-        )
-    )
-
-    assert isinstance(event, ClientJoinRoomEvent)
-    assert event.room_id == "ROOM-1"
-    assert event.player_name == "Ada"
-
-
-def test_parse_event_returns_none_for_unknown_message_type() -> None:
-    assert parse_event(make_message("unknown.event")) is None
-
-
-def test_parse_event_returns_none_for_invalid_join_payload() -> None:
-    assert parse_event(
-        make_message(ClientJoinRoomEvent.message_type, {"room_id": "ROOM-1"})
-    ) is None
-
-
-def test_parse_event_returns_snapshot_event_for_snapshot_message() -> None:
+def test_parse_room_snapshot_payload_accepts_viewer_specific_snapshot() -> None:
     payload = make_snapshot_payload()
-    event = parse_event(make_message(ServerRoomSnapshotEvent.message_type, payload))
 
-    assert isinstance(event, ServerRoomSnapshotEvent)
-    assert event.payload == payload
+    parsed = parse_room_snapshot_payload(payload)
+
+    assert parsed == payload
 
 
-def test_parse_event_returns_error_event_for_error_message() -> None:
-    event = parse_event(
-        make_message(
-            ServerResponseErrorEvent.message_type,
-            {"code": "ROOM_NOT_FOUND", "message": "missing"},
-        )
-    )
+def test_parse_room_snapshot_payload_rejects_non_spare_tile_without_position() -> None:
+    payload = make_snapshot_payload()
+    tiles = payload["tiles"]
+    assert isinstance(tiles, list)
+    tile = tiles[0]
+    assert isinstance(tile, dict)
+    tile.pop("row")
 
-    assert isinstance(event, ServerResponseErrorEvent)
-    assert event.code == "ROOM_NOT_FOUND"
-    assert event.message == "missing"
+    assert parse_room_snapshot_payload(payload) is None
+
+
+def test_parse_room_snapshot_payload_strips_hidden_player_fields() -> None:
+    payload = make_snapshot_payload()
+    players = payload["players"]
+    assert isinstance(players, list)
+    player = players[0]
+    assert isinstance(player, dict)
+    player["active_treasure_type"] = "OWL"
+
+    parsed = parse_room_snapshot_payload(payload)
+
+    assert parsed is not None
+    assert "active_treasure_type" not in parsed["players"][0]

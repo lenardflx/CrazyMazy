@@ -102,7 +102,7 @@ class Tile:
             self.path = deque([1,1,0,1])
         else:
             # invalid tile type → fail fast
-            raise TileError(f"Unbekannter Tile-Typ: '{self.type}'")
+            raise TileError(f"unknown Tile-Type: '{self.type}'")
 
         # rotate path according to orientation
         self.path.rotate(TileOrientation(self.orientation).value)
@@ -123,6 +123,8 @@ class Tile:
             self.texture = pygame.transform.rotate(texture, 180)
         elif self.orientation == TileOrientation.WEST.value:
             self.texture = pygame.transform.rotate(texture, 90)
+        else:
+            raise TileError(f"unknown orientation: '{self.orientation}'")
 
     def rotate_left(self):
         # rotate orientation counter‑clockwise
@@ -148,7 +150,7 @@ class Board:
 
         # stack with moving tiles
         stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for i in range(8)] # corner without treasures
-        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(5)] #corners with treasures
+        stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(5)] #corners with treasures
         stack += [Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(i+16)) for i in range(5)] # all t-pieces have treasures
         stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for i in range(12)] # straights dont have treasures
         self.stack = shuffle(stack)

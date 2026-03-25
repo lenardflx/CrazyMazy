@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, Mapping, NotRequired, TypedDict, cast
 
 from shared.utils.ids import new_message_id
 
@@ -44,11 +44,11 @@ class Message(TypedDict):
     """
     id: str
     type: str
-    payload: dict[str, Any]
+    payload: Mapping[str, Any]
     reply_to: NotRequired[str]
 
 
-def make_message(msg_type: str, payload: dict[str, Any] | None = None) -> Message:
+def make_message(msg_type: str, payload: Mapping[str, Any] | None = None) -> Message:
     """
     Generates a new message object with the given type and payload.
     A random message id is automatically generated.
