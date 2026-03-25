@@ -1,8 +1,8 @@
-from shared.state.game_state import Tile
+from shared.state.game_state import Tile, TileType
 import pygame
 
 def test_tile_texture():
-    tile : Tile = Tile(2, 0)
+    tile : Tile = Tile(TileType.CORNER, 0)
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     tile.load_texture()

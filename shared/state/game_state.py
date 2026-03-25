@@ -3,6 +3,7 @@ from shared.state.textures import *
 from collections import deque
 from shared.state.errors import TileError, BoardError
 from random import randint, shuffle
+from typing import Tuple
 
 
 class GameState:
@@ -130,6 +131,53 @@ class Board:
         stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for i in range(13)] # straights don't have treasures
         shuffle(stack)
         self.stack = stack
+
+    def get_neighbour(self, position: Tuple[int, int], direction: TileOrientation) -> Tuple[int, int]:
+        # position on border
+        if self.tiles[position[1]] == 0 and direction == TileOrientation.NORTH:
+            return None
+        if self.tiles[position[1]] == self.width - 1 and direction == TileOrientation.SOUTH:
+            return None
+        if self.tiles[position[0]] == 0 and direction == TileOrientation.WEST:
+            return None
+        if self.tiles[position[0]] == self.width - 1 and direction == TileOrientation.EAST:
+            return None
+
+        if direction == TileOrientation.NORTH:
+            return position[0], position[1]-1
+        if direction == TileOrientation.EAST:
+            return position[0]+1, position[1]
+        if direction == TileOrientation.SOUTH:
+            return position[0], position[1]+1
+        if direction == TileOrientation.WEST:
+            return position[0]-1, position[1]
+
+    def move_possible(self, position: Tuple[int, int], direction: TileOrientation):
+        #wall on tile your standing on
+        if self.tiles[position].path[direction.value] == 0:
+            return False
+
+        #wall of neighbour in way
+        if self.get_neighbour(position, direction).path[(direction.value+2)%4] == 0:
+            return False
+
+        # not going out of the board
+        if self.get_neighbour(position, direction) == None:
+            return False
+
+        return True
+
+    def pathfind(self, position: Tuple[int, int], visited = []):
+        visited.append(position)
+
+        for d in range(4):
+            if self.move_possible(position, TileOrientation(d)) and self.get_neighbour(position, TileOrientation(d)) is not None:
+                visited = self.pathfind(self.get_neighbour(position, TileOrientation(d)), visited)
+
+        return visited
+
+
+
 
     def create_board(self):
         treasure_order = [i+4 for i in range(12)]
