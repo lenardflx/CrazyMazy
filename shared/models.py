@@ -100,9 +100,6 @@ class PlayerData(SQLModel):
     finished_at: Optional[datetime] = Field(default=None)
     left_at: Optional[datetime] = Field(default=None)
 
-    game: list["GameData"] = []
-    treasure_cards: list["TreasureData"] = []
-
 
 class TileData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -129,8 +126,6 @@ class TileData(SQLModel):
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
-    game: list["GameData"] = []
-
 
 class TreasureData(SQLModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -149,8 +144,6 @@ class TreasureData(SQLModel):
 
     # When this treasure was collected
     collected_at: Optional[datetime] = Field(default=None)
-
-    player: list["PlayerData"] = []
 
 
 class GameData(SQLModel):
@@ -191,6 +184,3 @@ class GameData(SQLModel):
     updated_at: datetime = Field(default_factory=utcnow)
     started_at: Optional[datetime] = Field(default=None)
     ended_at: Optional[datetime] = Field(default=None)
-
-    players: list["PlayerData"] = []
-    tiles: list["TileData"] = []

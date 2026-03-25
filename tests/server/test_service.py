@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from server.db.memory_repo import GameRepositoryInMemory, PlayerRepositoryInMemory
-from server.db.service import GameService
+from server.service import GameService
 from shared.models import GamePhase, PlayerStatus
 
 

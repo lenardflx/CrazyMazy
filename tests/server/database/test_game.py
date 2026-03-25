@@ -4,19 +4,19 @@ from server.db.sql_repo.py import GameRepositorySQL
 from server.db.sql_repo.py import PlayerRepositorySQL
 
 def test_find_game_by_id()
-    player = PlayerRepositorySQL.create_player(display_name: "Name")
+    player = PlayerRepositorySQL.create_player("Name")
     game = GameRepositorySQL.create_game(7, player.id)
     results = GameRepositorySQL.find_game_by_id(game.id)
     assert game == results[0]
 
 def test_create_game()
-    player = PlayerRepositorySQL.create_player(display_name: "Name")
+    player = PlayerRepositorySQL.create_player("Name")
     game = GameRepositorySQL.create_game(5, player.id)
     results = GameRepositorySQL.find_game_by_id(game.id)
     assert game == results[0]
 
 def test_delete_game()
-    player = PlayerRepositorySQL.create_player(display_name: "Name")
+    player = PlayerRepositorySQL.create_player("Name")
     game = GameRepositorySQL.create_game(9, player.id)
     GameRepositorySQL.delete_game(game.id):
     results = GameRepositorySQL.find_game_by_id(game.id)
