@@ -1,4 +1,16 @@
-from __future__ import annotations
+# Author: Raphael Eiden
+"""
+This file provides a naive implementation for all database repositories
+by simply managing the entities in python dictionaries that are kept in
+memory. These repositories do not persist data across application restarts
+and should exclusively be used for testing purposes.
+
+Note that only "Data" objects are used here as "Table" objects require
+a database and their relations to be present.
+
+You can change the implementation used by the server in the `__init__` file
+of this package.
+"""
 
 import random
 from uuid import UUID, uuid4

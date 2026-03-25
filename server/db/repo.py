@@ -1,48 +1,83 @@
+# Author: Raphael Eiden
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Optional
 from uuid import UUID
 
-from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
+from shared.models import GameData, PlayerData, TileData, TreasureData
 
 
 class GameRepository(ABC):
-    @abstractmethod
-    def find_by_game_id(self, game_id: UUID) -> GameData | None: ...
+    """
+    An abstraction for all database operations related to Game objects.
+    Note that this repository is strictly responsible for direct database
+    operations and any business logic or resulting queries are made by the
+    Service classes.
+    """
 
     @abstractmethod
-    def find_by_join_code(self, join_code: str) -> GameData | None: ...
+    def find_by_game_id(self, game_id: UUID) -> Optional[GameData]:
+        """
+        Find a game by its unique game id, which is equivalent to
+        the primary key (id) of the game entity and may NOT necessarily be
+        the (join) code.
+
+        :param game_id: The id of the game entity to look for.
+        :return: A GameData object if found, None otherwise.
+        """
+        ...
 
     @abstractmethod
-    def create_game(self, board_size: int, leader_player_id: UUID) -> GameData: ...
+    def find_by_join_code(self, join_code: str) -> Optional[GameData]: ...
 
     @abstractmethod
-    def delete_game(self, game_id: UUID) -> None: ...
+    def create_game(self, board_size: int, leader_player_id: UUID) -> Optional[GameData]:
+        """
+        Create a new game entity based on the
+
+        :param board_size:          The width of the board. This must be an odd number
+                                    and at least 7 (which is also the default)
+        :param leader_player_id:    The id of the player who created the game.
+        :return: The GameData entity including the generated data such as primary key (id)
+        """
+        ...
 
     @abstractmethod
-    def update_game(self, new_game: GameData) -> GameData: ...
+    def delete_game(self, game_id: UUID):
+        """
+        Delete a game by its game id.
 
+        :param game_id: The id of the game to delete. This is the primary key (id) and not the join code.
+        """
+        ...
+
+    @abstractmethod
+    def update_game(self, new_game: GameData):
+        """
+        Updates the given GameData object in the database.
+        This method will use the `id` of the game data object
+        and apply all values in the object to the entity in the
+        database associated with that id.
+
+        :param new_game: The game data to be written into the database.
+        """
+        ...
 
 class PlayerRepository(ABC):
-    @abstractmethod
-    def create_player(
-        self,
-        display_name: str,
-        connection_id: str,
-        game_id: UUID,
-        join_order: int,
-        piece_color: PlayerColor,
-        user_id: UUID | None = None,
-    ) -> PlayerData: ...
+    """
+    An abstraction for all database operations related to Player objects.
+    Note that this repository is strictly responsible for direct database
+    operations and any business logic or resulting queries are made by the
+    Service classes.
+    """
 
     @abstractmethod
-    def find_by_id(self, player_id: UUID) -> PlayerData | None: ...
+    def create_player(self, display_name: str, connection_id: str) -> Optional[PlayerData]: ...
 
     @abstractmethod
-    def find_by_connection_id(self, connection_id: str) -> PlayerData | None: ...
-
-    @abstractmethod
-    def list_by_game_id(self, game_id: UUID) -> list[PlayerData]: ...
+    def find_by_id(self, player_id: UUID) -> Optional[PlayerData]: ...
 
     @abstractmethod
     def update_player(self, player: PlayerData) -> PlayerData: ...
