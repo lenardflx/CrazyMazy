@@ -176,7 +176,7 @@ class Game(SQLModel, table=True):
     turn_phase: Optional[TurnPhase] = Field(default=None)
 
     # Where card is inserted
-    insertion_side: int
+    insertion_side: Optional[int] = Field(default=None)
 
     # Current active player during the running match. Random pick at match start
     current_player_id: Optional[UUID] = Field(default=None, index=True)
