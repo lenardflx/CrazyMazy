@@ -4,7 +4,7 @@ import pygame
 
 from client.network.client_connection import ClientConnection
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
-from client.screens.scene_manager import SceneManager
+from client.screens.scene_manager import SceneManager, SceneTypes
 
 
 def main() -> None:
@@ -19,10 +19,12 @@ def main() -> None:
     scene_manager = SceneManager()
     
     #Wenn eine Verbindung zum Server aufgebaut werden kann, gehe ins Hauptmenü, sonst zeige eine Fehlermeldung.
-    if conn.connect(SERVER_HOST, SERVER_PORT):
-        current_scene = "Main Menu"
+    connected = conn.connect(SERVER_HOST, SERVER_PORT)
+
+    if connected:
+        current_scene = SceneTypes.MAIN_MENU
     else:
-        current_scene = "Server Down"
+        current_scene = SceneTypes.SERVER_DOWN
 
     screen = scene_manager.switch_scene(current_scene, surface)
 
