@@ -17,11 +17,12 @@ class SettingsScreen(BaseScreen):
         pw.update(events)
     
     def draw(self) -> None:
-        self.surface.fill(gray)
+        self.surface.fill(gray)#!richtigen Hintergrund hinzufügen
+
         buttonArray = ButtonArray(
         self.surface,
-        0,  #x
-        100,#y
+        0,                         #x
+        config.WINDOW_HEIGHT*0.1,  #y
         config.WINDOW_WIDTH,
         config.WINDOW_HEIGHT,
         (1, 3), #ButtonMatrix
