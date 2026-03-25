@@ -14,6 +14,7 @@ class TileType(Enum):
     STRAIGHT = 0
     T_PIECE = 1
     CORNER = 2
+    WALL = 3
 
 class TileOrientation(Enum):
     NORTH = 0
@@ -26,6 +27,7 @@ class TreasureType(Enum):
     BLUE = 1
     RED = 2
     GREEN = 3
+
     SKULL = 4
     SWORD = 5
     GOLDBAG = 6
@@ -76,6 +78,8 @@ class Tile:
             self.path = deque([1,1,0,0])
         elif self.type == TileType.T_PIECE:
             self.path = deque([1,1,0,1])
+        elif self.type == TileType.WALL:
+            self.path = deque([0,0,0,0])
         else:
             # invalid tile type → fail fast
             raise TileError(f"Unbekannter Tile-Typ: '{self.type}'")
@@ -133,13 +137,13 @@ class Board:
 
     def get_neighbour(self, position: Tuple[int, int], direction: TileOrientation) -> Tuple[int, int]:
         # position on border => no neighbor
-        if self.tiles[position[1]] == 0 and direction == TileOrientation.NORTH:
+        if position[1] == 0 and direction == TileOrientation.NORTH:
             return None
-        if self.tiles[position[1]] == self.width - 1 and direction == TileOrientation.SOUTH:
+        if position[1] == self.width - 1 and direction == TileOrientation.SOUTH:
             return None
-        if self.tiles[position[0]] == 0 and direction == TileOrientation.WEST:
+        if position[0] == 0 and direction == TileOrientation.WEST:
             return None
-        if self.tiles[position[0]] == self.width - 1 and direction == TileOrientation.EAST:
+        if position[0] == self.width - 1 and direction == TileOrientation.EAST:
             return None
 
         # return neighbour
@@ -157,17 +161,18 @@ class Board:
         if self.tiles[position].path[direction.value] == 0:
             return False
 
-        # wall of neighbour in your way
-        if self.get_neighbour(position, direction).path[(direction.value+2)%4] == 0:
-            return False
-
         # end of board
         if self.get_neighbour(position, direction) == None:
             return False
 
+        # wall of neighbour in your way
+        if self.tiles[self.get_neighbour(position, direction)].path[(direction.value+2)%4] == 0:
+            return False
+
+
         return True
 
-    def way_possible(self, start_position: Tuple[int, int], end_position: Tuple[int, int]):
+    def pathvalidating(self, start_position: Tuple[int, int], end_position: Tuple[int, int]):
         return (end_position in self.pathfind(start_position))
 
 
@@ -179,7 +184,7 @@ class Board:
         for d in range(4):
             # Check if movement in direction d is allowed AND the neighbour exists
             neighbour = self.get_neighbour(position, TileOrientation(d))
-            if self.move_possible(position, TileOrientation(d)) and neighbour is not None:
+            if self.move_possible(position, TileOrientation(d)) and neighbour not in visited:
                 # Recursively continue pathfinding from the neighbour
                 # The recursive call mutates 'visited' in place, so no reassignment is needed
                 self.pathfind(neighbour, visited)
@@ -229,6 +234,14 @@ class Board:
                 # rest
                 else:
                     self.tiles.update({(j,i) : None})
+
+    def create_blocked_board(self):
+        for i in range(self.width):
+            for j in range(self.width):
+                self.tiles.update({(j,i) : Tile(TileType.WALL, TileOrientation.NORTH)})
+
+    def change_tile(self, x : int, y : int, tile):
+        self.tiles.update({(x,y) : tile})
 
     def fill_board(self):
         counter = 0

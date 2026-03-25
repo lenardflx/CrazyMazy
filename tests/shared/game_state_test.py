@@ -92,3 +92,22 @@ class TestCreateBoard(unittest.TestCase):
         for i in range(board.width-2):
             self.assertTrue(board.tiles[x, i] == order[i + 1])
         self.assertTrue(order[0] == board.spare)
+
+    def test_pathfinding(self):
+        board = Board(7)
+        board.create_blocked_board()
+        coordinates = []
+        # straight line from left to right
+        for i in range(board.width):
+            board.change_tile(i,3, Tile(TileType.STRAIGHT, TileOrientation.EAST))
+            coordinates.append((i,3))
+        # straight line from middle to bottom
+        for i in range(4, 7):
+            board.change_tile(4, i, Tile(TileType.STRAIGHT, TileOrientation.NORTH))
+            coordinates.append((4, i))
+        # t-piece in the middle
+        board.change_tile(4,3, Tile(TileType.T_PIECE, TileOrientation.SOUTH))
+        path = board.pathfind((4,3))
+        path.sort()
+        coordinates.sort()
+        self.assertTrue(path == coordinates)
