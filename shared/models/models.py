@@ -1,0 +1,136 @@
+# Author: Tamay Engin
+
+from sqlmodel import Field, SQLModel
+from enum import StrEnum
+
+
+class PlayerStatus(StrEnum):
+    ACTIVE = "ACTIVE"
+    OBSERVER = "OBSERVER"
+    LEFT = "LEFT"
+
+
+class PlayerResult(StrEnum):
+    NONE = "NONE"
+    WON = "WON"
+    GAVE_UP = "GAVE_UP"
+
+
+class PlayerColor(StrEnum):
+    RED = "RED"
+    BLUE = "BLUE"
+    GREEN = "GREEN"
+    YELLOW = "YELLOW"
+
+
+class TileType(StrEnum):
+    STRAIGHT = "STRAIGHT"
+    CORNER = "CORNER"
+    T = "T"
+
+
+class TreasureType(StrEnum):
+    BOOK = "BOOK"
+    OWL = "OWL"
+    # TODO: add other Treasures
+
+
+class Player(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid4, primary_key=True)
+
+    user_id: int = Field(default=None, foreign_key="user.id")
+
+    game_id: uuid.UUID = Field(foreign_key="game.id", index=True)
+
+    # connection identifier
+    connection_id: Optional[str] = Field(default=None, index=True, max_length=64)
+
+    # Visible name shown in game
+    display_name: str = Field(index=True, max_length=32)
+
+    # Participation status in the current game lifecycle
+    status: PlayerStatus = Field(default=PlayerStatus.ACTIVE, index=True)
+
+    # Final outcome of this player within the current game loop
+    result: PlayerResult = Field(default=PlayerResult.NONE)
+
+    # Final ranking, if known
+    placement: Optional[int] = Field(default=None, index=True)
+   
+    # Order Index in what the players joined, for leader transfer and turn order
+    join_order: int = Field(index=True)
+
+    # Player figure identity
+    piece_color: PlayerColor = Field(index=True)
+
+    # Current game's position of the player
+    position_x: Optional[int] = Field(default=None)
+    position_y: Optional[int] = Field(default=None)
+
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    finished_at: Optional[datetime] = Field(default=None)
+    left_at: Optional[datetime] = Field(default=None)
+
+    game: Optional[Game] = Relationship(back_populates="players")
+    treasure_cards: list["TreasureCard"] = Relationship(back_populates="player")
+
+    game_id: int = Field(default=None, foreign_key="game.id")
+
+
+class Tile(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    board_id: int = Field(default=None, foreign_key="board.id", index=True)
+
+    treasure_id: int = Field(default=None, foreign_key="treasure.id")
+
+    # Position on the board
+    row: Optional[int] = Field(default=None, index=True)
+    column: Optional[int] = Field(default=None, index=True)
+
+    # 0, 1, 2, 3 clockwise
+    rotation: int = Field(default=0)
+
+    # The one tile currently outside the board
+    is_spare: bool = Field(default=False, index=True)
+
+    # Treasure symbol printed on this tile, if any
+    treasure_type: Optional[TreasureType] = Field(default=None)
+
+    tile_type = Field(default=TypeType.STRAIGHT)
+    tile_type: TileType
+
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+    game: Optional[Game] = Relationship(back_populates="tiles")
+
+
+class User(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: str
+    token: str
+
+
+class Board(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    game_id: int = Field(foreign_key="game.id")
+
+
+class Treasure(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+    # The player who needs collect this treasure
+    player_id: uuid.UUID = Field(default=None, foreign_key="player.id", index=True)
+
+    # The type of treasure
+    treasure_type: TreasureType
+
+    # Order of this target card in the players treasure sequence
+    order_index: int = Field(index=True)
+
+    # Whether this treasure has already been collected
+    collected: bool = Field(default=False, index=True)
+
+    # When this treasure was collected
+    collected_at: Optional[datetime] = Field(default=None)
