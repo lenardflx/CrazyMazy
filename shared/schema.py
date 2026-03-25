@@ -138,3 +138,7 @@ class ServerGameFinishedPayload(TypedDict):
     revision: int
     winner_player_id: str | None
     placements: list[GamePlacementPayload]
+
+
+class ServerGameLeftPayload(TypedDict):
+    reason: str

@@ -1,3 +1,3 @@
-from server.handlers import create_lobby, join_game
+from server.handlers import game_flow
 
-__all__ = ["create_lobby", "join_game"]
+__all__ = ["game_flow"]

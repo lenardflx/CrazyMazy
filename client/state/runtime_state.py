@@ -9,6 +9,19 @@ from shared.lib.lobby import VALID_BOARD_SIZES
 class PendingRequest(StrEnum):
     CREATE_LOBBY = "CREATE_LOBBY"
     JOIN_LOBBY = "JOIN_LOBBY"
+    START_GAME = "START_GAME"
+    SHIFT_TILE = "SHIFT_TILE"
+    MOVE_PLAYER = "MOVE_PLAYER"
+    GIVE_UP = "GIVE_UP"
+    LEAVE_GAME = "LEAVE_GAME"
+
+
+# TODO: I dont like this error handling at all... any ideas?
+class ErrorTarget(StrEnum):
+    CREATE_LOBBY = "CREATE_LOBBY"
+    JOIN_LOBBY = "JOIN_LOBBY"
+    GLOBAL = "GLOBAL"
+    GAME = "GAME"
 
 
 @dataclass(slots=True)
@@ -38,6 +51,7 @@ class RuntimeState:
     game: GameRuntimeState = field(default_factory=GameRuntimeState)
     global_error_message: str | None = None
     pending_request: PendingRequest | None = None
+    pending_error_target: ErrorTarget | None = None
 
     def clear_errors(self) -> None:
         self.create_lobby.error_message = None
@@ -47,3 +61,8 @@ class RuntimeState:
 
     def clear_pending(self) -> None:
         self.pending_request = None
+        self.pending_error_target = None
+
+    def set_pending(self, request: PendingRequest, target: ErrorTarget) -> None:
+        self.pending_request = request
+        self.pending_error_target = target

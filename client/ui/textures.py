@@ -14,7 +14,6 @@ def image_load(path: str) -> pygame.Surface:
 TILE_IMAGES = {
     "STRAIGHT": image_load("assets/images/tiles/straight.png"),
     "CORNER": image_load("assets/images/tiles/corner.png"),
-    "T_PIECE": image_load("assets/images/tiles/t_shape.png"),
     "T": image_load("assets/images/tiles/t_shape.png"),
 }
 
@@ -22,6 +21,7 @@ UI_IMAGES = {
     "BUTTONS": image_load("assets/images/buttons_ui/PlaceholderMenuButton.png"),
 }
 
+# TODO: Replace the placeholder treasure art with the final assets once they are ready
 TREASURE_IMAGES = {
     TreasureType.SKULL.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder1.png"),
     TreasureType.SWORD.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder2.png"),

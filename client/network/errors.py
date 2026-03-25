@@ -1,23 +1,27 @@
 from __future__ import annotations
 
-from client.state.runtime_state import PendingRequest, RuntimeState
+from client.state.runtime_state import ErrorTarget, RuntimeState
 from shared.protocol import ErrorCode
 from shared.schema import ErrorPayload
 
 
 def apply_server_error(runtime: RuntimeState, error: ErrorPayload) -> None:
-    pending_request = runtime.pending_request
+    pending_target = runtime.pending_error_target
     runtime.clear_pending()
     message = error["message"]
-    if pending_request == PendingRequest.CREATE_LOBBY:
+    if pending_target == ErrorTarget.CREATE_LOBBY:
         runtime.create_lobby.error_message = _form_error_message(error)
         return
-    if pending_request == PendingRequest.JOIN_LOBBY:
+    if pending_target == ErrorTarget.JOIN_LOBBY:
         runtime.join_lobby.error_message = _form_error_message(error)
+        return
+    if pending_target == ErrorTarget.GAME:
+        runtime.game.error_message = message
         return
     runtime.global_error_message = message
 
 
+# TODO: temp implementation, needs to be replaced by proper error handling
 def _form_error_message(error: ErrorPayload) -> str:
     code = error["code"]
     if code == ErrorCode.DISPLAY_NAME_TAKEN:

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_start_game
+from client.network.actions import request_leave_game, request_start_game
 from client.ui.controls import Button
 from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
@@ -23,9 +23,10 @@ class LobbyScreen(MenuScreen):
         request_start_game(self.scene_manager.connection, self.scene_manager.runtime_state)
 
     def _confirm_leave(self) -> None:
-        from client.screens.core.scene_types import SceneTypes
+        self.show_confirm("Leave Lobby?", "Return to the main menu?", self._leave_lobby, confirm_label="Leave")
 
-        self.show_confirm("Leave Lobby?", "Return to the main menu?", lambda: self._request_scene(SceneTypes.MAIN_MENU), confirm_label="Leave")
+    def _leave_lobby(self) -> None:
+        request_leave_game(self.scene_manager.connection, self.scene_manager.runtime_state, in_game=False)
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         super().handle_content_event(event)

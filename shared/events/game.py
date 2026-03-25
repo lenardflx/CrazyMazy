@@ -10,6 +10,7 @@ from shared.lib.game import (
     parse_client_game_move_player_payload,
     parse_client_game_shift_tile_payload,
     parse_server_game_finished_payload,
+    parse_server_game_left_payload,
     parse_server_game_player_moved_payload,
     parse_server_game_started_payload,
     parse_server_game_tile_shifted_payload,
@@ -23,6 +24,7 @@ from shared.schema import (
     ClientJoinGamePayload,
     GameSnapshotPayload,
     ServerGameFinishedPayload,
+    ServerGameLeftPayload,
     ServerGamePlayerMovedPayload,
     ServerGameStartedPayload,
     ServerGameTileShiftedPayload,
@@ -171,6 +173,20 @@ class ClientGameEndTurnEvent(Event):
 
 
 @dataclass(frozen=True)
+class ClientGameLeaveEvent(Event):
+    message_type = "client.game.leave"
+
+    def to_payload(self) -> Mapping[str, Any]:
+        return {}
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        if msg["payload"]:
+            return None
+        return cls(message_id=msg["id"])
+
+
+@dataclass(frozen=True)
 class ClientGameGiveUpEvent(Event):
     message_type = "client.game.give_up"
 
@@ -264,6 +280,23 @@ class ServerGameFinishedEvent(Event):
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
         payload = parse_server_game_finished_payload(msg["payload"])
+        if payload is None:
+            return None
+        return cls(message_id=msg["id"], payload=payload)
+
+
+@dataclass(frozen=True)
+class ServerGameLeftEvent(Event):
+    message_type = "server.game.left"
+
+    payload: ServerGameLeftPayload
+
+    def to_payload(self) -> Mapping[str, Any]:
+        return self.payload
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        payload = parse_server_game_left_payload(msg["payload"])
         if payload is None:
             return None
         return cls(message_id=msg["id"], payload=payload)

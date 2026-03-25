@@ -131,15 +131,15 @@ def draw_board(
 
     for position, tile_rect in cells.items():
         tile = display.board[position[1]][position[0]]
-        # TODO: Highlight reachable move tiles once the server exposes authoritative move targets.
+        # TODO: Highlight reachable move tiles
         highlight = False
         draw_tile(surface, tile_rect, tile, highlight=highlight)
 
     for player in display.players:
-        position: PositionPayload | None = player["position"]
-        if position is None:
+        player_position: PositionPayload | None = player["position"]
+        if player_position is None:
             continue
-        player_rect = cells[(position["x"], position["y"])]
+        player_rect = cells[(player_position["x"], player_position["y"])]
         color = _player_color(player)
         pg.draw.circle(surface, color, player_rect.center, max(8, cell // 7))
 

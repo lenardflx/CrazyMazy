@@ -90,7 +90,7 @@ def make_snapshot_payload() -> dict[str, object]:
 def test_event_to_message_uses_event_id_and_payload() -> None:
     event = ClientJoinGameEvent(
         message_id="msg_custom",
-        game_id="GAME-1",
+        join_code="GAME",
         player_name="Ada",
     )
 
@@ -99,14 +99,14 @@ def test_event_to_message_uses_event_id_and_payload() -> None:
     assert msg["id"] == "msg_custom"
     assert msg["type"] == ClientJoinGameEvent.message_type
     assert msg["payload"] == {
-        "game_id": "GAME-1",
+        "join_code": "GAME",
         "player_name": "Ada",
     }
 
 
 def test_event_generates_message_id_by_default() -> None:
     event = ClientJoinGameEvent(
-        game_id="GAME-1",
+        join_code="GAME",
         player_name="Ada",
     )
 
@@ -117,12 +117,12 @@ def test_parse_event_returns_join_event_for_valid_message() -> None:
     event = parse_event(
         make_message(
             ClientJoinGameEvent.message_type,
-            {"game_id": " GAME-1 ", "player_name": " Ada "},
+            {"join_code": " GAME ", "player_name": " Ada "},
         )
     )
 
     assert isinstance(event, ClientJoinGameEvent)
-    assert event.game_id == "GAME-1"
+    assert event.join_code == "GAME"
     assert event.player_name == "Ada"
 
 

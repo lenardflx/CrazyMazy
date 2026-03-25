@@ -1,7 +1,12 @@
+# Author: Lenard Felix
+# TODO: Split up file and add documentation
+
 from __future__ import annotations
 
+from shared.events import Event
 from shared.events import (
     ClientCreateLobbyEvent,
+    ClientGameLeaveEvent,
     ClientGameGiveUpEvent,
     ClientGameMovePlayerEvent,
     ClientGameShiftTileEvent,
@@ -11,7 +16,7 @@ from shared.events import (
 from shared.models import InsertionSide
 
 from client.network.client_connection import ClientConnection
-from client.state.runtime_state import PendingRequest, RuntimeState
+from client.state.runtime_state import ErrorTarget, PendingRequest, RuntimeState
 
 
 def request_create_lobby(connection: ClientConnection, runtime: RuntimeState, player_name: str, board_size: int) -> bool:
@@ -27,9 +32,14 @@ def request_create_lobby(connection: ClientConnection, runtime: RuntimeState, pl
         runtime.create_lobby.error_message = "Not connected to the server."
         return False
 
-    connection.send_event(ClientCreateLobbyEvent(board_size=board_size, player_name=name))
-    runtime.pending_request = PendingRequest.CREATE_LOBBY
-    return True
+    return _send_request(
+        connection,
+        runtime,
+        ClientCreateLobbyEvent(board_size=board_size, player_name=name),
+        pending=PendingRequest.CREATE_LOBBY,
+        error_target=ErrorTarget.CREATE_LOBBY,
+        disconnected_message="Not connected to the server.",
+    )
 
 
 def request_join_lobby(connection: ClientConnection, runtime: RuntimeState, player_name: str, join_code: str) -> bool:
@@ -50,48 +60,111 @@ def request_join_lobby(connection: ClientConnection, runtime: RuntimeState, play
         runtime.join_lobby.error_message = "Not connected to the server."
         return False
 
-    connection.send_event(ClientJoinGameEvent(join_code=code, player_name=name))
-    runtime.pending_request = PendingRequest.JOIN_LOBBY
-    return True
+    return _send_request(
+        connection,
+        runtime,
+        ClientJoinGameEvent(join_code=code, player_name=name),
+        pending=PendingRequest.JOIN_LOBBY,
+        error_target=ErrorTarget.JOIN_LOBBY,
+        disconnected_message="Not connected to the server.",
+    )
 
 
 def request_start_game(connection: ClientConnection, runtime: RuntimeState) -> bool:
     runtime.global_error_message = None
-    if not connection.is_connected:
-        runtime.global_error_message = "Not connected to the server."
-        return False
-    connection.send_event(ClientGameStartEvent())
-    return True
+    return _send_request(
+        connection,
+        runtime,
+        ClientGameStartEvent(),
+        pending=PendingRequest.START_GAME,
+        error_target=ErrorTarget.GLOBAL,
+        disconnected_message="Not connected to the server.",
+    )
 
 
 def request_shift_tile(connection: ClientConnection, runtime: RuntimeState, side: InsertionSide, index: int, rotation: int) -> bool:
     runtime.game.error_message = None
-    if not connection.is_connected:
-        runtime.game.error_message = "Not connected to the server."
-        return False
-    connection.send_event(
+    return _send_request(
+        connection,
+        runtime,
         ClientGameShiftTileEvent(
             insertion_side=side.value,
             insertion_index=index,
             rotation=rotation,
-        )
+        ),
+        pending=PendingRequest.SHIFT_TILE,
+        error_target=ErrorTarget.GAME,
+        disconnected_message="Not connected to the server.",
     )
-    return True
 
 
 def request_move_player(connection: ClientConnection, runtime: RuntimeState, x: int, y: int) -> bool:
     runtime.game.error_message = None
-    if not connection.is_connected:
-        runtime.game.error_message = "Not connected to the server."
-        return False
-    connection.send_event(ClientGameMovePlayerEvent(x=x, y=y))
-    return True
+    return _send_request(
+        connection,
+        runtime,
+        ClientGameMovePlayerEvent(x=x, y=y),
+        pending=PendingRequest.MOVE_PLAYER,
+        error_target=ErrorTarget.GAME,
+        disconnected_message="Not connected to the server.",
+    )
 
 
 def request_give_up(connection: ClientConnection, runtime: RuntimeState) -> bool:
     runtime.game.error_message = None
+    return _send_request(
+        connection,
+        runtime,
+        ClientGameGiveUpEvent(),
+        pending=PendingRequest.GIVE_UP,
+        error_target=ErrorTarget.GAME,
+        disconnected_message="Not connected to the server.",
+    )
+
+
+def request_leave_game(connection: ClientConnection, runtime: RuntimeState, *, in_game: bool) -> bool:
+    target = ErrorTarget.GAME if in_game else ErrorTarget.GLOBAL
+    if in_game:
+        runtime.game.error_message = None
+    else:
+        runtime.global_error_message = None
+    return _send_request(
+        connection,
+        runtime,
+        ClientGameLeaveEvent(),
+        pending=PendingRequest.LEAVE_GAME,
+        error_target=target,
+        disconnected_message="Not connected to the server.",
+    )
+
+
+def _send_request(
+    connection: ClientConnection,
+    runtime: RuntimeState,
+    event: Event,
+    *,
+    pending: PendingRequest,
+    error_target: ErrorTarget,
+    disconnected_message: str,
+) -> bool:
     if not connection.is_connected:
-        runtime.game.error_message = "Not connected to the server."
+        _set_error(runtime, error_target, disconnected_message)
         return False
-    connection.send_event(ClientGameGiveUpEvent())
+    if not connection.send_event(event):
+        _set_error(runtime, error_target, disconnected_message)
+        return False
+    runtime.set_pending(pending, error_target)
     return True
+
+
+def _set_error(runtime: RuntimeState, target: ErrorTarget, message: str) -> None:
+    if target == ErrorTarget.CREATE_LOBBY:
+        runtime.create_lobby.error_message = message
+        return
+    if target == ErrorTarget.JOIN_LOBBY:
+        runtime.join_lobby.error_message = message
+        return
+    if target == ErrorTarget.GAME:
+        runtime.game.error_message = message
+        return
+    runtime.global_error_message = message

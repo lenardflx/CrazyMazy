@@ -50,9 +50,14 @@ class ClientConnection:
         if self._sock:
             send_msg(self._sock, message)
 
-    def send_event(self, event: Event) -> None:
+    def send_event(self, event: Event) -> bool:
         """Send one typed request event to the server."""
-        self._send_message(event.to_message())
+        try:
+            self._send_message(event.to_message())
+        except OSError:
+            self._sock = None
+            return False
+        return True
 
     def receive(self) -> Message | None:
         """Receive the next pending message from the server, or None if none available."""

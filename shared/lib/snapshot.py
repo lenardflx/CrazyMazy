@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
+from uuid import UUID
 
 from shared.lib.parse import (
     parse_bool,
@@ -21,8 +22,10 @@ from shared.models import (
     PlayerColor,
     PlayerResult,
     PlayerStatus,
+    TileData,
     TileType,
     TreasureType,
+    TreasureData,
     TurnPhase,
 )
 from shared.schema import (
@@ -230,6 +233,8 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
 def make_game_snapshot_payload(
     game: GameData,
     players: list[PlayerData],
+    tiles: list[TileData],
+    treasures_by_player: Mapping[UUID, list[TreasureData]],
     *,
     viewer_player_id: str | None,
 ) -> GameSnapshotPayload:
@@ -247,17 +252,19 @@ def make_game_snapshot_payload(
             "blocked_insertion_side": game.blocked_insertion_side,
             "blocked_insertion_index": game.blocked_insertion_index,
         },
-        # TODO: Include authoritative board/tile state once gameplay tile generation is implemented on the server.
-        "tiles": [],
-        "players": [make_public_player_payload(player) for player in players],
-        "viewer": make_viewer_payload(game, viewer_player),
+        # TODO: Extend the snapshot with reachable move targets for client-side move highlighting.
+        "tiles": [make_tile_payload(tile) for tile in tiles],
+        "players": [make_public_player_payload(player, treasures_by_player.get(player.id, [])) for player in players],
+        "viewer": make_viewer_payload(game, viewer_player, treasures_by_player.get(viewer_player.id, []) if viewer_player is not None else []),
     }
 
 
-def make_public_player_payload(player: PlayerData) -> PublicPlayerPayload:
+def make_public_player_payload(player: PlayerData, treasures: list[TreasureData]) -> PublicPlayerPayload:
     position: PositionPayload | None = None
     if player.position_x is not None and player.position_y is not None:
         position = {"x": player.position_x, "y": player.position_y}
+    collected = [treasure.treasure_type.value for treasure in sorted(treasures, key=lambda current: current.order_index) if treasure.collected]
+    remaining = sum(1 for treasure in treasures if not treasure.collected)
     return {
         "id": str(player.id),
         "display_name": player.display_name,
@@ -267,21 +274,37 @@ def make_public_player_payload(player: PlayerData) -> PublicPlayerPayload:
         "join_order": player.join_order,
         "piece_color": player.piece_color,
         "position": position,
-        # TODO: Populate treasure progress from server treasure state once treasure assignment exists.
-        "collected_treasures": [],
-        "remaining_treasure_count": 0,
+        "collected_treasures": collected,
+        "remaining_treasure_count": remaining,
     }
 
 
-def make_viewer_payload(game: GameData, player: PlayerData | None) -> ViewerPayload | None:
+def make_viewer_payload(game: GameData, player: PlayerData | None, treasures: list[TreasureData]) -> ViewerPayload | None:
     if player is None:
         return None
+    ordered = sorted(treasures, key=lambda current: current.order_index)
+    collected = [treasure.treasure_type.value for treasure in ordered if treasure.collected]
+    active_treasure_type = next((treasure.treasure_type.value for treasure in ordered if not treasure.collected), None)
     return {
         "player_id": str(player.id),
         "is_leader": game.leader_player_id == player.id,
         "is_current_player": game.current_player_id == player.id,
-        # TODO: Populate active and collected treasures from server treasure state once gameplay exists.
-        "active_treasure_type": None,
-        "collected_treasures": [],
-        "remaining_treasure_count": 0,
+        "active_treasure_type": active_treasure_type,
+        "collected_treasures": collected,
+        "remaining_treasure_count": sum(1 for treasure in ordered if not treasure.collected),
     }
+
+
+def make_tile_payload(tile: TileData) -> TilePayload:
+    payload: TilePayload = {
+        "id": str(tile.id),
+        "tile_type": tile.tile_type,
+        "rotation": tile.rotation,
+        "is_spare": tile.is_spare,
+        "treasure_type": tile.treasure_type,
+    }
+    if tile.row is not None:
+        payload["row"] = tile.row
+    if tile.column is not None:
+        payload["column"] = tile.column
+    return payload

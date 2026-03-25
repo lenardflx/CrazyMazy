@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import cast
 
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS, VALID_BOARD_SIZES
 from shared.models import GamePhase, PlayerColor, TileType, TreasureType, TurnPhase
@@ -35,9 +34,14 @@ class ClientDisplayState:
     def available_board_sizes(self) -> tuple[int, ...]:
         return tuple(sorted(VALID_BOARD_SIZES))
 
+    def clear(self) -> None:
+        self.snapshot = None
+        self.board = None
+        self.spare_tile = None
+
     @property
     def phase(self) -> GamePhase | None:
-        return None if self.snapshot is None else cast(GamePhase, self.snapshot["phase"])
+        return None if self.snapshot is None else GamePhase(self.snapshot["phase"])
 
     @property
     def is_lobby(self) -> bool:
@@ -86,14 +90,16 @@ class ClientDisplayState:
     def turn_phase(self) -> TurnPhase:
         if self.snapshot is None:
             return TurnPhase.SHIFT
-        return cast(TurnPhase, self.snapshot["turn"]["turn_phase"] or TurnPhase.SHIFT)
+        raw = self.snapshot["turn"]["turn_phase"]
+        return TurnPhase.SHIFT if raw is None else TurnPhase(raw)
 
     @property
     def active_treasure_type(self) -> TreasureType | None:
         viewer = self.viewer
         if viewer is None:
             return None
-        return cast(TreasureType | None, viewer["active_treasure_type"])
+        raw = viewer["active_treasure_type"]
+        return None if raw is None else TreasureType(raw)
 
     def apply_snapshot(self, snapshot: GameSnapshotPayload) -> None:
         board, spare_tile = self._board_from_payload(snapshot["board_size"], snapshot["tiles"])
@@ -106,7 +112,7 @@ class ClientDisplayState:
         return self.is_lobby and self.viewer_id == self.leader_id and len(self.players) >= MIN_STARTABLE_PLAYERS
 
     def _apply_fixed_start_tiles(self, board: list[list[TileView]], size: int) -> None:
-        # TODO: Move fixed/home corner metadata into authoritative shared transport once server board snapshots exist.
+        # TODO: Move into snapshot and server
         corners = [
             ((0, 0), 1, PlayerColor.RED),
             ((size - 1, 0), 2, PlayerColor.BLUE),
@@ -121,9 +127,9 @@ class ClientDisplayState:
         spare_tile: TileView | None = None
         for tile in tiles:
             tile_view = TileView(
-                cast(TileType, tile["tile_type"]),
+                TileType(tile["tile_type"]),
                 tile["rotation"],
-                cast(TreasureType | None, tile["treasure_type"]),
+                TreasureType(tile["treasure_type"]) if tile["treasure_type"] is not None else None,
             )
             if tile["is_spare"]:
                 spare_tile = tile_view

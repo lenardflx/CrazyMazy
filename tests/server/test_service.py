@@ -1,12 +1,22 @@
 from __future__ import annotations
 
-from server.db.memory_repo import GameRepositoryInMemory, PlayerRepositoryInMemory
+from server.db.memory_repo import (
+    GameRepositoryInMemory,
+    PlayerRepositoryInMemory,
+    TileRepositoryInMemory,
+    TreasureRepositoryInMemory,
+)
 from server.service import GameService
 from shared.models import GameEndReason, GamePhase, PlayerResult, PlayerStatus
 
 
 def make_service() -> GameService:
-    return GameService(GameRepositoryInMemory(), PlayerRepositoryInMemory())
+    return GameService(
+        GameRepositoryInMemory(),
+        PlayerRepositoryInMemory(),
+        TileRepositoryInMemory(),
+        TreasureRepositoryInMemory(),
+    )
 
 
 def test_create_lobby_creates_game_and_leader() -> None:

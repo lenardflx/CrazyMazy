@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_give_up, request_move_player, request_shift_tile
+from client.network.actions import request_give_up, request_leave_game, request_move_player, request_shift_tile
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.game_views import board_layout, draw_board, draw_player_rows, draw_spare_tile_panel
@@ -40,8 +40,8 @@ class GameScreen(BaseScreen):
         self.dialog = None
 
     def _leave_to_menu(self) -> None:
+        request_leave_game(self.scene_manager.connection, self.scene_manager.runtime_state, in_game=True)
         self.dialog = None
-        self.requested_scene = SceneTypes.MAIN_MENU
 
     def _give_up(self) -> None:
         request_give_up(self.scene_manager.connection, self.scene_manager.runtime_state)
@@ -142,6 +142,7 @@ class GameScreen(BaseScreen):
             pg.Rect(tile_rect.right - 52, tile_rect.bottom + 16, 52, 40),
         )
 
+    # TODO: we probably also want to display a color or smth to make it easier to identify whose turn it is, or even a dialog/popup when the player's turn starts
     def _turn_text(self, viewer_turn: bool, turn_phase: TurnPhase) -> str:
         if viewer_turn and turn_phase == TurnPhase.SHIFT:
             return "Your turn: insert a tile"

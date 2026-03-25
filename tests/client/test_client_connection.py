@@ -109,14 +109,14 @@ def test_send_event_serializes_event_to_socket() -> None:
 
     conn.send_event(
         ClientJoinGameEvent(
-            game_id="GAME-1",
+            join_code="GAME",
             player_name="Ada",
         )
     )
 
     sent = fake_sock.sent.decode()
     assert '"type": "client.game.join"' in sent
-    assert '"game_id": "GAME-1"' in sent
+    assert '"join_code": "GAME"' in sent
     assert '"player_name": "Ada"' in sent
 
 
@@ -136,6 +136,7 @@ def test_poll_updates_snapshot_state_from_server_message() -> None:
 
     assert state.last_error is None
     assert state.game_snapshot is not None
+    assert state.game_snapshot["viewer"] is not None
     assert state.game_snapshot["viewer"]["active_treasure_type"] == "OWL"
     assert state.game_snapshot["players"][0]["collected_treasures"] == ["BOOK"]
 

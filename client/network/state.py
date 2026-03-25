@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from shared.schema import ErrorPayload, GameSnapshotPayload
+from shared.schema import ErrorPayload, GameSnapshotPayload, ServerGameLeftPayload
 
 
 @dataclass(slots=True)
@@ -13,5 +13,7 @@ class ClientState:
 
     last_error: ErrorPayload | None = None
     game_snapshot: GameSnapshotPayload | None = None
+    game_left: ServerGameLeftPayload | None = None
     error_version: int = 0
     snapshot_version: int = 0
+    game_left_version: int = 0

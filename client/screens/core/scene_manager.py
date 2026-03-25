@@ -1,3 +1,5 @@
+# TODO: docs
+
 from __future__ import annotations
 
 import pygame
@@ -31,6 +33,7 @@ class SceneManager:
         self.display_state = ClientDisplayState()
         self._seen_snapshot_version = 0
         self._seen_error_version = 0
+        self._seen_game_left_version = 0
 
     #Wechsle zur korrekten Scene
     def switch_scene(self, scene_name: SceneTypes, surface: pygame.Surface) -> BaseScreen:
@@ -54,6 +57,7 @@ class SceneManager:
             case SceneTypes.POST_GAME:
                 scene = PostGameScreen(surface, self)
             case SceneTypes.TUTORIAL:
+                # TODO: Replace the placeholder with the actual interactive tutorial
                 scene = MessageScreen(surface, self, title="Tutorial", message="Coming soon")
             #Wenn keine vernünftige Scene übergeben wurde, tu nichts. Sollte nie passieren.
             case _:
@@ -79,6 +83,14 @@ class SceneManager:
                 self.runtime_state.clear_pending()
                 self.runtime_state.clear_errors()
                 next_scene = self._scene_from_snapshot()
+
+        if self.transport_state.game_left_version != self._seen_game_left_version:
+            self._seen_game_left_version = self.transport_state.game_left_version
+            self.display_state.clear()
+            self.runtime_state.game.spare_rotation = 0
+            self.runtime_state.clear_pending()
+            self.runtime_state.clear_errors()
+            next_scene = SceneTypes.MAIN_MENU
 
         if self.transport_state.error_version != self._seen_error_version:
             self._seen_error_version = self.transport_state.error_version
