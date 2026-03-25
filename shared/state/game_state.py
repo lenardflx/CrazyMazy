@@ -57,7 +57,7 @@ class Tile:
         # store tile metadata
         self.type = type
         self.orientation = orientation
-        self._treasure = treasure
+        self.treasure = treasure
 
         # will be filled by load_texture()
         self.texture = None
@@ -70,11 +70,11 @@ class Tile:
 
     def set_paths(self):
         # base path pattern for orientation NORTH
-        if self.type == TileType.STRAIGHT.value:
+        if self.type == TileType.STRAIGHT:
             self.path = deque([1,0,1,0])  # N E S W
-        elif self.type == TileType.CORNER.value:
+        elif self.type == TileType.CORNER:
             self.path = deque([1,1,0,0])
-        elif self.type == TileType.T_PIECE.value:
+        elif self.type == TileType.T_PIECE:
             self.path = deque([1,1,0,1])
         else:
             # invalid tile type → fail fast
@@ -123,15 +123,16 @@ class Board:
         self.tiles = {}
 
         # stack with moving tiles
-        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for i in range(8)] # corner without treasures
-        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(5)] #corners with treasures
-        stack += [Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(i+16)) for i in range(5)] # all t-pieces have treasures
-        stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for i in range(12)] # straights dont have treasures
-        self.stack = shuffle(stack)
+        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for i in range(9)] # corner without treasures
+        stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(6)] #corners with treasures
+        stack += [Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(i+16)) for i in range(6)] # all t-pieces have treasures
+        stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for i in range(13)] # straights don't have treasures
+        shuffle(stack)
+        self.stack = stack
 
     def create_board(self):
         treasure_order = [i+4 for i in range(12)]
-        treasure_order.shuffle()
+        shuffle(treasure_order)
         counter = 0
         for i in range(self.width):
             for j in range(self.width):
@@ -139,33 +140,33 @@ class Board:
                 if i==0 and j==0:
                     self.tiles.update({(j,i) : Tile(TileType.CORNER, TileOrientation.EAST, TreasureType.YELLOW)})
                 # top right corner
-                if i == 0 and j == self.width-1:
+                elif i == 0 and j == self.width-1:
                     self.tiles.update({(j, i): Tile(TileType.CORNER, TileOrientation.SOUTH, TreasureType.BLUE)})
                 # bottom left corner
-                if i == self.width-1 and j == 0:
+                elif i == self.width-1 and j == 0:
                     self.tiles.update({(j, i): Tile(TileType.CORNER, TileOrientation.NORTH, TreasureType.RED)})
                 # bottom right corner
-                if i == self.width-1 and j == self.width-1:
+                elif i == self.width-1 and j == self.width-1:
                     self.tiles.update({(j, i): Tile(TileType.CORNER, TileOrientation.WEST, TreasureType.GREEN)})
 
                 # top row
-                if i == 0 and j%2==1 and 0<j>self.width-1:
+                elif i == 0 and j%2==0 and 0<j>self.width-1:
                     self.tiles.update({(j,i) : Tile(TileType.T_PIECE, TileOrientation.EAST, TreasureType(treasure_order[counter]))})
                     counter += 1
                 # bottom row
-                elif i == self.width-1 and j%2==1 and 0<j>self.width-1:
+                elif i == self.width-1 and j%2==0 and 0<j>self.width-1:
                     self.tiles.update({(j, i): Tile(TileType.T_PIECE, TileOrientation.NORTH, TreasureType(treasure_order[counter]))})
                     counter += 1
                 # left row
-                elif j == 0 and i%2==1 and 0<i>self.width-1:
+                elif j == 0 and i%2==0 and 0<i>self.width-1:
                     self.tiles.update({(j,i) : Tile(TileType.T_PIECE,TileOrientation.EAST, TreasureType(treasure_order[counter]))})
                     counter += 1
                 # right row
-                elif j == self.width-1 and i%2==1 and 0<i>self.width-1:
+                elif j == self.width-1 and i%2==0 and 0<i>self.width-1:
                     self.tiles.update({(j, i): Tile(TileType.T_PIECE, TileOrientation.WEST, TreasureType(treasure_order[counter]))})
                     counter += 1
                 # middle
-                elif i%2==1 and j%2==1:
+                elif i%2==0 and j%2==0:
                     self.tiles.update({(j,i) : Tile(TileType.T_PIECE, TileOrientation(randint(0,3)), TreasureType(treasure_order[counter]))})
                     counter += 1
                 # rest
@@ -181,3 +182,13 @@ class Board:
                     counter += 1
 
         self.tiles.update({"spare" : self.stack[counter]})
+
+    def print_board(self):
+        board = self._randomBoard()
+        for i in range(board.width):
+            for j in range(board.width):
+                if board.tiles[(j, i)] is not None:
+                    print("1")
+                else:
+                    print("0")
+            print("\n")
