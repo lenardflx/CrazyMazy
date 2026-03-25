@@ -20,7 +20,7 @@ def test_delete_game()
     game = GameRepositorySQL.create_game(9, player.id)
     GameRepositorySQL.delete_game(game.id):
     results = GameRepositorySQL.find_game_by_id(game.id)
-    assert not results[0].contains(game)
+    assert len(results) < 1
 
 def test_update_game()
     player = PlayerRepositorySQL.create_player(display_name: "Name")
