@@ -18,9 +18,6 @@ def is_display_name_taken(players: Iterable[Player], display_name: str) -> bool:
     normalized = normalize_display_name(display_name).lower()
 
     for player in players:
-        # TODO: should we allow players to reuse display names of players who have left?
-        if player.status == PlayerStatus.LEFT:
-            continue
         if normalize_display_name(player.display_name).lower() == normalized:
             return True
 
@@ -35,12 +32,12 @@ def next_join_order(players: Iterable[Player]) -> int:
     return highest + 1
 
 
+def active_players(players: Iterable[Player]) -> list[Player]:
+    return [player for player in players if player.status != PlayerStatus.LEFT]
+
+
 def next_available_color(players: Iterable[Player]) -> PlayerColor | None:
-    used = {
-        player.piece_color
-        for player in players
-        if player.status != PlayerStatus.LEFT
-    }
+    used = {player.piece_color for player in active_players(players)}
 
     # TODO: is this a good way to assign colors? Should we rethink the color model
     for color in (
