@@ -1,21 +1,21 @@
+import random
+import uuid
+from typing import Optional
 from uuid import UUID
+
 
 from server.db import GameRepository
 from server.db.repo import PlayerRepository
-from shared.models import Game
+from shared.models import GameData
 
 
 class GameRepositoryInMemory(GameRepository):
-    def find_by_game_id(self, game_id: UUID) -> Game:
-        print("find_by_game_id in memory")
+    games = []
 
-    def find_by_join_code(self, join_code: str) -> Game: ...
-
-    def create_game(self, board_size: int, leader_player_id: UUID) -> Game: ...
-
-    def delete_game(self, game_id: int): ...
-
-    def update_game(self, new_game: Game): ...
+    def create_game(self, leader_player_id: UUID, board_size: int) -> Optional[GameData]:
+        game = GameData(code=str(random.randint(1000, 9999)), insertion_side=1, leader_player_id=leader_player_id, board_size=board_size)
+        game.insertion_side = 3
+        self.games.append(game)
 
 class PlayerRepositoryInMemory(PlayerRepository):
     ...
