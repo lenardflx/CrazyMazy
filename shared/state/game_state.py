@@ -1,12 +1,11 @@
 from collections import deque
 from enum import Enum
-from shared.state.errors import TileError, BoardError
 from random import randint, shuffle
-from typing import Tuple
+from typing import Mapping, Tuple
+
 import pygame
-from shared.state.textures import TILE_IMAGES
 
-
+from shared.state.errors import TileError, BoardError
 class GamePhase(Enum):
     LOBBY = 0
     IN_GAME = 1
@@ -82,8 +81,6 @@ class Tile:
         self.type = type
         self.orientation = orientation
         self.treasure = treasure
-
-        # will be filled by load_texture()
         self.texture = None
 
         # path = [N, E, S, W]
@@ -112,11 +109,12 @@ class Tile:
         # convert to list for easier use elsewhere
         self.path = list(self.path)
 
-    def load_texture(self):
-        # lookup base texture from table
-        texture = TILE_IMAGES[TileType(self.type).name]
+    def load_texture(self, tile_images: Mapping[str, pygame.Surface] | None = None):
+        if tile_images is None:
+            from client.ui.textures import TILE_IMAGES as tile_images
 
-        # rotate texture depending on orientation
+        texture = tile_images[TileType(self.type).name]
+
         if self.orientation == TileOrientation.NORTH.value:
             self.texture = texture
         elif self.orientation == TileOrientation.EAST.value:
@@ -132,17 +130,19 @@ class Tile:
         # rotate orientation counter‑clockwise
         self.orientation = (TileOrientation(self.orientation).value - 1) % 4
 
-        # update texture + path
-        self.load_texture()
+        # update logical path
         self.set_paths()
+        if self.texture is not None:
+            self.load_texture()
 
     def rotate_right(self):
         # rotate orientation clockwise
         self.orientation = (TileOrientation(self.orientation).value + 1) % 4
 
-        # update texture + path
-        self.load_texture()
+        # update logical path
         self.set_paths()
+        if self.texture is not None:
+            self.load_texture()
 
 
 class Board:
