@@ -123,8 +123,8 @@ class Tile(SQLModel, table=True):
     # Treasure symbol printed on this tile, if any
     treasure_type: Optional[TreasureType] = Field(default=None)
 
-    tile_type = Field(default=TypeType.STRAIGHT)
-    tile_type: TileType
+    # Type of tile
+    tile_type: TileType = Field(default=TypeType.STRAIGHT)
 
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
