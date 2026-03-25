@@ -1,7 +1,7 @@
 from abc import ABC
 from uuid import UUID
 
-from shared.models.models import Game, Player
+from shared.models import Game, Player
 
 class GameRepository(ABC):
 
