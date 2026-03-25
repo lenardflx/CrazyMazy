@@ -35,6 +35,24 @@ class TreasureType(StrEnum):
     # TODO: add other Treasures
 
 
+class GamePhase(StrEnum):
+    PREGAME = "PREGAME"
+    GAME = "GAME"
+    POSTGAME = "POSTGAME"
+
+
+class TurnPhase(StrEnum):
+    SHIFT = "SHIFT" # move tile
+    MOVE = "MOVE" # move player position
+
+
+class InsertionSide(StrEnum):
+    TOP = "TOP"
+    RIGHT = "RIGHT"
+    BOTTOM = "BOTTOM"
+    LEFT = "LEFT"
+
+
 class Player(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid4, primary_key=True)
 
@@ -80,7 +98,8 @@ class Player(SQLModel, table=True):
 
 class Tile(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    board_id: int = Field(default=None, foreign_key="board.id", index=True)
+
+    game_id: int = Field(default=None, foreign_key="game.id", index=True)
 
     treasure_id: int = Field(default=None, foreign_key="treasure.id")
 
@@ -106,10 +125,6 @@ class Tile(SQLModel, table=True):
     game: Optional[Game] = Relationship(back_populates="tiles")
 
 
-class Board(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    game_id: int = Field(foreign_key="game.id")
-
 
 class Treasure(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -128,3 +143,46 @@ class Treasure(SQLModel, table=True):
 
     # When this treasure was collected
     collected_at: Optional[datetime] = Field(default=None)
+
+
+class Game(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+    # code used for joining a game
+    code: str = Field(index=True, unique=True, max_length=16)
+    
+    # Player who created and controls the game
+    admin: int | None = Field(default=None, foreign_key="player.id")
+
+    # Lobby's leader
+    leader_player_id: Optional[UUID] = Field(default=None, index=True)
+
+    # Board size. Must be odd, and enforced in service
+    board_size: int = Field(default=7)
+
+    # lifecycle of the game: lobby -> running match -> rematch screen
+    game_phase: GamePhase = Field(default=GamePhase.PREGAME)
+
+    # Turn Phase during an active Match
+    turn_phase: Optional[TurnPhase] = Field(default=None)
+
+    # Where card is inserted
+    insertion_side: int
+
+    # Current active player during the running match. Random pick at match start
+    current_player_id: Optional[UUID] = Field(default=None, index=True)
+
+    # version for snapshot syncing
+    revision: int = Field(default=0)
+
+    # Reverse insertion rule (no push back of last player's move)
+    blocked_insertion_side: Optional[InsertionSide] = Field(default=None)
+    blocked_insertion_index: Optional[int] = Field(default=None)
+
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    started_at: Optional[datetime] = Field(default=None)
+    ended_at: Optional[datetime] = Field(default=None)
+
+    players: list["Player"] = Relationship(back_populates="game")
+    tiles: list["Tile"] = Relationship(back_populates="game")
