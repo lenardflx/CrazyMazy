@@ -2,7 +2,7 @@ from uuid import UUID
 
 from server.db import GameRepository
 from server.db.repo import PlayerRepository
-from shared.models.models import Game
+from shared.models import Game
 
 
 class GameRepositorySQL(GameRepository):
