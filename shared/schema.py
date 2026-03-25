@@ -67,6 +67,16 @@ class GameSnapshotPayload(TypedDict):
     viewer: ViewerPayload | None
 
 
+class ClientCreateLobbyPayload(TypedDict):
+    board_size: int
+    player_name: str
+
+
+class ClientJoinGamePayload(TypedDict):
+    join_code: str
+    player_name: str
+
+
 class ClientGameShiftTilePayload(TypedDict):
     insertion_side: str
     insertion_index: int

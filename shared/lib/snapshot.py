@@ -14,8 +14,10 @@ from shared.lib.parse import (
     parse_str,
 )
 from shared.models import (
+    GameData,
     GamePhase,
     InsertionSide,
+    PlayerData,
     PlayerColor,
     PlayerResult,
     PlayerStatus,
@@ -222,4 +224,64 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
         "tiles": tiles,
         "players": players,
         "viewer": viewer,
+    }
+
+
+def make_game_snapshot_payload(
+    game: GameData,
+    players: list[PlayerData],
+    *,
+    viewer_player_id: str | None,
+) -> GameSnapshotPayload:
+    viewer_player = next((player for player in players if str(player.id) == viewer_player_id), None)
+    return {
+        "game_id": str(game.id),
+        "code": game.code,
+        "phase": game.game_phase,
+        "revision": game.revision,
+        "board_size": game.board_size,
+        "leader_player_id": str(game.leader_player_id) if game.leader_player_id is not None else None,
+        "turn": {
+            "current_player_id": str(game.current_player_id) if game.current_player_id is not None else None,
+            "turn_phase": game.turn_phase,
+            "blocked_insertion_side": game.blocked_insertion_side,
+            "blocked_insertion_index": game.blocked_insertion_index,
+        },
+        # TODO: Include authoritative board/tile state once gameplay tile generation is implemented on the server.
+        "tiles": [],
+        "players": [make_public_player_payload(player) for player in players],
+        "viewer": make_viewer_payload(game, viewer_player),
+    }
+
+
+def make_public_player_payload(player: PlayerData) -> PublicPlayerPayload:
+    position: PositionPayload | None = None
+    if player.position_x is not None and player.position_y is not None:
+        position = {"x": player.position_x, "y": player.position_y}
+    return {
+        "id": str(player.id),
+        "display_name": player.display_name,
+        "status": player.status,
+        "result": player.result,
+        "placement": player.placement,
+        "join_order": player.join_order,
+        "piece_color": player.piece_color,
+        "position": position,
+        # TODO: Populate treasure progress from server treasure state once treasure assignment exists.
+        "collected_treasures": [],
+        "remaining_treasure_count": 0,
+    }
+
+
+def make_viewer_payload(game: GameData, player: PlayerData | None) -> ViewerPayload | None:
+    if player is None:
+        return None
+    return {
+        "player_id": str(player.id),
+        "is_leader": game.leader_player_id == player.id,
+        "is_current_player": game.current_player_id == player.id,
+        # TODO: Populate active and collected treasures from server treasure state once gameplay exists.
+        "active_treasure_type": None,
+        "collected_treasures": [],
+        "remaining_treasure_count": 0,
     }

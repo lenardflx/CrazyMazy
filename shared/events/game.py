@@ -15,9 +15,12 @@ from shared.lib.game import (
     parse_server_game_tile_shifted_payload,
     parse_server_game_turn_changed_payload,
 )
+from shared.lib.parse import parse_int, parse_str
 from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
 from shared.schema import (
+    ClientCreateLobbyPayload,
+    ClientJoinGamePayload,
     GameSnapshotPayload,
     ServerGameFinishedPayload,
     ServerGamePlayerMovedPayload,
@@ -28,29 +31,55 @@ from shared.schema import (
 
 
 @dataclass(frozen=True)
-class ClientJoinGameEvent(Event):
-    message_type = "client.game.join"
+class ClientCreateLobbyEvent(Event):
+    message_type = "client.game.create_lobby"
 
-    game_id: str
+    board_size: int
     player_name: str
 
     def to_payload(self) -> Mapping[str, Any]:
-        return {
-            "game_id": self.game_id,
+        payload: ClientCreateLobbyPayload = {
+            "board_size": self.board_size,
             "player_name": self.player_name,
         }
+        return payload
 
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
-        game_id = msg["payload"].get("game_id")
-        player_name = msg["payload"].get("player_name")
-        if not isinstance(game_id, str) or not game_id.strip():
-            return None
-        if not isinstance(player_name, str) or not player_name.strip():
+        board_size = parse_int(msg["payload"].get("board_size"))
+        player_name = parse_str(msg["payload"].get("player_name"))
+        if board_size is None or player_name is None or not player_name.strip():
             return None
         return cls(
             message_id=msg["id"],
-            game_id=game_id.strip(),
+            board_size=board_size,
+            player_name=player_name.strip(),
+        )
+
+
+@dataclass(frozen=True)
+class ClientJoinGameEvent(Event):
+    message_type = "client.game.join"
+
+    join_code: str
+    player_name: str
+
+    def to_payload(self) -> Mapping[str, Any]:
+        payload: ClientJoinGamePayload = {
+            "join_code": self.join_code,
+            "player_name": self.player_name,
+        }
+        return payload
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        join_code = parse_str(msg["payload"].get("join_code"))
+        player_name = parse_str(msg["payload"].get("player_name"))
+        if join_code is None or not join_code.strip() or player_name is None or not player_name.strip():
+            return None
+        return cls(
+            message_id=msg["id"],
+            join_code=join_code.strip(),
             player_name=player_name.strip(),
         )
 

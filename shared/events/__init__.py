@@ -4,6 +4,7 @@ from shared.events.dispatcher import EventDispatcher
 from shared.events.error import ServerResponseErrorEvent
 from shared.events.event import Event
 from shared.events.game import (
+    ClientCreateLobbyEvent,
     ClientGameEndTurnEvent,
     ClientGameGiveUpEvent,
     ClientJoinGameEvent,
@@ -20,6 +21,7 @@ from shared.events.game import (
 from shared.protocol import Message
 
 EVENT_TYPES: dict[str, type[Event]] = {
+    ClientCreateLobbyEvent.message_type: ClientCreateLobbyEvent,
     ClientJoinGameEvent.message_type: ClientJoinGameEvent,
     ClientGameStartEvent.message_type: ClientGameStartEvent,
     ClientGameShiftTileEvent.message_type: ClientGameShiftTileEvent,
@@ -44,6 +46,7 @@ def parse_event(msg: Message) -> Event | None:
     return event_type.from_message(msg)
 
 __all__ = [
+    "ClientCreateLobbyEvent",
     "ClientGameEndTurnEvent",
     "ClientGameGiveUpEvent",
     "ClientJoinGameEvent",
