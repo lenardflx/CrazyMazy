@@ -6,7 +6,7 @@ import client.network.handlers
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
-from client.screens.scene_manager import SceneManager
+from client.screens.scene_manager import SceneManager, SceneTypes
 
 
 def main() -> None:
@@ -20,9 +20,13 @@ def main() -> None:
     conn = ClientConnection()
     state = ClientState()
     scene_manager = SceneManager()
+    
+    #Wenn eine Verbindung zum Server aufgebaut werden kann, gehe ins Hauptmenü, sonst zeige eine Fehlermeldung.
+    if conn.connect(SERVER_HOST, SERVER_PORT):
+        current_scene = SceneTypes.MAIN_MENU
+    else:
+        current_scene = SceneTypes.SERVER_DOWN
 
-    # If the server is reachable, enter the main menu, otherwise show the server-down scene.
-    current_scene = "Main Menu" if conn.connect(SERVER_HOST, SERVER_PORT) else "Server Down"
     screen = scene_manager.switch_scene(current_scene, surface)
 
     # Main game loop
