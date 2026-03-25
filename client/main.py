@@ -35,7 +35,9 @@ def main() -> None:
         dt = clock.tick(FPS) / 1000.0
         conn.poll(state)
 
-        for event in pygame.event.get():
+        events = pygame.event.get()
+
+        for event in events:
             if event.type == pygame.QUIT:
                 running = False
             else:
