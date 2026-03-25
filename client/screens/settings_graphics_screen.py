@@ -10,12 +10,25 @@ from typing import Optional
 from client import config
 
 class GraphicsScreen(BaseScreen):
-     def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
+    def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
         return None
     
-     def update(self, dt: float) -> None:
+    def update(self, dt: float) -> None:
         events = pg.event.get()
         pw.update(events)
-    
-     def draw(self) -> None:
+     
+    def change_flags(self, flag:int):
+        flags = None
+        match flag:
+            case 0:#resize
+                with open('zahl.txt', 'w') as f:                
+                    f.write(str(1073741841))
+            case 1:#mockup fullscreen
+                with open('zahl.txt', 'w') as f:                
+                    f.write(str(1073741857))
+            case 2:#standard / no flags
+                with open('zahl.txt', 'w') as f:                
+                    f.write(str(0))
+
+    def draw(self) -> None:
          pass
