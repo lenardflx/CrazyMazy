@@ -1,11 +1,14 @@
 # Author: Lenard Felix, Christopher Ionescu
 
 from __future__ import annotations
+
 import pygame as pg
 import pygame_widgets as pw
+
 from pygame_widgets.button import Button
 from typing import Optional
 from client.screens.base_screen import BaseScreen
+from shared.state.textures import TILE_IMAGES
 
 class MainMenuScreen(BaseScreen):
     def __init__(self, surface: pg.Surface) -> None:
@@ -16,7 +19,7 @@ class MainMenuScreen(BaseScreen):
         self.surface, 300, 300, 120, 40, text='Quit',
         fontSize=20,
         margin=0,
-        image = pg.transform.scale(pg.image.load("assets\\images\\Buttons and UI\\PlaceholderMenuButton.png"), (120, 40)),
+        image = pg.transform.scale(TILE_IMAGES["BUTTONS"], (120, 40)),
         onClick=lambda: pg.event.post(pg.event.Event(pg.QUIT))
         )
 

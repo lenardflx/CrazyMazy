@@ -10,5 +10,6 @@ def image_load(path):
 TILE_IMAGES = {
     "STRAIGHT": image_load("assets/images/tiles/straight.png"),
     "CORNER": image_load("assets/images/tiles/corner.png"),
-    "T_PIECE": image_load("assets/images/tiles/t_shape.png")
+    "T_PIECE": image_load("assets/images/tiles/t_shape.png"),
+    "BUTTONS": image_load("assets/images/Buttons_and_UI/PlaceholderMenuButton.png")
 }
