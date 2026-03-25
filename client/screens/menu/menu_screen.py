@@ -5,12 +5,14 @@ from typing import TYPE_CHECKING, Optional
 
 import pygame as pg
 
-from client.screens.base_screen import BaseScreen
-from client.screens.menu_ui import ACCENT_DARK, PANEL, TEXT_MUTED, TEXT_PRIMARY, MenuButton
-from client.screens.scene_types import SceneTypes
+from client.ui.controls import Button
+from client.ui.dialogs import ConfirmDialog
+from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
+from client.screens.core.base_screen import BaseScreen
+from client.screens.core.scene_types import SceneTypes
 
 if TYPE_CHECKING:
-    from client.screens.scene_manager import SceneManager
+    from client.screens.core.scene_manager import SceneManager
 
 
 BACKGROUND_COLOR = (76, 96, 122)
@@ -35,6 +37,7 @@ class MenuScreen(BaseScreen):
         self.is_main_menu = is_main_menu
         self.message = message
         self._requested_scene: SceneTypes | None = None
+        self.dialog: ConfirmDialog | None = None
 
         self.title_font = pg.font.SysFont("verdana", 42, bold=True)
         self.section_font = pg.font.SysFont("verdana", 24, bold=True)
@@ -46,9 +49,9 @@ class MenuScreen(BaseScreen):
         self.card_rect = pg.Rect(width // 2 - 430, 120, 860, height - 180)
         self.content_rect = self.card_rect.inflate(-56, -56)
         self.back_button = None
-        self.buttons: list[MenuButton] = []
+        self.buttons: list[Button] = []
         if not self.is_main_menu:
-            self.back_button = MenuButton(
+            self.back_button = Button(
                 pg.Rect(42, 34, 120, 46),
                 "Back",
                 lambda: self._request_scene(SceneTypes.MAIN_MENU),
@@ -70,12 +73,20 @@ class MenuScreen(BaseScreen):
                 if isinstance(target, SceneTypes)
                 else target
             )
-            self.buttons.append(MenuButton(rect, label, action, variant=variant))
+            self.buttons.append(Button(rect, label, action, variant=variant))
 
     def _request_scene(self, scene: SceneTypes) -> None:
         self._requested_scene = scene
 
     def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
+        if self.dialog is not None:
+            self.dialog.handle_event(event)
+            if self._requested_scene is not None:
+                next_screen = self.scene_manager.switch_scene(self._requested_scene, self.surface)
+                self._requested_scene = None
+                return next_screen
+            return None
+
         if self.back_button is not None:
             self.back_button.handle_event(event)
             if self._requested_scene is not None:
@@ -109,9 +120,29 @@ class MenuScreen(BaseScreen):
         else:
             self.draw_content(self.surface.get_rect())
 
+        if self.dialog is not None:
+            self.dialog.draw(self.surface)
+
     def handle_content_event(self, event: pg.event.Event) -> None:
         for button in self.buttons:
             button.handle_event(event)
+
+    def show_confirm(self, title: str, message: str, on_confirm: Callable[[], None], *, confirm_label: str = "Confirm") -> None:
+        def handle_confirm() -> None:
+            self.dialog = None
+            on_confirm()
+
+        def handle_cancel() -> None:
+            self.dialog = None
+
+        self.dialog = ConfirmDialog(
+            self.surface.get_rect(),
+            title,
+            message,
+            handle_confirm,
+            handle_cancel,
+            confirm_label=confirm_label,
+        )
 
     def draw_content(self, rect: pg.Rect) -> None:
         if self.is_main_menu:

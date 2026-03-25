@@ -7,9 +7,11 @@ from dataclasses import dataclass
 from shared.schema import ErrorPayload, GameSnapshotPayload
 
 
-@dataclass
+@dataclass(slots=True)
 class ClientState:
     """Mutable client-side state projected from server responses."""
 
     last_error: ErrorPayload | None = None
     game_snapshot: GameSnapshotPayload | None = None
+    error_version: int = 0
+    snapshot_version: int = 0

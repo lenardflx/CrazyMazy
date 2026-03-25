@@ -6,8 +6,8 @@ import client.network.handlers
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
-from client.screens.scene_manager import SceneManager
-from client.screens.scene_types import SceneTypes
+from client.screens.core.scene_manager import SceneManager
+from client.screens.core.scene_types import SceneTypes
 
 
 def main() -> None:
@@ -20,7 +20,7 @@ def main() -> None:
     # Connect to the server
     conn = ClientConnection()
     state = ClientState()
-    scene_manager = SceneManager()
+    scene_manager = SceneManager(conn, state)
     
     #Wenn eine Verbindung zum Server aufgebaut werden kann, gehe ins Hauptmenü, sonst zeige eine Fehlermeldung.
     if conn.connect(SERVER_HOST, SERVER_PORT):
@@ -35,6 +35,9 @@ def main() -> None:
     while running:
         dt = clock.tick(FPS) / 1000.0
         conn.poll(state)
+        next_screen = scene_manager.sync_transport(surface)
+        if next_screen is not None:
+            screen = next_screen
 
         events = pygame.event.get()
 

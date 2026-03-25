@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Optional
 import pygame
-from client.screens.base_screen import BaseScreen
+from client.screens.core.base_screen import BaseScreen
 
 
 class NoServerScreen(BaseScreen):

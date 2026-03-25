@@ -9,5 +9,7 @@ class SceneTypes(Enum):
     SETTINGS = "Settings"
     CREATE_LOBBY = "Create Lobby"
     JOIN_LOBBY = "Join Lobby"
+    LOBBY = "Lobby"
+    GAME = "Game"
+    POST_GAME = "Post Game"
     TUTORIAL = "Tutorial"
-    START_GAME = "Start Game"

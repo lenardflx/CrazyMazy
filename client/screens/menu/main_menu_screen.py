@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.config import WINDOW_TITLE
-from client.screens.menu_screen import MenuScreen
-from client.screens.scene_types import SceneTypes
+from client.screens.menu.menu_screen import MenuScreen
+from client.screens.core.scene_types import SceneTypes
 
 if TYPE_CHECKING:
-    from client.screens.scene_manager import SceneManager
+    from client.screens.core.scene_manager import SceneManager
 
 
 class MainMenuScreen(MenuScreen):
@@ -29,4 +29,7 @@ class MainMenuScreen(MenuScreen):
         )
 
     def _quit(self) -> None:
+        self.show_confirm("Quit Game?", "Close the client now?", self._post_quit, confirm_label="Quit")
+
+    def _post_quit(self) -> None:
         pg.event.post(pg.event.Event(pg.QUIT))

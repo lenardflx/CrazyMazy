@@ -41,6 +41,10 @@ class ClientConnection:
             self._sock.close()
             self._sock = None
 
+    @property
+    def is_connected(self) -> bool:
+        return self._sock is not None
+
     def _send_message(self, message: Message) -> None:
         """Send one message to the server."""
         if self._sock:

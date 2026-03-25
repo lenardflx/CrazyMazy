@@ -11,10 +11,4 @@ class ClientSettings:
 
     fullscreen: bool = False
 
-    def reset_audio(self) -> None:
-        self.master_volume = 82
-        self.music_volume = 68
-        self.effects_volume = 86
-
-    def reset_graphics(self) -> None:
-        self.fullscreen = False
+    # TODO: Get and Set functions that also save to disk, and load from disk

@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.screens.menu_screen import MenuScreen
+from client.screens.menu.menu_screen import MenuScreen
 
 if TYPE_CHECKING:
-    from client.screens.scene_manager import SceneManager
+    from client.screens.core.scene_manager import SceneManager
 
 
 class MessageScreen(MenuScreen):

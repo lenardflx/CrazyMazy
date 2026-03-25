@@ -13,8 +13,10 @@ def handle_response_error(state: ClientState, event: ServerResponseErrorEvent) -
         "code": event.code,
         "message": event.message,
     }
+    state.error_version += 1
 
 
 @dispatcher.handler(ServerGameSnapshotEvent)
 def handle_game_snapshot(state: ClientState, event: ServerGameSnapshotEvent) -> None:
     state.game_snapshot = event.payload
+    state.snapshot_version += 1
