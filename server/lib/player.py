@@ -33,7 +33,7 @@ def next_join_order(players: Iterable[PlayerData]) -> int:
 
 
 def active_players(players: Iterable[PlayerData]) -> list[PlayerData]:
-    return [player for player in players if player.status != PlayerStatus.LEFT]
+    return [player for player in players if player.status != PlayerStatus.DEPARTED]
 
 
 def next_available_color(players: Iterable[PlayerData]) -> PlayerColor | None:

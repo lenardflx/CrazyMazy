@@ -297,7 +297,7 @@ def test_parse_event_returns_server_game_finished_event_for_valid_message() -> N
                     },
                     {
                         "player_id": "550e8400-e29b-41d4-a716-446655440002",
-                        "result": "GAVE_UP",
+                        "result": "FORFEITED",
                         "placement": 2,
                     },
                 ],

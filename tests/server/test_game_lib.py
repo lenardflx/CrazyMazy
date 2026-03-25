@@ -94,7 +94,7 @@ def test_can_join_game_ignores_left_players_when_counting_capacity() -> None:
         make_player(),
         make_player(),
         make_player(),
-        make_player(status=PlayerStatus.LEFT),
+        make_player(status=PlayerStatus.DEPARTED),
     ]
 
     assert can_join_game(game, players)

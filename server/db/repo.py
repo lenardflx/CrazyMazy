@@ -1,12 +1,9 @@
-# Author: Raphael Eiden
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 from uuid import UUID
 
-from shared.models import GameData, PlayerData, TileData, TreasureData
+from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
 
 
 class GameRepository(ABC):
@@ -18,7 +15,7 @@ class GameRepository(ABC):
     """
 
     @abstractmethod
-    def find_by_game_id(self, game_id: UUID) -> Optional[GameData]:
+    def find_by_game_id(self, game_id: UUID) -> GameData | None:
         """
         Find a game by its unique game id, which is equivalent to
         the primary key (id) of the game entity and may NOT necessarily be
@@ -30,22 +27,22 @@ class GameRepository(ABC):
         ...
 
     @abstractmethod
-    def find_by_join_code(self, join_code: str) -> Optional[GameData]: ...
+    def find_by_join_code(self, join_code: str) -> GameData | None: ...
 
     @abstractmethod
-    def create_game(self, board_size: int, leader_player_id: UUID) -> Optional[GameData]:
+    def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
         """
-        Create a new game entity based on the
+        Create a new game entity.
 
-        :param board_size:          The width of the board. This must be an odd number
-                                    and at least 7 (which is also the default)
-        :param leader_player_id:    The id of the player who created the game.
-        :return: The GameData entity including the generated data such as primary key (id)
+        :param board_size: The width of the board. This must be an odd number
+                           and at least 7 (which is also the default).
+        :param leader_player_id: The id of the player who created the game, if known yet.
+        :return: The GameData entity including generated data such as the primary key.
         """
         ...
 
     @abstractmethod
-    def delete_game(self, game_id: UUID):
+    def delete_game(self, game_id: UUID) -> None:
         """
         Delete a game by its game id.
 
@@ -54,16 +51,14 @@ class GameRepository(ABC):
         ...
 
     @abstractmethod
-    def update_game(self, new_game: GameData):
+    def update_game(self, new_game: GameData) -> GameData:
         """
-        Updates the given GameData object in the database.
-        This method will use the `id` of the game data object
-        and apply all values in the object to the entity in the
-        database associated with that id.
+        Update the given GameData object in the database.
 
         :param new_game: The game data to be written into the database.
         """
         ...
+
 
 class PlayerRepository(ABC):
     """
@@ -74,10 +69,23 @@ class PlayerRepository(ABC):
     """
 
     @abstractmethod
-    def create_player(self, display_name: str, connection_id: str) -> Optional[PlayerData]: ...
+    def create_player(
+        self,
+        display_name: str,
+        connection_id: str,
+        game_id: UUID,
+        join_order: int,
+        piece_color: PlayerColor,
+    ) -> PlayerData: ...
 
     @abstractmethod
-    def find_by_id(self, player_id: UUID) -> Optional[PlayerData]: ...
+    def find_by_id(self, player_id: UUID) -> PlayerData | None: ...
+
+    @abstractmethod
+    def find_by_connection_id(self, connection_id: str) -> PlayerData | None: ...
+
+    @abstractmethod
+    def list_by_game_id(self, game_id: UUID) -> list[PlayerData]: ...
 
     @abstractmethod
     def update_player(self, player: PlayerData) -> PlayerData: ...
