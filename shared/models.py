@@ -65,7 +65,7 @@ class InsertionSide(StrEnum):
 class Player(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid4, primary_key=True)
 
-    user_id: int = Field(default=None, foreign_key="user.id")
+    user_id: uuid.UUID = Field(default=None, foreign_key="user.id")
 
     game_id: uuid.UUID = Field(foreign_key="game.id", index=True)
 
@@ -102,15 +102,13 @@ class Player(SQLModel, table=True):
     game: Optional[Game] = Relationship(back_populates="players")
     treasure_cards: list["TreasureCard"] = Relationship(back_populates="player")
 
-    game_id: int = Field(default=None, foreign_key="game.id")
-
 
 class Tile(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
-    game_id: int = Field(default=None, foreign_key="game.id", index=True)
+    game_id: uuid.UUID = Field(default=None, foreign_key="game.id", index=True)
 
-    treasure_id: int = Field(default=None, foreign_key="treasure.id")
+    treasure_id: uuid.UUID = Field(default=None, foreign_key="treasure.id")
 
     # Position on the board
     row: Optional[int] = Field(default=None, index=True)
@@ -161,7 +159,7 @@ class Game(SQLModel, table=True):
     code: str = Field(index=True, unique=True, max_length=16)
     
     # Player who created and controls the game
-    admin: int | None = Field(default=None, foreign_key="player.id")
+    admin: uuid.UUID | None = Field(default=None, foreign_key="player.id")
 
     # Lobby's leader
     leader_player_id: Optional[UUID] = Field(default=None, index=True)
