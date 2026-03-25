@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from client.network.dispatch import dispatcher
 from client.network.state import ClientState
-from shared.events import ServerResponseErrorEvent, ServerRoomSnapshotEvent
+from shared.events import ServerGameSnapshotEvent, ServerResponseErrorEvent
 
 
 @dispatcher.handler(ServerResponseErrorEvent)
@@ -15,6 +15,6 @@ def handle_response_error(state: ClientState, event: ServerResponseErrorEvent) -
     }
 
 
-@dispatcher.handler(ServerRoomSnapshotEvent)
-def handle_room_snapshot(state: ClientState, event: ServerRoomSnapshotEvent) -> None:
-    """TODO: implement room snapshot as soon as the schema is set"""
+@dispatcher.handler(ServerGameSnapshotEvent)
+def handle_game_snapshot(state: ClientState, event: ServerGameSnapshotEvent) -> None:
+    state.game_snapshot = event.payload

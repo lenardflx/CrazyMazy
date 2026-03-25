@@ -1,18 +1,38 @@
 # Author: Lenard Felix
 
 from shared.events.dispatcher import EventDispatcher
-from shared.events.event import (
-    ClientJoinRoomEvent,
-    Event,
-    ServerResponseErrorEvent,
-    ServerRoomSnapshotEvent,
+from shared.events.error import ServerResponseErrorEvent
+from shared.events.event import Event
+from shared.events.game import (
+    ClientGameEndTurnEvent,
+    ClientGameGiveUpEvent,
+    ClientJoinGameEvent,
+    ClientGameMovePlayerEvent,
+    ClientGameShiftTileEvent,
+    ClientGameStartEvent,
+    ServerGameFinishedEvent,
+    ServerGamePlayerMovedEvent,
+    ServerGameSnapshotEvent,
+    ServerGameStartedEvent,
+    ServerGameTileShiftedEvent,
+    ServerGameTurnChangedEvent,
 )
 from shared.protocol import Message
 
 EVENT_TYPES: dict[str, type[Event]] = {
-    ClientJoinRoomEvent.message_type: ClientJoinRoomEvent,
-    ServerRoomSnapshotEvent.message_type: ServerRoomSnapshotEvent,
+    ClientJoinGameEvent.message_type: ClientJoinGameEvent,
+    ClientGameStartEvent.message_type: ClientGameStartEvent,
+    ClientGameShiftTileEvent.message_type: ClientGameShiftTileEvent,
+    ClientGameMovePlayerEvent.message_type: ClientGameMovePlayerEvent,
+    ClientGameEndTurnEvent.message_type: ClientGameEndTurnEvent,
+    ClientGameGiveUpEvent.message_type: ClientGameGiveUpEvent,
+    ServerGameSnapshotEvent.message_type: ServerGameSnapshotEvent,
     ServerResponseErrorEvent.message_type: ServerResponseErrorEvent,
+    ServerGameStartedEvent.message_type: ServerGameStartedEvent,
+    ServerGameTileShiftedEvent.message_type: ServerGameTileShiftedEvent,
+    ServerGamePlayerMovedEvent.message_type: ServerGamePlayerMovedEvent,
+    ServerGameTurnChangedEvent.message_type: ServerGameTurnChangedEvent,
+    ServerGameFinishedEvent.message_type: ServerGameFinishedEvent,
 }
 
 
@@ -24,10 +44,20 @@ def parse_event(msg: Message) -> Event | None:
     return event_type.from_message(msg)
 
 __all__ = [
-    "ClientJoinRoomEvent",
+    "ClientGameEndTurnEvent",
+    "ClientGameGiveUpEvent",
+    "ClientJoinGameEvent",
+    "ClientGameMovePlayerEvent",
+    "ClientGameShiftTileEvent",
+    "ClientGameStartEvent",
     "Event",
     "EventDispatcher",
+    "ServerGameFinishedEvent",
+    "ServerGamePlayerMovedEvent",
+    "ServerGameSnapshotEvent",
+    "ServerGameStartedEvent",
+    "ServerGameTileShiftedEvent",
+    "ServerGameTurnChangedEvent",
     "ServerResponseErrorEvent",
-    "ServerRoomSnapshotEvent",
     "parse_event",
 ]

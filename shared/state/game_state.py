@@ -1,13 +1,37 @@
-from enum import Enum
-from shared.state.textures import *
 from collections import deque
 from shared.state.errors import TileError, BoardError
 from random import randint, shuffle
 from typing import Tuple
 
+import pygame
+
+from shared.state.errors import TileError
+from shared.state.textures import TILE_IMAGES
+
+
+class GamePhase(Enum):
+    LOBBY = 0
+    IN_GAME = 1
+    POST_GAME = 2
 
 class GameState:
-    def __init__(self, game):
+    def __init__(self, phase: GamePhase, game_code: str):
+        self.phase = phase
+        self.game_code = game_code
+        self.board: None | Board = None
+
+    @staticmethod
+    def create_new_game():
+        return GameState(GamePhase.LOBBY, new_game_id())
+
+    def setup_game(self):
+        """
+        generate random board
+        :return:
+        """
+        # create a 7x7 board by default, use user input later
+        self.board = Board(7)
+        # self.board.randomize()
         pass
 
 class TileType(Enum):
@@ -82,7 +106,7 @@ class Tile:
             self.path = deque([0,0,0,0])
         else:
             # invalid tile type → fail fast
-            raise TileError(f"Unbekannter Tile-Typ: '{self.type}'")
+            raise TileError(f"unknown Tile-Type: '{self.type}'")
 
         # rotate path according to orientation
         self.path.rotate(TileOrientation(self.orientation).value)
@@ -103,6 +127,8 @@ class Tile:
             self.texture = pygame.transform.rotate(texture, 180)
         elif self.orientation == TileOrientation.WEST.value:
             self.texture = pygame.transform.rotate(texture, 90)
+        else:
+            raise TileError(f"unknown orientation: '{self.orientation}'")
 
     def rotate_left(self):
         # rotate orientation counter‑clockwise
