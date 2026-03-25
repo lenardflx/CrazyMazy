@@ -15,14 +15,61 @@ from shared.lib.game import (
     parse_server_game_tile_shifted_payload,
     parse_server_game_turn_changed_payload,
 )
+from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
 from shared.schema import (
+    GameSnapshotPayload,
     ServerGameFinishedPayload,
     ServerGamePlayerMovedPayload,
     ServerGameStartedPayload,
     ServerGameTileShiftedPayload,
     ServerGameTurnChangedPayload,
 )
+
+
+@dataclass(frozen=True)
+class ClientJoinGameEvent(Event):
+    message_type = "client.game.join"
+
+    game_id: str
+    player_name: str
+
+    def to_payload(self) -> Mapping[str, Any]:
+        return {
+            "game_id": self.game_id,
+            "player_name": self.player_name,
+        }
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        game_id = msg["payload"].get("game_id")
+        player_name = msg["payload"].get("player_name")
+        if not isinstance(game_id, str) or not game_id.strip():
+            return None
+        if not isinstance(player_name, str) or not player_name.strip():
+            return None
+        return cls(
+            message_id=msg["id"],
+            game_id=game_id.strip(),
+            player_name=player_name.strip(),
+        )
+
+
+@dataclass(frozen=True)
+class ServerGameSnapshotEvent(Event):
+    message_type = "game.snapshot"
+
+    payload: GameSnapshotPayload
+
+    def to_payload(self) -> Mapping[str, Any]:
+        return self.payload
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        payload = parse_game_snapshot_payload(msg["payload"])
+        if payload is None:
+            return None
+        return cls(message_id=msg["id"], payload=payload)
 
 
 @dataclass(frozen=True)

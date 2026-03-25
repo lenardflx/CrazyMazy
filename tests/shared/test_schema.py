@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from shared.lib.snapshot import parse_room_snapshot_payload
+from shared.lib.snapshot import parse_game_snapshot_payload
 
 
 def make_snapshot_payload() -> dict[str, object]:
     return {
         "game_id": "550e8400-e29b-41d4-a716-446655440000",
-        "code": "ROOM-1",
+        "code": "GAME-1",
         "phase": "GAME",
         "revision": 7,
         "board_size": 7,
@@ -72,15 +72,15 @@ def make_snapshot_payload() -> dict[str, object]:
     }
 
 
-def test_parse_room_snapshot_payload_accepts_viewer_specific_snapshot() -> None:
+def test_parse_game_snapshot_payload_accepts_viewer_specific_snapshot() -> None:
     payload = make_snapshot_payload()
 
-    parsed = parse_room_snapshot_payload(payload)
+    parsed = parse_game_snapshot_payload(payload)
 
     assert parsed == payload
 
 
-def test_parse_room_snapshot_payload_rejects_non_spare_tile_without_position() -> None:
+def test_parse_game_snapshot_payload_rejects_non_spare_tile_without_position() -> None:
     payload = make_snapshot_payload()
     tiles = payload["tiles"]
     assert isinstance(tiles, list)
@@ -88,10 +88,10 @@ def test_parse_room_snapshot_payload_rejects_non_spare_tile_without_position() -
     assert isinstance(tile, dict)
     tile.pop("row")
 
-    assert parse_room_snapshot_payload(payload) is None
+    assert parse_game_snapshot_payload(payload) is None
 
 
-def test_parse_room_snapshot_payload_strips_hidden_player_fields() -> None:
+def test_parse_game_snapshot_payload_strips_hidden_player_fields() -> None:
     payload = make_snapshot_payload()
     players = payload["players"]
     assert isinstance(players, list)
@@ -99,7 +99,7 @@ def test_parse_room_snapshot_payload_strips_hidden_player_fields() -> None:
     assert isinstance(player, dict)
     player["active_treasure_type"] = "OWL"
 
-    parsed = parse_room_snapshot_payload(payload)
+    parsed = parse_game_snapshot_payload(payload)
 
     assert parsed is not None
     assert "active_treasure_type" not in parsed["players"][0]

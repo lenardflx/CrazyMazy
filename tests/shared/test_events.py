@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from shared.events import (
     ClientGameEndTurnEvent,
+    ClientJoinGameEvent,
     ClientGameMovePlayerEvent,
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
-    ClientJoinRoomEvent,
     ServerGameFinishedEvent,
     ServerGamePlayerMovedEvent,
+    ServerGameSnapshotEvent,
     ServerGameStartedEvent,
     ServerGameTileShiftedEvent,
     ServerGameTurnChangedEvent,
     ServerResponseErrorEvent,
-    ServerRoomSnapshotEvent,
     parse_event,
 )
 from shared.protocol import make_message
@@ -21,7 +21,7 @@ from shared.protocol import make_message
 def make_snapshot_payload() -> dict[str, object]:
     return {
         "game_id": "550e8400-e29b-41d4-a716-446655440000",
-        "code": "ROOM-1",
+        "code": "GAME-1",
         "phase": "GAME",
         "revision": 7,
         "board_size": 7,
@@ -88,25 +88,25 @@ def make_snapshot_payload() -> dict[str, object]:
 
 
 def test_event_to_message_uses_event_id_and_payload() -> None:
-    event = ClientJoinRoomEvent(
+    event = ClientJoinGameEvent(
         message_id="msg_custom",
-        room_id="ROOM-1",
+        game_id="GAME-1",
         player_name="Ada",
     )
 
     msg = event.to_message()
 
     assert msg["id"] == "msg_custom"
-    assert msg["type"] == ClientJoinRoomEvent.message_type
+    assert msg["type"] == ClientJoinGameEvent.message_type
     assert msg["payload"] == {
-        "room_id": "ROOM-1",
+        "game_id": "GAME-1",
         "player_name": "Ada",
     }
 
 
 def test_event_generates_message_id_by_default() -> None:
-    event = ClientJoinRoomEvent(
-        room_id="ROOM-1",
+    event = ClientJoinGameEvent(
+        game_id="GAME-1",
         player_name="Ada",
     )
 
@@ -116,13 +116,13 @@ def test_event_generates_message_id_by_default() -> None:
 def test_parse_event_returns_join_event_for_valid_message() -> None:
     event = parse_event(
         make_message(
-            ClientJoinRoomEvent.message_type,
-            {"room_id": " ROOM-1 ", "player_name": " Ada "},
+            ClientJoinGameEvent.message_type,
+            {"game_id": " GAME-1 ", "player_name": " Ada "},
         )
     )
 
-    assert isinstance(event, ClientJoinRoomEvent)
-    assert event.room_id == "ROOM-1"
+    assert isinstance(event, ClientJoinGameEvent)
+    assert event.game_id == "GAME-1"
     assert event.player_name == "Ada"
 
 
@@ -132,15 +132,15 @@ def test_parse_event_returns_none_for_unknown_message_type() -> None:
 
 def test_parse_event_returns_none_for_invalid_join_payload() -> None:
     assert parse_event(
-        make_message(ClientJoinRoomEvent.message_type, {"room_id": "ROOM-1"})
+        make_message(ClientJoinGameEvent.message_type, {"game_id": "GAME-1"})
     ) is None
 
 
 def test_parse_event_returns_snapshot_event_for_snapshot_message() -> None:
     payload = make_snapshot_payload()
-    event = parse_event(make_message(ServerRoomSnapshotEvent.message_type, payload))
+    event = parse_event(make_message(ServerGameSnapshotEvent.message_type, payload))
 
-    assert isinstance(event, ServerRoomSnapshotEvent)
+    assert isinstance(event, ServerGameSnapshotEvent)
     assert event.payload == payload
 
 
@@ -148,12 +148,12 @@ def test_parse_event_returns_error_event_for_error_message() -> None:
     event = parse_event(
         make_message(
             ServerResponseErrorEvent.message_type,
-            {"code": "ROOM_NOT_FOUND", "message": "missing"},
+            {"code": "GAME_NOT_FOUND", "message": "missing"},
         )
     )
 
     assert isinstance(event, ServerResponseErrorEvent)
-    assert event.code == "ROOM_NOT_FOUND"
+    assert event.code == "GAME_NOT_FOUND"
     assert event.message == "missing"
 
 

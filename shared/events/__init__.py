@@ -6,29 +6,27 @@ from shared.events.event import Event
 from shared.events.game import (
     ClientGameEndTurnEvent,
     ClientGameGiveUpEvent,
+    ClientJoinGameEvent,
     ClientGameMovePlayerEvent,
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
     ServerGameFinishedEvent,
     ServerGamePlayerMovedEvent,
+    ServerGameSnapshotEvent,
     ServerGameStartedEvent,
     ServerGameTileShiftedEvent,
     ServerGameTurnChangedEvent,
 )
-from shared.events.room import (
-    ClientJoinRoomEvent,
-    ServerRoomSnapshotEvent,
-)
 from shared.protocol import Message
 
 EVENT_TYPES: dict[str, type[Event]] = {
-    ClientJoinRoomEvent.message_type: ClientJoinRoomEvent,
+    ClientJoinGameEvent.message_type: ClientJoinGameEvent,
     ClientGameStartEvent.message_type: ClientGameStartEvent,
     ClientGameShiftTileEvent.message_type: ClientGameShiftTileEvent,
     ClientGameMovePlayerEvent.message_type: ClientGameMovePlayerEvent,
     ClientGameEndTurnEvent.message_type: ClientGameEndTurnEvent,
     ClientGameGiveUpEvent.message_type: ClientGameGiveUpEvent,
-    ServerRoomSnapshotEvent.message_type: ServerRoomSnapshotEvent,
+    ServerGameSnapshotEvent.message_type: ServerGameSnapshotEvent,
     ServerResponseErrorEvent.message_type: ServerResponseErrorEvent,
     ServerGameStartedEvent.message_type: ServerGameStartedEvent,
     ServerGameTileShiftedEvent.message_type: ServerGameTileShiftedEvent,
@@ -48,18 +46,18 @@ def parse_event(msg: Message) -> Event | None:
 __all__ = [
     "ClientGameEndTurnEvent",
     "ClientGameGiveUpEvent",
+    "ClientJoinGameEvent",
     "ClientGameMovePlayerEvent",
     "ClientGameShiftTileEvent",
     "ClientGameStartEvent",
-    "ClientJoinRoomEvent",
     "Event",
     "EventDispatcher",
     "ServerGameFinishedEvent",
     "ServerGamePlayerMovedEvent",
+    "ServerGameSnapshotEvent",
     "ServerGameStartedEvent",
     "ServerGameTileShiftedEvent",
     "ServerGameTurnChangedEvent",
     "ServerResponseErrorEvent",
-    "ServerRoomSnapshotEvent",
     "parse_event",
 ]

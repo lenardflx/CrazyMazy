@@ -24,9 +24,9 @@ from shared.models import (
     TurnPhase,
 )
 from shared.schema import (
+    GameSnapshotPayload,
     PositionPayload,
     PublicPlayerPayload,
-    RoomSnapshotPayload,
     TilePayload,
     TurnPayload,
     ViewerPayload,
@@ -173,7 +173,7 @@ def _parse_turn_payload(payload: Any) -> TurnPayload | None:
     }
 
 
-def parse_room_snapshot_payload(payload: Mapping[str, Any]) -> RoomSnapshotPayload | None:
+def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPayload | None:
     game_id = parse_str(payload.get("game_id"))
     code = parse_str(payload.get("code"))
     phase = parse_enum(payload.get("phase"), GamePhase)

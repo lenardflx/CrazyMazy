@@ -54,7 +54,7 @@ class TurnPayload(TypedDict):
     blocked_insertion_index: int | None
 
 
-class RoomSnapshotPayload(TypedDict):
+class GameSnapshotPayload(TypedDict):
     game_id: str
     code: str
     phase: str
