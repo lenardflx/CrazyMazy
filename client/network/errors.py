@@ -1,3 +1,5 @@
+# Author: Lenard Felix
+
 from __future__ import annotations
 
 from client.state.runtime_state import ErrorTarget, RuntimeState

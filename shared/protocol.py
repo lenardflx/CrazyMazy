@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 from __future__ import annotations
 

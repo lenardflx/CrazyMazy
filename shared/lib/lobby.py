@@ -1,3 +1,5 @@
+# Author: Lenard Felix
+
 from __future__ import annotations
 
 MIN_BOARD_SIZE = 7

@@ -1,3 +1,5 @@
+# Author: Lennart William Owen, Raphael Eiden, Sarah Trapp, Lenard Felix
+ 
 from collections import deque
 from enum import Enum
 from shared.state.errors import TileError, BoardError
