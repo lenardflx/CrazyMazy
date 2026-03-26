@@ -54,7 +54,7 @@ class TurnPayload(TypedDict):
     blocked_insertion_index: int | None
 
 
-class RoomSnapshotPayload(TypedDict):
+class GameSnapshotPayload(TypedDict):
     game_id: str
     code: str
     phase: str
@@ -65,6 +65,16 @@ class RoomSnapshotPayload(TypedDict):
     tiles: list[TilePayload]
     players: list[PublicPlayerPayload]
     viewer: ViewerPayload | None
+
+
+class ClientCreateLobbyPayload(TypedDict):
+    board_size: int
+    player_name: str
+
+
+class ClientJoinGamePayload(TypedDict):
+    join_code: str
+    player_name: str
 
 
 class ClientGameShiftTilePayload(TypedDict):
@@ -128,3 +138,7 @@ class ServerGameFinishedPayload(TypedDict):
     revision: int
     winner_player_id: str | None
     placements: list[GamePlacementPayload]
+
+
+class ServerGameLeftPayload(TypedDict):
+    reason: str

@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 from __future__ import annotations
 
@@ -14,8 +14,11 @@ class ErrorCode:
     INVALID_MESSAGE = "INVALID_MESSAGE"
     INVALID_PAYLOAD = "INVALID_PAYLOAD"
 
-    ROOM_NOT_FOUND = "ROOM_NOT_FOUND"
-    ROOM_FULL = "ROOM_FULL"
+    GAME_NOT_FOUND = "GAME_NOT_FOUND"
+    GAME_FULL = "GAME_FULL"
+    INVALID_BOARD_SIZE = "INVALID_BOARD_SIZE"
+    DISPLAY_NAME_TAKEN = "DISPLAY_NAME_TAKEN"
+    GAME_NOT_JOINABLE = "GAME_NOT_JOINABLE"
 
 
 class Message(TypedDict):
@@ -39,7 +42,7 @@ class Message(TypedDict):
         type:       The event type this message originates from (usually the class name
                     of the event and specified in the respective event class)
         payload:    The attributes that have to be carried by the event
-                    such as "room id" for client connect lobby event.
+                    such as "game id" for client connect lobby event.
         reply_to:   The messages to be sent back as a response.
     """
     id: str

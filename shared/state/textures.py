@@ -1,45 +1,52 @@
-import pygame
+# Author: Lenard Felix
+ 
 from pathlib import Path
+
+import pygame
+
+from shared.models import TreasureType
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
-def image_load(path):
+
+def image_load(path: str) -> pygame.Surface:
     return pygame.image.load(BASE_DIR / path)
 
 
 TILE_IMAGES = {
     "STRAIGHT": image_load("assets/images/tiles/straight.png"),
     "CORNER": image_load("assets/images/tiles/corner.png"),
-    "T_PIECE": image_load("assets/images/tiles/t_shape.png")
+    "T": image_load("assets/images/tiles/t_shape.png"),
 }
 
 UI_IMAGES = {
-    "BUTTONS": image_load("assets/images/buttons_ui/PlaceholderMenuButton.png")
+    "BUTTONS": image_load("assets/images/buttons_ui/PlaceholderMenuButton.png"),
 }
 
-TREASURES = {
-    "ph1": image_load("assets/images/treasure_placeholder/TreasurePlaceholder1.png"),
-    "ph2": image_load("assets/images/treasure_placeholder/TreasurePlaceholder2.png"),
-    "ph3": image_load("assets/images/treasure_placeholder/TreasurePlaceholder3.png"),
-    "ph4": image_load("assets/images/treasure_placeholder/TreasurePlaceholder4.png"),
-    "ph5": image_load("assets/images/treasure_placeholder/TreasurePlaceholder5.png"),
-    "ph6": image_load("assets/images/treasure_placeholder/TreasurePlaceholder6.png"),
-    "ph7": image_load("assets/images/treasure_placeholder/TreasurePlaceholder7.png"),
-    "ph8": image_load("assets/images/treasure_placeholder/TreasurePlaceholder8.png"),
-    "ph9": image_load("assets/images/treasure_placeholder/TreasurePlaceholder9.png"),
-    "ph10": image_load("assets/images/treasure_placeholder/TreasurePlaceholder10.png"),
-    "ph11": image_load("assets/images/treasure_placeholder/TreasurePlaceholder11.png"),
-    "ph12": image_load("assets/images/treasure_placeholder/TreasurePlaceholder12.png"),
-    "ph13": image_load("assets/images/treasure_placeholder/TreasurePlaceholder13.png"),
-    "ph14": image_load("assets/images/treasure_placeholder/TreasurePlaceholder14.png"),
-    "ph15": image_load("assets/images/treasure_placeholder/TreasurePlaceholder15.png"),
-    "ph16": image_load("assets/images/treasure_placeholder/TreasurePlaceholder16.png"),
-    "ph17": image_load("assets/images/treasure_placeholder/TreasurePlaceholder17.png"),
-    "ph18": image_load("assets/images/treasure_placeholder/TreasurePlaceholder18.png"),
-    "ph19": image_load("assets/images/treasure_placeholder/TreasurePlaceholder19.png"),
-    "ph20": image_load("assets/images/treasure_placeholder/TreasurePlaceholder20.png"),
-    "ph21": image_load("assets/images/treasure_placeholder/TreasurePlaceholder21.png"),
-    "ph22": image_load("assets/images/treasure_placeholder/TreasurePlaceholder22.png"),
-    "ph23": image_load("assets/images/treasure_placeholder/TreasurePlaceholder23.png"),
-    "ph24": image_load("assets/images/treasure_placeholder/TreasurePlaceholder24.png"),
+# TODO: Replace the placeholder treasure art with the final assets once they are ready
+TREASURE_IMAGES = {
+    TreasureType.SKULL.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder1.png"),
+    TreasureType.SWORD.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder2.png"),
+    TreasureType.GOLDBAG.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder3.png"),
+    TreasureType.KEYS.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder4.png"),
+    TreasureType.EMERALD.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder5.png"),
+    TreasureType.ARMOR.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder6.png"),
+    TreasureType.BOOK.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder7.png"),
+    TreasureType.CROWN.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder8.png"),
+    TreasureType.CHEST.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder9.png"),
+    TreasureType.CANDLE.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder10.png"),
+    TreasureType.MAP.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder11.png"),
+    TreasureType.RING.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder12.png"),
+    TreasureType.DRAGON.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder13.png"),
+    TreasureType.GHOST.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder14.png"),
+    TreasureType.BAT.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder15.png"),
+    TreasureType.GOBLIN.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder16.png"),
+    TreasureType.PRINCESS.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder17.png"),
+    TreasureType.GENIE.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder18.png"),
+    TreasureType.BUG.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder19.png"),
+    TreasureType.OWL.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder20.png"),
+    TreasureType.LIZARD.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder21.png"),
+    TreasureType.SPIDER.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder22.png"),
+    TreasureType.FLY.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder23.png"),
+    TreasureType.RAT.value: image_load("assets/images/treasure_placeholder/TreasurePlaceholder24.png"),
 }

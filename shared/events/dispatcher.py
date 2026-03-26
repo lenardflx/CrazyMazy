@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Generic, TypeVar
+from typing import Callable, Generic, TypeVar, cast
 
 from shared.events.event import Event
 
@@ -49,7 +49,7 @@ class EventDispatcher(Generic[TContext, TReturn]):
         ) -> Callable[[TContext, TEvent], TReturn]:
             if event_type in self._handlers:
                 raise ValueError(f"Handler already registered for event type: {event_type.__name__}")
-            self._handlers[event_type] = fn
+            self._handlers[event_type] = cast(Callable[[TContext, Event], TReturn], fn)
             logger.info(f"Registered handler for event type: {event_type.__name__}")
             return fn
 

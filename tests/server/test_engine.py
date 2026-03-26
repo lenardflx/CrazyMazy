@@ -1,3 +1,7 @@
+# Author: Lenard Felix
+
+# mypy: disable-error-code=import-not-found
+
 from __future__ import annotations
 
 from sqlalchemy import text

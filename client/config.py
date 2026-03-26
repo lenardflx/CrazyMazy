@@ -1,6 +1,8 @@
+# Author: Lenard Felix
+ 
 import os
 
-WINDOW_TITLE = "Das Verrückte Labyrinth"
+WINDOW_TITLE = "Crazy Mazy"
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 FPS = 60

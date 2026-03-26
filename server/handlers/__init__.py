@@ -1,3 +1,5 @@
-from server.handlers import join_room
+# Author: Lenard Felix
 
-__all__ = ["join_room"]
+from server.handlers import game_flow
+
+__all__ = ["game_flow"]

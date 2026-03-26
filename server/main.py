@@ -5,10 +5,12 @@ import threading
 
 import server.handlers
 from server.config import HOST, PORT
+from server.network.connections import register_connection, unregister_connection
 from server.network.dispatch import dispatcher
 from server.network.models import OutgoingMessage, RequestContext
 from shared.events import parse_event
 from shared.network import recv_line, send_msg
+from shared.utils.ids import new_connection_id
 
 
 def flush_outgoing(messages: list[OutgoingMessage]) -> None:
@@ -20,7 +22,8 @@ def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:
     """Handle a client connection and dispatch inbound protocol messages."""
     print(f"[server] {addr} connected")
     buffer = ""
-    ctx = RequestContext(conn=conn, addr=addr)
+    ctx = RequestContext(conn=conn, addr=addr, connection_id=new_connection_id())
+    register_connection(ctx.connection_id, conn)
     with conn:
         while True:
             try:
@@ -35,6 +38,8 @@ def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:
                     flush_outgoing(outgoing)
             except OSError:
                 break
+    # TODO: Resolve socket disconnects through GameService.leave_game
+    unregister_connection(ctx.connection_id)
     print(f"[server] {addr} disconnected")
 
 
