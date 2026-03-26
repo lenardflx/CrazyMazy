@@ -16,16 +16,16 @@ done
 
 # If no client argument has been set, start one client and server by default
 if [ -z "$clients" ]; then
-    python3 -m server.main 2>&1 | sed "s/^/[server-1] /" &
-    python3 -m client.main 2>&1 | sed "s/^/[client-1] /" &
+    python -m server.main 2>&1 | sed "s/^/[server-1] /" &
+    python -m client.main 2>&1 | sed "s/^/[client-1] /" &
     wait
     exit
 fi
 
-python3 -m server.main 2>&1 | sed "s/^/[server-1] /" &
+python -m server.main 2>&1 | sed "s/^/[server-1] /" &
 echo
 for ((i=0; i < $clients; i++)); do
-  python3 -m client.main 2>&1 | sed "s/^/[client-1] /" &
+  python -m client.main 2>&1 | sed "s/^/[client-1] /" &
 done
 
 wait

@@ -189,168 +189,240 @@ class Tile:
 
 class Board:
     def __init__(self, width: int = 7):
-        self.width = width # may at a scaling feature in the future
-        self.tiles = {}
-        self.spare = None
+        """
+        Represents the full game board.
 
-        # stack with moving tiles
-        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for i in range(9)] # corner without treasures
-        stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(6)] #corners with treasures
-        stack += [Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(i+16)) for i in range(6)] # all t-pieces have treasures
-        stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for i in range(13)] # straights don't have treasures
+        Args:
+            width: Board dimension (Labyrinth uses 7×7).
+        """
+
+        self.width = width
+        self.tiles = {}     # (x, y) → Tile
+        self.spare = None   # tile currently outside the board
+
+        # --- Build the stack of movable tiles ---
+        # 9 corner tiles without treasures
+        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for _ in range(9)]
+
+        # 6 corner tiles with treasures (treasure IDs 22–27)
+        stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(6)]
+
+        # 6 T‑pieces with treasures (treasure IDs 16–21)
+        stack += [Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(i+16)) for i in range(6)]
+
+        # 13 straight tiles without treasures (only 0° or 180° matter)
+        stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for _ in range(13)]
+
         shuffle(stack)
         self.stack = stack
 
+    # -------------------------------------------------------------------------
+    # Tile adjacency + movement logic
+    # -------------------------------------------------------------------------
+
     def get_neighbour(self, position: Tuple[int, int], direction: TileOrientation) -> tuple[int, int] | None:
-        # position on border => no neighbor
-        if position[1] == 0 and direction == TileOrientation.NORTH:
+        """
+        Returns the neighbouring coordinate in the given direction.
+        Returns None if the neighbour would be outside the board.
+        """
+
+        x, y = position
+
+        # Check board boundaries
+        if y == 0 and direction == TileOrientation.NORTH:
             return None
-        if position[1] == self.width - 1 and direction == TileOrientation.SOUTH:
+        if y == self.width - 1 and direction == TileOrientation.SOUTH:
             return None
-        if position[0] == 0 and direction == TileOrientation.WEST:
+        if x == 0 and direction == TileOrientation.WEST:
             return None
-        if position[0] == self.width - 1 and direction == TileOrientation.EAST:
+        if x == self.width - 1 and direction == TileOrientation.EAST:
             return None
 
-        # return neighbour
+        # Return neighbour coordinate
         if direction == TileOrientation.NORTH:
-            return position[0], position[1]-1
+            return x, y - 1
         if direction == TileOrientation.EAST:
-            return position[0]+1, position[1]
+            return x + 1, y
         if direction == TileOrientation.SOUTH:
-            return position[0], position[1]+1
+            return x, y + 1
         if direction == TileOrientation.WEST:
-            return position[0]-1, position[1]
+            return x - 1, y
 
     def move_possible(self, position: Tuple[int, int], direction: TileOrientation):
-        # wall on tile your standing on
+        """
+        Checks whether movement from a tile in a given direction is allowed.
+
+        Conditions:
+        - current tile must have an open path in that direction
+        - neighbour must exist
+        - neighbour must have an open path back toward this tile
+        """
+
+        # Current tile has no opening in that direction
         if self.tiles[position].path[direction.value] == 0:
             return False
 
-        # end of board
-        if self.get_neighbour(position, direction) is None:
+        neighbour = self.get_neighbour(position, direction)
+        if neighbour is None:
             return False
 
-        # wall of neighbour in your way
-        if self.tiles[self.get_neighbour(position, direction)].path[(direction.value+2)%4] == 0:
+        # Neighbour must have opening in opposite direction
+        if self.tiles[neighbour].path[(direction.value + 2) % 4] == 0:
             return False
-
 
         return True
 
+    # -------------------------------------------------------------------------
+    # Pathfinding
+    # -------------------------------------------------------------------------
+
     def pathvalidating(self, start_position: Tuple[int, int], end_position: Tuple[int, int]):
+        """Returns True if end_position is reachable from start_position."""
         return end_position in self.pathfind(start_position)
 
-
     def pathfind(self, position: Tuple[int, int], visited=[]):
-        # Add the current position to the visited list
+        """
+        Depth‑first search to find all reachable tiles from a starting position.
+        """
+
         visited.append(position)
 
-        # Explore all 4 possible directions (0–3)
+        # Explore all 4 directions
         for d in range(4):
-            # Check if movement in direction d is allowed AND the neighbour exists
-            neighbour = self.get_neighbour(position, TileOrientation(d))
-            if self.move_possible(position, TileOrientation(d)) and neighbour not in visited:
-                # Recursively continue pathfinding from the neighbour
-                # The recursive call mutates 'visited' in place, so no reassignment is needed
-                self.pathfind(neighbour, visited)
+            direction = TileOrientation(d)
+            neighbour = self.get_neighbour(position, direction)
 
-        # Return the accumulated list of visited positions
+            if neighbour and neighbour not in visited:
+                if self.move_possible(position, direction):
+                    self.pathfind(neighbour, visited)
+
         return visited
 
+    # -------------------------------------------------------------------------
+    # Board construction
+    # -------------------------------------------------------------------------
+
     def create_board(self):
-        treasure_order = [i+4 for i in range(12)]
+        """
+        Creates the fixed tiles (corners + T‑pieces on even coordinates)
+        and leaves the remaining spaces as None to be filled later.
+        """
+
+        treasure_order = [i + 4 for i in range(12)]
         shuffle(treasure_order)
         counter = 0
+
         for i in range(self.width):
             for j in range(self.width):
-                # top left corner
-                if i==0 and j==0:
-                    self.tiles.update({(j,i) : Tile(TileType.CORNER, TileOrientation.EAST, TreasureType.YELLOW)})
-                # top right corner
-                elif i == 0 and j == self.width-1:
-                    self.tiles.update({(j, i): Tile(TileType.CORNER, TileOrientation.SOUTH, TreasureType.BLUE)})
-                # bottom left corner
-                elif i == self.width-1 and j == 0:
-                    self.tiles.update({(j, i): Tile(TileType.CORNER, TileOrientation.NORTH, TreasureType.RED)})
-                # bottom right corner
-                elif i == self.width-1 and j == self.width-1:
-                    self.tiles.update({(j, i): Tile(TileType.CORNER, TileOrientation.WEST, TreasureType.GREEN)})
 
-                # top row
-                elif i == 0 and j%2==0 and 0<j>self.width-1:
-                    self.tiles.update({(j,i) : Tile(TileType.T_PIECE, TileOrientation.EAST, TreasureType(treasure_order[counter]))})
+                # --- Fixed corner tiles ---
+                if i == 0 and j == 0:
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.EAST, TreasureType.YELLOW)
+                elif i == 0 and j == self.width - 1:
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.SOUTH, TreasureType.BLUE)
+                elif i == self.width - 1 and j == 0:
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.NORTH, TreasureType.RED)
+                elif i == self.width - 1 and j == self.width - 1:
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.WEST, TreasureType.GREEN)
+
+                # --- Fixed T‑pieces on edges (even coordinates only) ---
+                elif i == 0 and j % 2 == 0 and 0 < j < self.width - 1:
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, TreasureType(treasure_order[counter]))
                     counter += 1
-                # bottom row
-                elif i == self.width-1 and j%2==0 and 0<j>self.width-1:
-                    self.tiles.update({(j, i): Tile(TileType.T_PIECE, TileOrientation.NORTH, TreasureType(treasure_order[counter]))})
+                elif i == self.width - 1 and j % 2 == 0 and 0 < j < self.width - 1:
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.NORTH, TreasureType(treasure_order[counter]))
                     counter += 1
-                # left row
-                elif j == 0 and i%2==0 and 0<i>self.width-1:
-                    self.tiles.update({(j,i) : Tile(TileType.T_PIECE,TileOrientation.EAST, TreasureType(treasure_order[counter]))})
+                elif j == 0 and i % 2 == 0 and 0 < i < self.width - 1:
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, TreasureType(treasure_order[counter]))
                     counter += 1
-                # right row
-                elif j == self.width-1 and i%2==0 and 0<i>self.width-1:
-                    self.tiles.update({(j, i): Tile(TileType.T_PIECE, TileOrientation.WEST, TreasureType(treasure_order[counter]))})
+                elif j == self.width - 1 and i % 2 == 0 and 0 < i < self.width - 1:
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.WEST, TreasureType(treasure_order[counter]))
                     counter += 1
-                # middle
-                elif i%2==0 and j%2==0:
-                    self.tiles.update({(j,i) : Tile(TileType.T_PIECE, TileOrientation(randint(0,3)), TreasureType(treasure_order[counter]))})
+
+                # --- Middle T‑pieces (even/even coordinates) ---
+                elif i % 2 == 0 and j % 2 == 0:
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(treasure_order[counter]))
                     counter += 1
-                # rest
+
+                # --- Remaining spaces are filled later ---
                 else:
-                    self.tiles.update({(j,i) : None})
+                    self.tiles[(j, i)] = None
 
     def create_blocked_board(self):
+        """Creates a board filled entirely with WALL tiles (for debugging)."""
         for i in range(self.width):
             for j in range(self.width):
-                self.tiles.update({(j,i) : Tile(TileType.WALL, TileOrientation.NORTH)})
+                self.tiles[(j, i)] = Tile(TileType.WALL, TileOrientation.NORTH)
 
-    def change_tile(self, x : int, y : int, tile):
-        self.tiles.update({(x,y) : tile})
+    def change_tile(self, x: int, y: int, tile):
+        """Replaces the tile at (x, y) with a new tile."""
+        self.tiles[(x, y)] = tile
 
     def fill_board(self):
+        """
+        Fills all None‑spaces with tiles from the stack.
+        The last remaining tile becomes the spare tile.
+        """
+
         counter = 0
         for i in range(self.width):
             for j in range(self.width):
-                if self.tiles[(j,i)] is None:
-                    self.tiles.update({(j,i) : self.stack[counter]})
+                if self.tiles[(j, i)] is None:
+                    self.tiles[(j, i)] = self.stack[counter]
                     counter += 1
+
         self.spare = self.stack[counter]
 
+    # -------------------------------------------------------------------------
+    # Tile insertion (Labyrinth mechanics)
+    # -------------------------------------------------------------------------
+
     def insert_tile(self, x, y):
-        # check if tile is inserted at the border
-        if (x != 0 and y != 0) and (x != self.width-1 and y != self.width-1):
+        """
+        Inserts the spare tile into the board at (x, y), shifting a full row/column.
+
+        Rules:
+        - Only border positions allowed
+        - Only odd coordinates are movable (even ones are fixed)
+        - Tile must be inserted from outside the board
+        """
+
+        # Must be on the border
+        if (x != 0 and y != 0) and (x != self.width - 1 and y != self.width - 1):
             raise BoardError("You can't insert a tile in the middle")
-        # check if the tile is placed outside the board
-        if (x<0 or x>=self.width) or (y<0 or y>=self.width):
+
+        # Must be inside valid coordinate range
+        if x < 0 or x >= self.width or y < 0 or y >= self.width:
             raise BoardError("You can't insert a tile outside the board")
-        # check if tile is movable
+
+        # Even/even positions are fixed tiles
         if x % 2 == 0 and y % 2 == 0:
             raise BoardError("That tile isn't movable")
 
-        # horizontal from the left
+        # --- Horizontal insertion from the left ---
         if x == 0:
             for i in range(self.width):
-                ram = self.tiles[(i,y)]
-                self.tiles.update({(i,y) : self.spare})
-                self.spare = ram
-        #horizontal from the right
-        if x == self.width-1:
-            for i in range(self.width-1, -1, -1):
-                ram = self.tiles[(i,y)]
-                self.tiles.update({(i,y) : self.spare})
+                ram = self.tiles[(i, y)]
+                self.tiles[(i, y)] = self.spare
                 self.spare = ram
 
-        # vertical from the top
+        # --- Horizontal insertion from the right ---
+        if x == self.width - 1:
+            for i in range(self.width - 1, -1, -1):
+                ram = self.tiles[(i, y)]
+                self.tiles[(i, y)] = self.spare
+                self.spare = ram
+
+        # --- Vertical insertion from the top ---
         if y == 0:
             for i in range(self.width):
                 ram = self.tiles[(x, i)]
-                self.tiles.update({(x, i) : self.spare})
+                self.tiles[(x, i)] = self.spare
                 self.spare = ram
-        # vertical from the bottom
-        if y == self.width-1:
-            for i in range(self.width-1, -1, -1):
+
+        # --- Vertical insertion from the bottom ---
+        if y == self.width - 1:
+            for i in range(self.width - 1, -1, -1):
                 ram = self.tiles[(x, i)]
-                self.tiles.update({(x, i) : self.spare})
+                self.tiles[(x, i)] = self.spare
                 self.spare = ram
