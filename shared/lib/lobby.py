@@ -10,4 +10,5 @@ MAX_JOINABLE_PLAYERS = 4
 
 
 def is_valid_board_size(board_size: int) -> bool:
+    """Return ``True`` if ``board_size`` is an odd value within the allowed range."""
     return board_size in VALID_BOARD_SIZES
