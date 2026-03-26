@@ -41,7 +41,6 @@ def active_players(players: Iterable[PlayerData]) -> list[PlayerData]:
 def next_available_color(players: Iterable[PlayerData]) -> PlayerColor | None:
     used = {player.piece_color for player in active_players(players)}
 
-    # TODO: is this a good way to assign colors? Should we rethink the color model
     for color in (
         PlayerColor.RED,
         PlayerColor.YELLOW,

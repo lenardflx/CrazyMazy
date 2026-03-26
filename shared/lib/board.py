@@ -62,7 +62,6 @@ def create_board_tiles(game_id: object, board_size: int) -> list[TileData]:
     tiles.append(spare_tile)
     return tiles
 
-
 def openings(tile_type: TileType, rotation: int) -> tuple[bool, bool, bool, bool]:
     values = deque(_BASE_OPENINGS[tile_type])
     values.rotate(rotation)

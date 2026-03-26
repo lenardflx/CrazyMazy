@@ -23,6 +23,7 @@ ButtonSpec = tuple[str, ButtonTarget, str]
 
 
 class MenuScreen(BaseScreen):
+    """Base class for all menu screens"""
     def __init__(
         self,
         surface: pg.Surface,

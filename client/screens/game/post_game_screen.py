@@ -8,8 +8,8 @@ import pygame as pg
 
 from client.network.actions import request_leave_game, request_start_game
 from client.ui.controls import Button
-from client.ui.game_views import draw_player_rows
-from client.ui.theme import TEXT_MUTED, TEXT_PRIMARY
+from client.ui.player_rows_view import draw_player_rows
+from client.ui.theme import TEXT_MUTED
 from client.screens.menu.menu_screen import MenuScreen
 
 if TYPE_CHECKING:
