@@ -2,5 +2,5 @@
     "master_volume": 100,
     "music_volume": 100,
     "effects_volume": 100,
-    "fullsceen": false
+    "fullscreen": false
 }

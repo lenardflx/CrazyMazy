@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pygame.locals import HWSURFACE, DOUBLEBUF, NOFRAME, RESIZABLE
 import json
+from shared.state.textures import BASE_DIR
 
 FULLSCREEN_FLAGS = HWSURFACE | DOUBLEBUF | NOFRAME
 RESIZABLE_FLAGS = HWSURFACE | DOUBLEBUF | RESIZABLE
@@ -76,22 +77,22 @@ class ClientSettings:
             "effects_volume": self.get_effects_volume(),
             "flags": self.get_flags()
         }
-        with open("settings_data.json", mode="w", encoding="utf-8") as f:
+        with open(BASE_DIR / "client/state/settings_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
 
 
     def read_JSON(self)->None:
-        with open("settings_data.json", mode="r", encoding="utf-8") as f:
+        with open(BASE_DIR / "client/state/settings_data.json", mode="r", encoding="utf-8") as f:
             read_settings_data = json.load(f)
         for name, val in read_settings_data.items():
             match name:
                 case "master_volume":
                     self.set_master_volume(val)
-                case "music_volumme":
+                case "music_volume":
                     self.set_music_volume(val)
                 case "effects_volume":
                     self.set_effects_volume(val)
                 case "fullscreen":
-                    self.set_flags(val)
+                    self.toggle_fullscreen()
                 case _:
                     raise NotImplementedError("attribute not implemented in json")
