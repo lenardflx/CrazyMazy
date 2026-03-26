@@ -8,6 +8,7 @@ from shared.state.textures import BASE_DIR
 FULLSCREEN_FLAGS = HWSURFACE | DOUBLEBUF | NOFRAME
 RESIZABLE_FLAGS = HWSURFACE | DOUBLEBUF | RESIZABLE
 
+#FIXME: man kann die Attribute zu Klassenattributen machen, um die von außen zu ändern
 class ClientSettings:
     def __init__(self):
         self.master_volume: int = 100
@@ -38,13 +39,6 @@ class ClientSettings:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.effects_volume = val_volume
-    
-
-    def set_flags(self, val_flag:int)->None:
-        possible_flags = [1073741841, 1073741857]
-        if val_flag not in possible_flags:
-            raise ValueError("not a valid flag")
-        self.flags = val_flag
 
 
     def toggle_fullscreen(self):

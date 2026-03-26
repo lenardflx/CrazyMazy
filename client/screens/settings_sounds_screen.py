@@ -24,7 +24,7 @@ class SoundScreen(BaseScreen):
         return slider, output
     
     def draw(self) -> None:
-        #!richtigen Hintergrund hinzufügen
+        #TODO: richtigen Hintergrund hinzufügen
 
         x, y, slider_len, slider_height, slider_margin = int(config.WINDOW_WIDTH * 0.3), int(config.WINDOW_HEIGHT*0.35), 500, 30, int(config.WINDOW_HEIGHT * 0.15)
         gray, light_gray = (100, 100, 100), (180, 180, 180)
@@ -33,7 +33,7 @@ class SoundScreen(BaseScreen):
         effects_slider, effects_output = self.slider_for_volume(x, y + slider_margin * 2, slider_len, slider_height, light_gray, gray)
         toggle = Toggle(self.surface, x, y + slider_margin * 3, 60, 40)
 
-        #!In den Main Loop:
+        #TODO: In den Main Loop:
         #   master_output.setText(master_slider.getValue())
         #   music_output.setText(music_slider.getValue())
         #   effects_output.setText(effects_slider.getValue())
