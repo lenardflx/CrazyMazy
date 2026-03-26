@@ -1,23 +1,26 @@
 # Author: Tamay Engin, Lukas Saur-Brosch
 
 from server.db.sql_repo import PlayerRepositorySQL
+from server.db.engine import create_engine_for_environment
 from shared.models import PlayerColor
 from uuid import uuid4
 
+engine = create_engine_for_environment("test")
+
 def test_create_player():
-    player_repository_sql = PlayerRepositorySQL()
+    player_repository_sql = PlayerRepositorySQL(engine)
     player = player_repository_sql.create_player("Name", f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
     results = player_repository_sql.find_by_id(player.id)
     assert player == results[0]
 
 def test_find_player_by_id():
-    player_repository_sql = PlayerRepositorySQL()
+    player_repository_sql = PlayerRepositorySQL(engine)
     player = player_repository_sql.create_player("Name",f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
     results = player_repository_sql.find_by_id(player.id)
     assert player == results[0]
 
 def test_update_player():
-    player_repository_sql = PlayerRepositorySQL()
+    player_repository_sql = PlayerRepositorySQL(engine)
     player = player_repository_sql.create_player("Name", f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
     player.display_name = "New_Name"
     player = player_repository_sql.update_player(player)

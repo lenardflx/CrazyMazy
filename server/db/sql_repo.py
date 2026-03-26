@@ -8,7 +8,6 @@ from uuid import UUID
 
 from sqlmodel import Session, select
 
-from server.db.engine import get_session
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
 from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
 from shared.table_models import GameTable, PlayerTable, TileTable, TreasureTable
@@ -18,25 +17,26 @@ ResultT = TypeVar("ResultT")
 
 class SQLRepository:
     def read(self, fn: Callable[[Session], ResultT]) -> ResultT:
-        with get_session() as session:
-            return fn(session)
+        return fn(self.session)
 
     def write(self, fn: Callable[[Session], ResultT]) -> ResultT:
-        with get_session() as session:
-            result = fn(session)
-            session.commit()
-            return result
+        result = fn(self.session)
+        self.session.commit()
+        return result
 
 
 class GameRepositorySQL(SQLRepository, GameRepository):
+    def __init__(self, engine):
+        self.session = Session(engine)
+
     def find_by_game_id(self, game_id: UUID) -> GameData | None:
         return self.read(
-            lambda session: session.get(GameTable, game_id)
+            lambda session: self.session.get(GameTable, game_id)
         )
 
     def find_by_join_code(self, join_code: str) -> GameData | None:
         return self.read(
-            lambda session: session.exec(
+            lambda session: self.session.exec(
                 select(GameTable).where(GameTable.code == join_code)
             ).first()
         )
@@ -48,32 +48,35 @@ class GameRepositorySQL(SQLRepository, GameRepository):
                 leader_player_id=leader_player_id,
                 board_size=board_size,
             )
-            session.add(game)
-            session.flush()
-            session.refresh(game)
+            self.session.add(game)
+            self.session.flush()
+            self.session.refresh(game)
             return game
 
         return self.write(op)
 
     def update_game(self, new_game: GameData) -> GameData:
         def op(session: Session) -> GameData:
-            db_game = session.merge(GameTable.model_validate(new_game))
-            session.flush()
-            session.refresh(db_game)
+            db_game = self.session.merge(GameTable.model_validate(new_game))
+            self.session.flush()
+            self.session.refresh(db_game)
             return db_game
 
         return self.write(op)
 
     def delete_game(self, game_id: UUID) -> None:
         def op(session: Session) -> None:
-            game = session.get(GameTable, game_id)
+            game = self.session.get(GameTable, game_id)
             if game:
-                session.delete(game)
+                self.session.delete(game)
 
         self.write(op)
 
 
 class PlayerRepositorySQL(SQLRepository, PlayerRepository):
+    def __init__(self, engine):
+        self.session = Session(engine)
+
     def create_player(
         self,
         display_name: str,
@@ -82,7 +85,7 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
         join_order: int,
         piece_color: PlayerColor,
     ) -> PlayerData:
-        def op(session: Session) -> PlayerData:
+        def op(session: self.Session) -> PlayerData:
             player = PlayerTable(
                 display_name=display_name,
                 connection_id=connection_id,
@@ -90,19 +93,19 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
                 join_order=join_order,
                 piece_color=piece_color,
             )
-            session.add(player)
-            session.flush()
-            session.refresh(player)
+            self.session.add(player)
+            self.session.flush()
+            self.session.refresh(player)
             return player
 
         return self.write(op)
 
     def find_by_id(self, player_id: UUID) -> PlayerData | None:
-        return self.read(lambda session: session.get(PlayerTable, player_id))
+        return self.read(lambda session: self.session.get(PlayerTable, player_id))
 
     def find_by_connection_id(self, connection_id: str) -> PlayerData | None:
         return self.read(
-            lambda session: session.exec(
+            lambda session: self.session.exec(
                 select(PlayerTable).where(PlayerTable.connection_id == connection_id)
             ).first()
         )
@@ -110,7 +113,7 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
     def list_by_game_id(self, game_id: UUID) -> list[PlayerData]:
         return self.read(
             lambda session: list(
-                session.exec(
+                self.session.exec(
                     select(PlayerTable).where(PlayerTable.game_id == game_id)
                 ).all()
             )
@@ -118,71 +121,77 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
 
     def update_player(self, player: PlayerData) -> PlayerData:
         def op(session: Session) -> PlayerData:
-            db_player = session.merge(PlayerTable.model_validate(player))
-            session.flush()
-            session.refresh(db_player)
+            db_player = self.session.merge(PlayerTable.model_validate(player))
+            self.session.flush()
+            self.session.refresh(db_player)
             return db_player
 
         return self.write(op)
 
 
 class TileRepositorySQL(SQLRepository, TileRepository):
+    def __init__(self, engine):
+        self.session = Session(engine)
+
     def create_tile(self, tile: TileData) -> TileData:
         def op(session: Session) -> TileData:
             db_tile = TileTable.model_validate(tile)
-            session.add(db_tile)
-            session.flush()
-            session.refresh(db_tile)
+            self.session.add(db_tile)
+            self.session.flush()
+            self.session.refresh(db_tile)
             return db_tile
 
         return self.write(op)
 
     def find_by_id(self, tile_id: UUID) -> TileData | None:
-        return self.read(lambda session: session.get(TileTable, tile_id))
+        return self.read(lambda session: self.session.get(TileTable, tile_id))
 
     def list_by_game_id(self, game_id: UUID) -> list[TileData]:
         return self.read(
             lambda session: list(
-                session.exec(select(TileTable).where(TileTable.game_id == game_id)).all()
+                self.session.exec(select(TileTable).where(TileTable.game_id == game_id)).all()
             )
         )
 
     def update_tile(self, tile: TileData) -> TileData:
         def op(session: Session) -> TileData:
-            db_tile = session.merge(TileTable.model_validate(tile))
-            session.flush()
-            session.refresh(db_tile)
+            db_tile = self.session.merge(TileTable.model_validate(tile))
+            self.session.flush()
+            self.session.refresh(db_tile)
             return db_tile
 
         return self.write(op)
 
     def delete_tile(self, tile_id: UUID) -> None:
         def op(session: Session) -> None:
-            tile = session.get(TileTable, tile_id)
+            tile = self.session.get(TileTable, tile_id)
             if tile:
-                session.delete(tile)
+                self.session.delete(tile)
 
         self.write(op)
 
 
 class TreasureRepositorySQL(SQLRepository, TreasureRepository):
+    def __init__(self, engine):
+        self.session = Session(engine)
+
     def create_treasure(self, treasure: TreasureData) -> TreasureData:
         def op(session: Session) -> TreasureData:
             db_treasure = TreasureTable.model_validate(treasure)
-            session.add(db_treasure)
-            session.flush()
-            session.refresh(db_treasure)
+            self.session.add(db_treasure)
+            self.session.flush()
+            self.session.refresh(db_treasure)
             return db_treasure
 
         return self.write(op)
 
     def find_by_id(self, treasure_id: UUID) -> TreasureData | None:
-        return self.read(lambda session: session.get(TreasureTable, treasure_id))
+        return self.read(lambda session: self.session.get(TreasureTable, treasure_id))
 
     def list_by_player_id(self, player_id: UUID) -> list[TreasureData]:
         return self.read(
             lambda session: list(
-                session.exec(
+                self.session.exec(
                     select(TreasureTable).where(TreasureTable.player_id == player_id)
                 ).all()
             )
@@ -190,18 +199,18 @@ class TreasureRepositorySQL(SQLRepository, TreasureRepository):
 
     def update_treasure(self, treasure: TreasureData) -> TreasureData:
         def op(session: Session) -> TreasureData:
-            db_treasure = session.merge(TreasureTable.model_validate(treasure))
-            session.flush()
-            session.refresh(db_treasure)
+            db_treasure = self.session.merge(TreasureTable.model_validate(treasure))
+            self.session.flush()
+            self.session.refresh(db_treasure)
             return db_treasure
 
         return self.write(op)
 
     def delete_treasure(self, treasure_id: UUID) -> None:
         def op(session: Session) -> None:
-            treasure = session.get(TreasureTable, treasure_id)
+            treasure = self.session.get(TreasureTable, treasure_id)
             if treasure:
-                session.delete(treasure)
+                self.session.delete(treasure)
 
         self.write(op)
         
