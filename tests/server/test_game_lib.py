@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from server.lib.game import can_join_game, is_valid_board_size, is_valid_join_code, normalize_join_code
-from shared.models import GamePhase, PlayerStatus
+from shared.models import GameData, GamePhase, PlayerData, PlayerStatus
 
 
 @dataclass
@@ -61,19 +62,19 @@ def test_can_join_game_accepts_pregame_with_space_available() -> None:
     game = make_game()
     players = [make_player(), make_player()]
 
-    assert can_join_game(game, players)
+    assert can_join_game(cast(GameData, game), cast(list[PlayerData], players))
 
 
 def test_can_join_game_rejects_invalid_board_size() -> None:
     game = make_game(board_size=8)
 
-    assert not can_join_game(game, [])
+    assert not can_join_game(cast(GameData, game), [])
 
 
 def test_can_join_game_rejects_non_pregame_phase() -> None:
     game = make_game(phase=GamePhase.GAME)
 
-    assert not can_join_game(game, [])
+    assert not can_join_game(cast(GameData, game), [])
 
 
 def test_can_join_game_rejects_full_active_game() -> None:
@@ -85,7 +86,7 @@ def test_can_join_game_rejects_full_active_game() -> None:
         make_player(),
     ]
 
-    assert not can_join_game(game, players)
+    assert not can_join_game(cast(GameData, game), cast(list[PlayerData], players))
 
 
 def test_can_join_game_ignores_left_players_when_counting_capacity() -> None:
@@ -97,4 +98,4 @@ def test_can_join_game_ignores_left_players_when_counting_capacity() -> None:
         make_player(status=PlayerStatus.DEPARTED),
     ]
 
-    assert can_join_game(game, players)
+    assert can_join_game(cast(GameData, game), cast(list[PlayerData], players))

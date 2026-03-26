@@ -4,13 +4,16 @@ from shared.events.dispatcher import EventDispatcher
 from shared.events.error import ServerResponseErrorEvent
 from shared.events.event import Event
 from shared.events.game import (
+    ClientCreateLobbyEvent,
     ClientGameEndTurnEvent,
     ClientGameGiveUpEvent,
+    ClientGameLeaveEvent,
     ClientJoinGameEvent,
     ClientGameMovePlayerEvent,
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
     ServerGameFinishedEvent,
+    ServerGameLeftEvent,
     ServerGamePlayerMovedEvent,
     ServerGameSnapshotEvent,
     ServerGameStartedEvent,
@@ -20,11 +23,13 @@ from shared.events.game import (
 from shared.protocol import Message
 
 EVENT_TYPES: dict[str, type[Event]] = {
+    ClientCreateLobbyEvent.message_type: ClientCreateLobbyEvent,
     ClientJoinGameEvent.message_type: ClientJoinGameEvent,
     ClientGameStartEvent.message_type: ClientGameStartEvent,
     ClientGameShiftTileEvent.message_type: ClientGameShiftTileEvent,
     ClientGameMovePlayerEvent.message_type: ClientGameMovePlayerEvent,
     ClientGameEndTurnEvent.message_type: ClientGameEndTurnEvent,
+    ClientGameLeaveEvent.message_type: ClientGameLeaveEvent,
     ClientGameGiveUpEvent.message_type: ClientGameGiveUpEvent,
     ServerGameSnapshotEvent.message_type: ServerGameSnapshotEvent,
     ServerResponseErrorEvent.message_type: ServerResponseErrorEvent,
@@ -33,6 +38,7 @@ EVENT_TYPES: dict[str, type[Event]] = {
     ServerGamePlayerMovedEvent.message_type: ServerGamePlayerMovedEvent,
     ServerGameTurnChangedEvent.message_type: ServerGameTurnChangedEvent,
     ServerGameFinishedEvent.message_type: ServerGameFinishedEvent,
+    ServerGameLeftEvent.message_type: ServerGameLeftEvent,
 }
 
 
@@ -44,8 +50,10 @@ def parse_event(msg: Message) -> Event | None:
     return event_type.from_message(msg)
 
 __all__ = [
+    "ClientCreateLobbyEvent",
     "ClientGameEndTurnEvent",
     "ClientGameGiveUpEvent",
+    "ClientGameLeaveEvent",
     "ClientJoinGameEvent",
     "ClientGameMovePlayerEvent",
     "ClientGameShiftTileEvent",
@@ -53,6 +61,7 @@ __all__ = [
     "Event",
     "EventDispatcher",
     "ServerGameFinishedEvent",
+    "ServerGameLeftEvent",
     "ServerGamePlayerMovedEvent",
     "ServerGameSnapshotEvent",
     "ServerGameStartedEvent",

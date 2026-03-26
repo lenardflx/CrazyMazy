@@ -12,6 +12,7 @@ from shared.protocol import Message
 class RequestContext:
     conn: socket.socket
     addr: tuple[str, int]
+    connection_id: str
 
 
 @dataclass(frozen=True)

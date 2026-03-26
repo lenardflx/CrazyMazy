@@ -5,17 +5,10 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+from shared.lib.lobby import MAX_JOINABLE_PLAYERS, VALID_BOARD_SIZES, is_valid_board_size
 from shared.models import GameData, GamePhase, PlayerData
 from server.lib.player import active_players
-
-MIN_BOARD_SIZE = 7
-MAX_BOARD_SIZE = 15
-VALID_BOARD_SIZES = frozenset(range(MIN_BOARD_SIZE, MAX_BOARD_SIZE + 1, 2))
-MAX_JOINABLE_PLAYERS = 4
 JOIN_CODE_PATTERN = re.compile(r"^[A-Z0-9]{4}$")
-
-def is_valid_board_size(board_size: int) -> bool:
-    return board_size in VALID_BOARD_SIZES
 
 
 def normalize_join_code(code: str) -> str:

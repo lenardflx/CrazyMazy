@@ -40,9 +40,30 @@ class TileType(StrEnum):
 
 
 class TreasureType(StrEnum):
+    SKULL = "SKULL"
+    SWORD = "SWORD"
+    GOLDBAG = "GOLDBAG"
+    KEYS = "KEYS"
+    EMERALD = "EMERALD"
+    ARMOR = "ARMOR"
     BOOK = "BOOK"
+    CROWN = "CROWN"
+    CHEST = "CHEST"
+    CANDLE = "CANDLE"
+    MAP = "MAP"
+    RING = "RING"
+    DRAGON = "DRAGON"
+    GHOST = "GHOST"
+    BAT = "BAT"
+    GOBLIN = "GOBLIN"
+    PRINCESS = "PRINCESS"
+    GENIE = "GENIE"
+    BUG = "BUG"
     OWL = "OWL"
-    # TODO: add other Treasures
+    LIZARD = "LIZARD"
+    SPIDER = "SPIDER"
+    FLY = "FLY"
+    RAT = "RAT"
 
 
 class GamePhase(StrEnum):

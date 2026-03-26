@@ -67,6 +67,16 @@ class GameSnapshotPayload(TypedDict):
     viewer: ViewerPayload | None
 
 
+class ClientCreateLobbyPayload(TypedDict):
+    board_size: int
+    player_name: str
+
+
+class ClientJoinGamePayload(TypedDict):
+    join_code: str
+    player_name: str
+
+
 class ClientGameShiftTilePayload(TypedDict):
     insertion_side: str
     insertion_index: int
@@ -128,3 +138,7 @@ class ServerGameFinishedPayload(TypedDict):
     revision: int
     winner_player_id: str | None
     placements: list[GamePlacementPayload]
+
+
+class ServerGameLeftPayload(TypedDict):
+    reason: str

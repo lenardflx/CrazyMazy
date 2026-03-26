@@ -6,6 +6,7 @@ from typing import Tuple
 import pygame
 from shared.state.textures import TILE_IMAGES
 
+# IMPORTANT: most of this should now be covered by models.py and the board lib. At least as a temporary solution that however works with the codebase
 
 class GamePhase(Enum):
     LOBBY = 0

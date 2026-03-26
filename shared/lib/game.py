@@ -1,4 +1,5 @@
 # Author: Lenard Felix
+# TODO: docs
 
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from shared.schema import (
     ClientGameShiftTilePayload,
     GamePlacementPayload,
     PositionPayload,
+    ServerGameLeftPayload,
     ServerGameFinishedPayload,
     ServerGamePlayerMovedPayload,
     ServerGameStartedPayload,
@@ -214,3 +216,10 @@ def parse_server_game_finished_payload(payload: Mapping[str, Any]) -> ServerGame
         "winner_player_id": winner_player_id,
         "placements": placements,
     }
+
+
+def parse_server_game_left_payload(payload: Mapping[str, Any]) -> ServerGameLeftPayload | None:
+    reason = parse_str(payload.get("reason"))
+    if reason is None:
+        return None
+    return {"reason": reason}

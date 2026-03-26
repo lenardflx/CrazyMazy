@@ -1,39 +1,39 @@
 # Author: Tamay Engin
 
-from server.db.sql_repo.py import GameRepositorySQL
-from server.db.sql_repo.py import PlayerRepositorySQL
+from server.db.sql_repo import GameRepositorySQL
+from uuid import UUID, uuid4
 
 def test_find_game_by_id():
-    player = PlayerRepositorySQL.create_player("Name")
-    game = GameRepositorySQL.create_game(7, player.id)
-    results = GameRepositorySQL.find_game_by_id(game.id)
+    game_repository_sql = GameRepositorySQL()
+    game = game_repository_sql.create_game(7, uuid4())
+    results = game_repository_sql.find_game_by_id(game.id)
     assert game == results[0]
 
 def test_create_game():
-    player = PlayerRepositorySQL.create_player("Name")
-    game = GameRepositorySQL.create_game(5, player.id)
-    results = GameRepositorySQL.find_game_by_id(game.id)
+    game_repository_sql = GameRepositorySQL()
+    game = game_repository_sql.create_game(5, uuid4())
+    results = game_repository_sql.find_game_by_id(game.id)
     assert game == results[0]
 
 def test_delete_game():
-    player = PlayerRepositorySQL.create_player("Name")
-    game = GameRepositorySQL.create_game(9, player.id)
-    GameRepositorySQL.delete_game(game.id)
-    results = GameRepositorySQL.find_game_by_id(game.id)
+    game_repository_sql = GameRepositorySQL()
+    game = game_repository_sql.create_game(9, uuid4())
+    game_repository_sql.delete_game(game.id)
+    results = game_repository_sql.find_game_by_id(game.id)
     assert len(results) < 1
 
 def test_update_game():
-    player = PlayerRepositorySQL.create_player("Name")
-    game = GameRepositorySQL.create_game(11, player.id)
+    game_repository_sql = GameRepositorySQL()
+    game = game_repository_sql.create_game(11, uuid4())
     game.board_size = 13
-    GameRepositorySQL.update_game(game)
-    results = GameRepositorySQL.find_game_by_id(game.id)
+    game_repository_sql.update_game(game)
+    results = game_repository_sql.find_game_by_id(game.id)
     assert game == results[0]
 
 def test_find_by_join_code():
-    player = PlayerRepositorySQL.create_player("Name")
-    game = GameRepositorySQL.create_game(7, player.id)
-    results = GameRepositorySQL.find_by_join_code(game.join_code)
+    game_repository_sql = GameRepositorySQL()
+    game = game_repository_sql.create_game(7, uuid4())
+    results = game_repository_sql.find_by_join_code(game.join_code)
     assert game == results[0]
 
 def test_game():
@@ -42,3 +42,4 @@ def test_game():
     test_find_by_join_code()
     test_update_game()
     test_delete_game()
+    print("tests for game model successful")
