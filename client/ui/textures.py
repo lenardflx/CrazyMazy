@@ -1,3 +1,5 @@
+# Author: Lenard Felix
+ 
 from pathlib import Path
 
 import pygame

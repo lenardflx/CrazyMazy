@@ -1,3 +1,5 @@
+# Author: Lenard Felix
+
 from __future__ import annotations
 
 from shared.lib.snapshot import parse_game_snapshot_payload

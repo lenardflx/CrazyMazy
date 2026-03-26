@@ -1,3 +1,5 @@
+# Author: Lenard Felix
+ 
 import os
 
 WINDOW_TITLE = "Crazy Mazy"

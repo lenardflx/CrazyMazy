@@ -5,15 +5,11 @@ from shared.models import TreasureType, TreasureData
 from uuid import UUID, uuid4
 
 def create_treasure_data():
-    treasure_data = TreasureData()
-    treasure_data.id = uuid4()
-    treasure_data.treasure_type = TreasureType.BOOK
-    treasure_data.order_index = 0
-    treasure_data.collected = 0
-    treasure_data.player_id = uuid4()
-    treasure_data.order_index: int = Field(index=True)
-    treasure_data.collected = False
-    return treasure_data
+    return TreasureData(
+        player_id=uuid4(),
+        treasure_type=TreasureType.BOOK,
+        order_index=0
+    )
 
 def test_create_treasure():
     treasure_repository_sql = TreasureRepositorySQL()

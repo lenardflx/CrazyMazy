@@ -1,3 +1,5 @@
+# Author: Lenard Felix, Raphael Eiden, Tamay Engin
+
 from __future__ import annotations
 
 from collections.abc import Callable

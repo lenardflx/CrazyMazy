@@ -1,3 +1,5 @@
+# Author: Sarah Trapp
+
 from shared.state.game_state import Tile, TileType
 import pygame
 

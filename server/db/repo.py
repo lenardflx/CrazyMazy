@@ -1,3 +1,5 @@
+# Author: Raphael Eiden, Lenard Felix
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
