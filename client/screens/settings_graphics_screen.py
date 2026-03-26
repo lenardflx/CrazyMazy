@@ -8,6 +8,7 @@ from pygame_widgets.toggle import Toggle
 from client.screens.base_screen import BaseScreen
 from typing import Optional
 from client import config
+import json
 
 class GraphicsScreen(BaseScreen):
     def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
@@ -17,18 +18,15 @@ class GraphicsScreen(BaseScreen):
         events = pg.event.get()
         pw.update(events)
      
+    #TODO: send commented numbers to GameSettings
     def change_flags(self, flag:int):
-        flags = None
         match flag:
-            case 0:#resize
-                with open('zahl.txt', 'w') as f:                
-                    f.write(str(1073741841))
+            case 0:#resizeable
+                pass #1073741841
             case 1:#mockup fullscreen
-                with open('zahl.txt', 'w') as f:                
-                    f.write(str(1073741857))
+                pass #1073741857
             case 2:#standard / no flags
-                with open('zahl.txt', 'w') as f:                
-                    f.write(str(0))
+                pass # 0
 
     def draw(self) -> None:
          pass
