@@ -11,6 +11,8 @@ from typing import Optional
 from client.screens.base_screen import BaseScreen
 from shared.state.textures import UI_IMAGES
 
+gray = (200, 200, 200)
+
 class MainMenuScreen(BaseScreen):
     #Button width und Button height
     bw = 120
@@ -20,6 +22,7 @@ class MainMenuScreen(BaseScreen):
         self.SceneManager = sm
         self.SceneTypes = scene_manager.SceneTypes
         self.surface = surface
+        self.surface.fill(gray)#!richtigen Hintergrund hinzufügen
         
         #Erzeuge die Buttons
         self.create_quit_button()
@@ -27,7 +30,7 @@ class MainMenuScreen(BaseScreen):
 
 
     def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
-        pass
+        return None
 
     def update(self, dt: float) -> None:
         events = pg.event.get()

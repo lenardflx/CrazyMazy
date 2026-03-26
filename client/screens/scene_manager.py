@@ -31,7 +31,7 @@ class SceneManager:
             case SceneTypes.SERVER_DOWN:
                 sf = NoServerScreen(surface)
             case SceneTypes.SETTINGS:
-                sf = SettingsScreen(surface)
+                sf = SettingsScreen(surface, self)
             case SceneTypes.CREATE_LOBBY:
                 sf = MainMenuScreen(surface, self)
             case SceneTypes.JOIN_LOBBY:
