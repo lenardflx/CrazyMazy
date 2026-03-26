@@ -44,9 +44,9 @@ def next_available_color(players: Iterable[PlayerData]) -> PlayerColor | None:
     # TODO: is this a good way to assign colors? Should we rethink the color model
     for color in (
         PlayerColor.RED,
+        PlayerColor.YELLOW,
         PlayerColor.BLUE,
         PlayerColor.GREEN,
-        PlayerColor.YELLOW,
     ):
         if color not in used:
             return color
