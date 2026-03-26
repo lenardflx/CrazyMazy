@@ -59,4 +59,6 @@ def test_tile():
     test_create_tile()
     test_find_tile_by_id()
     test_update_tile()
+    test_delete_tile()
+    test_list_by_game_id()
     print("tests for player model successful")
