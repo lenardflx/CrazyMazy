@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import TypeVar
 from uuid import UUID
 
-from sqlmodel import Session, select
+from sqlmodel import SQLModel, Session, select
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
 from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
@@ -16,6 +16,13 @@ ResultT = TypeVar("ResultT")
 
 
 class SQLRepository:
+    session: Session
+
+    def __init__(self, engine) -> None:
+        # Ensure table metadata is materialized for fresh test databases.
+        SQLModel.metadata.create_all(engine)
+        self.session = Session(engine)
+
     def read(self, fn: Callable[[Session], ResultT]) -> ResultT:
         return fn(self.session)
 
@@ -27,7 +34,7 @@ class SQLRepository:
 
 class GameRepositorySQL(SQLRepository, GameRepository):
     def __init__(self, engine):
-        self.session = Session(engine)
+        super().__init__(engine)
 
     def find_by_game_id(self, game_id: UUID) -> GameData | None:
         return self.read(
@@ -75,7 +82,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
 
 class PlayerRepositorySQL(SQLRepository, PlayerRepository):
     def __init__(self, engine):
-        self.session = Session(engine)
+        super().__init__(engine)
 
     def create_player(
         self,
@@ -85,7 +92,7 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
         join_order: int,
         piece_color: PlayerColor,
     ) -> PlayerData:
-        def op(session: self.Session) -> PlayerData:
+        def op(session: Session) -> PlayerData:
             player = PlayerTable(
                 display_name=display_name,
                 connection_id=connection_id,
@@ -131,7 +138,7 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
 
 class TileRepositorySQL(SQLRepository, TileRepository):
     def __init__(self, engine):
-        self.session = Session(engine)
+        super().__init__(engine)
 
     def create_tile(self, tile: TileData) -> TileData:
         def op(session: Session) -> TileData:
@@ -173,7 +180,7 @@ class TileRepositorySQL(SQLRepository, TileRepository):
 
 class TreasureRepositorySQL(SQLRepository, TreasureRepository):
     def __init__(self, engine):
-        self.session = Session(engine)
+        super().__init__(engine)
 
     def create_treasure(self, treasure: TreasureData) -> TreasureData:
         def op(session: Session) -> TreasureData:
