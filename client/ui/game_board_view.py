@@ -7,7 +7,7 @@ from typing import cast
 import pygame as pg
 
 from client.state.display_state import PLAYER_COLOR_VALUES, TileView
-from client.ui.textures import TILE_IMAGES, TREASURE_IMAGES
+from shared.state.textures import TILE_IMAGES, TREASURE_IMAGES
 from client.ui.theme import DISABLED, PANEL, PANEL_ALT, TEXT_PRIMARY, blend_color, font
 from shared.models import InsertionSide, PlayerColor, TileType, TreasureType
 from shared.schema import PositionPayload, PublicPlayerPayload

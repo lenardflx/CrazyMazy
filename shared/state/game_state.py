@@ -2,11 +2,11 @@
  
 from collections import deque
 from enum import Enum
-from shared.state.errors import TileError, BoardError
+from shared.state.errors import BoardError
 from random import randint, shuffle
 from typing import Tuple
 import pygame
-from client.ui.textures import TILE_IMAGES
+from shared.state.textures import TILE_IMAGES
 
 # IMPORTANT: most of this should now be covered by models.py and the board lib. At least as a temporary solution that however works with the codebase
 
