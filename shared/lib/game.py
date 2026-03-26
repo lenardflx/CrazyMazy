@@ -30,6 +30,7 @@ from shared.schema import (
 
 
 def _parse_position(payload: Any) -> PositionPayload | None:
+    """Parse a raw dict into a ``PositionPayload``, or ``None`` if invalid."""
     if not isinstance(payload, Mapping):
         return None
 
@@ -41,6 +42,7 @@ def _parse_position(payload: Any) -> PositionPayload | None:
 
 
 def _parse_tile(payload: Any) -> TilePayload | None:
+    """Parse a raw dict into a ``TilePayload``, or ``None`` if invalid."""
     if not isinstance(payload, Mapping):
         return None
 
@@ -77,6 +79,7 @@ def _parse_tile(payload: Any) -> TilePayload | None:
 
 
 def parse_client_game_shift_tile_payload(payload: Mapping[str, Any]) -> ClientGameShiftTilePayload | None:
+    """Parse a client shift-tile request payload, or ``None`` if any required field is missing."""
     insertion_side = parse_enum(payload.get("insertion_side"), InsertionSide)
     insertion_index = parse_int(payload.get("insertion_index"))
     rotation = parse_int(payload.get("rotation"))
@@ -91,6 +94,7 @@ def parse_client_game_shift_tile_payload(payload: Mapping[str, Any]) -> ClientGa
 
 
 def parse_client_game_move_player_payload(payload: Mapping[str, Any]) -> ClientGameMovePlayerPayload | None:
+    """Parse a client move-player request payload, or ``None`` if x or y is missing."""
     x = parse_int(payload.get("x"))
     y = parse_int(payload.get("y"))
     if x is None or y is None:
@@ -99,6 +103,7 @@ def parse_client_game_move_player_payload(payload: Mapping[str, Any]) -> ClientG
 
 
 def parse_server_game_started_payload(payload: Mapping[str, Any]) -> ServerGameStartedPayload | None:
+    """Parse a server game-started broadcast payload, or ``None`` if required fields are missing."""
     game_id = parse_str(payload.get("game_id"))
     revision = parse_int(payload.get("revision"))
     phase = parse_enum(payload.get("phase"), GamePhase)
@@ -117,6 +122,7 @@ def parse_server_game_started_payload(payload: Mapping[str, Any]) -> ServerGameS
 
 
 def parse_server_game_tile_shifted_payload(payload: Mapping[str, Any]) -> ServerGameTileShiftedPayload | None:
+    """Parse a server tile-shifted broadcast payload, or ``None`` if required fields are missing."""
     game_id = parse_str(payload.get("game_id"))
     revision = parse_int(payload.get("revision"))
     insertion_side = parse_enum(payload.get("insertion_side"), InsertionSide)
@@ -143,6 +149,7 @@ def parse_server_game_tile_shifted_payload(payload: Mapping[str, Any]) -> Server
 
 
 def parse_server_game_player_moved_payload(payload: Mapping[str, Any]) -> ServerGamePlayerMovedPayload | None:
+    """Parse a server player-moved broadcast payload, or ``None`` if required fields are missing."""
     game_id = parse_str(payload.get("game_id"))
     revision = parse_int(payload.get("revision"))
     player_id = parse_str(payload.get("player_id"))
@@ -165,6 +172,7 @@ def parse_server_game_player_moved_payload(payload: Mapping[str, Any]) -> Server
 
 
 def parse_server_game_turn_changed_payload(payload: Mapping[str, Any]) -> ServerGameTurnChangedPayload | None:
+    """Parse a server turn-changed broadcast payload, or ``None`` if required fields are missing."""
     game_id = parse_str(payload.get("game_id"))
     revision = parse_int(payload.get("revision"))
     current_player_id = parse_optional_str(payload.get("current_player_id"))
@@ -185,6 +193,7 @@ def parse_server_game_turn_changed_payload(payload: Mapping[str, Any]) -> Server
 
 
 def _parse_game_placement(payload: Any) -> GamePlacementPayload | None:
+    """Parse a single placement entry from a finished-game payload, or ``None`` if invalid."""
     if not isinstance(payload, Mapping):
         return None
     player_id = parse_str(payload.get("player_id"))
@@ -196,6 +205,7 @@ def _parse_game_placement(payload: Any) -> GamePlacementPayload | None:
 
 
 def parse_server_game_finished_payload(payload: Mapping[str, Any]) -> ServerGameFinishedPayload | None:
+    """Parse a server game-finished broadcast payload, or ``None`` if required fields are missing."""
     game_id = parse_str(payload.get("game_id"))
     revision = parse_int(payload.get("revision"))
     winner_player_id = parse_optional_str(payload.get("winner_player_id"))
@@ -219,6 +229,7 @@ def parse_server_game_finished_payload(payload: Mapping[str, Any]) -> ServerGame
 
 
 def parse_server_game_left_payload(payload: Mapping[str, Any]) -> ServerGameLeftPayload | None:
+    """Parse a server game-left notification payload, or ``None`` if the reason is missing."""
     reason = parse_str(payload.get("reason"))
     if reason is None:
         return None

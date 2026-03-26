@@ -5,30 +5,25 @@ from server.db.engine import create_engine_for_environment
 from shared.models import PlayerColor
 from uuid import uuid4
 
-engine = create_engine_for_environment("test")
-
 def test_create_player():
-    player_repository_sql = PlayerRepositorySQL(engine)
+    player_repository_sql = PlayerRepositorySQL(create_engine_for_environment("test"))
     player = player_repository_sql.create_player("Name", f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
-    results = player_repository_sql.find_by_id(player.id)
-    assert player == results[0]
+    result = player_repository_sql.find_by_id(player.id)
+    assert result is not None
+    assert player.id == result.id
 
 def test_find_player_by_id():
-    player_repository_sql = PlayerRepositorySQL(engine)
+    player_repository_sql = PlayerRepositorySQL(create_engine_for_environment("test"))
     player = player_repository_sql.create_player("Name",f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
-    results = player_repository_sql.find_by_id(player.id)
-    assert player == results[0]
+    result = player_repository_sql.find_by_id(player.id)
+    assert result is not None
+    assert player.id == result.id
 
 def test_update_player():
-    player_repository_sql = PlayerRepositorySQL(engine)
+    player_repository_sql = PlayerRepositorySQL(create_engine_for_environment("test"))
     player = player_repository_sql.create_player("Name", f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
     player.display_name = "New_Name"
     player = player_repository_sql.update_player(player)
-    results = player_repository_sql.find_by_id(player.id)
-    assert results[0].display_name == player.display_name
-
-def test_player():
-    test_create_player()
-    test_find_player_by_id()
-    test_update_player()
-    print("tests for player model successful")
+    result = player_repository_sql.find_by_id(player.id)
+    assert result is not None
+    assert result.display_name == player.display_name

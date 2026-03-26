@@ -39,6 +39,7 @@ from shared.schema import (
 
 
 def _parse_position(payload: Any) -> PositionPayload | None:
+    """Parse a raw dict into a ``PositionPayload``, or ``None`` if absent or invalid."""
     if payload is None:
         return None
     if not isinstance(payload, dict):
@@ -53,6 +54,7 @@ def _parse_position(payload: Any) -> PositionPayload | None:
 
 
 def _parse_treasure_list(payload: Any) -> list[str] | None:
+    """Parse a list of raw treasure type strings, or ``None`` if any entry is invalid."""
     if not isinstance(payload, list):
         return None
 
@@ -66,6 +68,7 @@ def _parse_treasure_list(payload: Any) -> list[str] | None:
 
 
 def _parse_tile_payload(payload: Any) -> TilePayload | None:
+    """Parse a raw dict into a ``TilePayload``, or ``None`` if invalid."""
     if not isinstance(payload, dict):
         return None
 
@@ -102,6 +105,7 @@ def _parse_tile_payload(payload: Any) -> TilePayload | None:
 
 
 def _parse_public_player_payload(payload: Any) -> PublicPlayerPayload | None:
+    """Parse a raw dict into a ``PublicPlayerPayload``, or ``None`` if required fields are missing."""
     if not isinstance(payload, dict):
         return None
 
@@ -136,6 +140,7 @@ def _parse_public_player_payload(payload: Any) -> PublicPlayerPayload | None:
 
 
 def _parse_viewer_payload(payload: Any) -> ViewerPayload | None:
+    """Parse a raw dict into a ``ViewerPayload``, or ``None`` if required fields are missing."""
     if not isinstance(payload, dict):
         return None
 
@@ -162,6 +167,7 @@ def _parse_viewer_payload(payload: Any) -> ViewerPayload | None:
 
 
 def _parse_turn_payload(payload: Any) -> TurnPayload | None:
+    """Parse a raw dict into a ``TurnPayload``, or ``None`` if the input is not a dict."""
     if not isinstance(payload, dict):
         return None
 
@@ -179,6 +185,7 @@ def _parse_turn_payload(payload: Any) -> TurnPayload | None:
 
 
 def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPayload | None:
+    """Parse a full game snapshot payload, or ``None`` if any required field is missing or malformed."""
     game_id = parse_str(payload.get("game_id"))
     code = parse_str(payload.get("code"))
     phase = parse_enum(payload.get("phase"), GamePhase)
@@ -238,6 +245,7 @@ def make_game_snapshot_payload(
     *,
     viewer_player_id: str | None,
 ) -> GameSnapshotPayload:
+    """Build a full ``GameSnapshotPayload`` from the current server-side game state."""
     viewer_player = next((player for player in players if str(player.id) == viewer_player_id), None)
     return {
         "game_id": str(game.id),
@@ -260,6 +268,7 @@ def make_game_snapshot_payload(
 
 
 def make_public_player_payload(player: PlayerData, treasures: list[TreasureData]) -> PublicPlayerPayload:
+    """Build the public-facing player payload (no private treasure details)."""
     position: PositionPayload | None = None
     if player.position_x is not None and player.position_y is not None:
         position = {"x": player.position_x, "y": player.position_y}
@@ -280,6 +289,7 @@ def make_public_player_payload(player: PlayerData, treasures: list[TreasureData]
 
 
 def make_viewer_payload(game: GameData, player: PlayerData | None, treasures: list[TreasureData]) -> ViewerPayload | None:
+    """Build the viewer payload for the local player, including private treasure info, or ``None`` if spectating."""
     if player is None:
         return None
     ordered = sorted(treasures, key=lambda current: current.order_index)
@@ -296,6 +306,7 @@ def make_viewer_payload(game: GameData, player: PlayerData | None, treasures: li
 
 
 def make_tile_payload(tile: TileData) -> TilePayload:
+    """Serialise a ``TileData`` model into a ``TilePayload`` dict."""
     payload: TilePayload = {
         "id": str(tile.id),
         "tile_type": tile.tile_type,

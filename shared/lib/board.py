@@ -18,6 +18,7 @@ _TREASURE_TYPES = list(TreasureType)
 
 
 def start_position_for_color(board_size: int, color: PlayerColor) -> tuple[int, int]:
+    """Return the (x, y) home-corner position for the given player color."""
     return {
         PlayerColor.RED: (0, 0),
         PlayerColor.BLUE: (board_size - 1, 0),
@@ -27,6 +28,7 @@ def start_position_for_color(board_size: int, color: PlayerColor) -> tuple[int, 
 
 
 def create_board_tiles(game_id: object, board_size: int) -> list[TileData]:
+    """Generate a full set of randomised board tiles plus one spare tile for a new game."""
     fixed_positions = {(row, col) for row in range(0, board_size, 2) for col in range(0, board_size, 2)}
     tiles: list[TileData] = []
     treasure_iter = iter(_TREASURE_TYPES)
@@ -63,12 +65,14 @@ def create_board_tiles(game_id: object, board_size: int) -> list[TileData]:
     return tiles
 
 def openings(tile_type: TileType, rotation: int) -> tuple[bool, bool, bool, bool]:
+    """Return the four directional openings (N, E, S, W) for a tile type at the given rotation."""
     values = deque(_BASE_OPENINGS[tile_type])
     values.rotate(rotation)
     return tuple(values) # TODO: why error? :(
 
 
 def reachable_positions(board: dict[tuple[int, int], TileData], start: tuple[int, int]) -> set[tuple[int, int]]:
+    """Return all positions reachable from ``start`` by following connected tile openings."""
     pending = [start]
     visited: set[tuple[int, int]] = set()
 
@@ -99,6 +103,7 @@ def shift_tiles(
     index: int,
     rotation: int,
 ) -> TileData:
+    """Insert the spare tile into a row or column, shifting existing tiles and returning the pushed-out tile."""
     board, spare_tile = split_board_tiles(tiles)
     spare_tile.rotation = rotation % 4
     outgoing: TileData
@@ -150,6 +155,7 @@ def shift_player_position(
     side: InsertionSide,
     index: int,
 ) -> tuple[int, int] | None:
+    """Return the new position after a shift, wrapping around if pushed off the board, or ``None`` if unaffected."""
     if position is None:
         return None
     x, y = position
@@ -167,6 +173,7 @@ def shift_player_position(
 
 
 def opposite_side(side: InsertionSide) -> InsertionSide:
+    """Return the insertion side directly opposite the given one."""
     return {
         InsertionSide.TOP: InsertionSide.BOTTOM,
         InsertionSide.RIGHT: InsertionSide.LEFT,
@@ -176,6 +183,7 @@ def opposite_side(side: InsertionSide) -> InsertionSide:
 
 
 def split_board_tiles(tiles: Iterable[TileData]) -> tuple[dict[tuple[int, int], TileData], TileData]:
+    """Split a flat tile list into a ``{(x, y): tile}`` board dict and the spare tile."""
     board: dict[tuple[int, int], TileData] = {}
     spare_tile: TileData | None = None
 
@@ -194,14 +202,17 @@ def split_board_tiles(tiles: Iterable[TileData]) -> tuple[dict[tuple[int, int], 
 
 
 def movable_insertion_indexes(board_size: int) -> tuple[int, ...]:
+    """Return all odd-numbered row/column indexes that can accept a tile insertion."""
     return tuple(range(1, board_size, 2))
 
 
 def is_valid_insertion_index(board_size: int, index: int) -> bool:
+    """Return ``True`` if ``index`` is a valid insertion row/column for the board."""
     return index in movable_insertion_indexes(board_size)
 
 
 def assign_treasures(player_count: int) -> list[list[TreasureType]]:
+    """Return a shuffled list of 6-treasure assignments, one sub-list per player."""
     treasure_types = list(_TREASURE_TYPES)
     random.shuffle(treasure_types)
     return [treasure_types[offset * 6:(offset + 1) * 6] for offset in range(player_count)]
@@ -213,6 +224,7 @@ def _tile_layout_for_position(
     col: int,
     fixed_positions: set[tuple[int, int]],
 ) -> tuple[TileType, int]:
+    """Return the (tile type, rotation) for a position, using fixed layouts for corners and T-junctions."""
     corners = _start_corner_positions(board_size)
     if (row, col) == corners[0]:
         return TileType.CORNER, 1
@@ -228,6 +240,7 @@ def _tile_layout_for_position(
 
 
 def _start_corner_positions(board_size: int) -> tuple[tuple[int, int], ...]:
+    """Return the four player starting corner positions in (row, col) order."""
     return (
         (0, 0),
         (0, board_size - 1),
@@ -237,6 +250,7 @@ def _start_corner_positions(board_size: int) -> tuple[tuple[int, int], ...]:
 
 
 def _neighbours(position: tuple[int, int]) -> dict[int, tuple[int, int]]:
+    """Return the four adjacent positions keyed by direction index (0=N, 1=E, 2=S, 3=W)."""
     x, y = position
     return {
         0: (x, y - 1),
