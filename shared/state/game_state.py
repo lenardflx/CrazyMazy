@@ -81,45 +81,69 @@ class TreasureType(Enum):
 
 class Tile:
     def __init__(self, type: TileType, orientation: TileOrientation, treasure: None | TreasureType = None):
-        # store tile metadata
+        """
+        Represents a single tile on the board.
+
+        Args:
+            type: The structural tile type (STRAIGHT, CORNER, T_PIECE, WALL(just for testing)).
+            orientation: The current rotation of the tile (NORTH/EAST/SOUTH/WEST).
+            treasure: Optional treasure placed on this tile.
+        """
+
+        # Basic tile metadata
         self.type = type
         self.orientation = orientation
         self.treasure = treasure
 
-        # will be filled by load_texture()
+        # Will hold the rotated pygame.Surface after load_texture()
         self.texture = None
 
-        # path = [N, E, S, W]
-        self.path = deque([0,0,0,0])
+        # Path connectivity in order [N, E, S, W]
+        # Example: [1,0,1,0] means open to North + South
+        self.path = None
 
-        # initialize path + texture based on type + orientation
+        # Compute initial path layout based on type + orientation
         self.set_paths()
 
     def set_paths(self):
-        # base path pattern for orientation NORTH
+        """
+        Computes the tile's connectivity (open paths) based on its type and orientation.
+
+        Base patterns are defined for NORTH orientation.
+        Then we rotate the deque to match the actual orientation.
+        """
+
+        # Base connectivity pattern for NORTH orientation
         if self.type == TileType.STRAIGHT:
-            self.path = deque([1,0,1,0])  # N E S W
+            path = deque([1, 0, 1, 0])   # open N + S
         elif self.type == TileType.CORNER:
-            self.path = deque([1,1,0,0])
+            path = deque([1, 1, 0, 0])   # open N + E
         elif self.type == TileType.T_PIECE:
-            self.path = deque([1,1,0,1])
+            path = deque([1, 1, 0, 1])   # open N + E + W
         elif self.type == TileType.WALL:
-            self.path = deque([0,0,0,0])
+            path = deque([0, 0, 0, 0])   # no openings
         else:
-            # invalid tile type → fail fast
             raise TileError(f"unknown Tile-Type: '{self.type}'")
 
-        # rotate path according to orientation
-        self.path.rotate(TileOrientation(self.orientation).value)
+        # Rotate the connectivity pattern according to orientation
+        # TileOrientation.value is 0=N, 1=E, 2=S, 3=W
+        path.rotate(TileOrientation(self.orientation).value)
 
-        # convert to list for easier use elsewhere
-        self.path = list(self.path)
+        # Convert deque → list for easier use elsewhere
+        self.path = list(path)
 
     def load_texture(self):
-        # lookup base texture from table
+        """
+        Loads the base texture for this tile type and rotates it to match orientation.
+
+        The TILE_IMAGES table stores unrotated (NORTH-facing) textures.
+        """
+
+        # Fetch base NORTH-facing texture
         texture = TILE_IMAGES[TileType(self.type).name]
 
-        # rotate texture depending on orientation
+        # Rotate depending on orientation
+        # Note: pygame rotates counter-clockwise, so EAST = 270° etc.
         if self.orientation == TileOrientation.NORTH.value:
             self.texture = texture
         elif self.orientation == TileOrientation.EAST.value:
@@ -132,21 +156,36 @@ class Tile:
             raise TileError(f"unknown orientation: '{self.orientation}'")
 
     def rotate_left(self):
-        # rotate orientation counter‑clockwise
+        """
+        Rotates the tile 90° counter-clockwise.
+
+        Updates:
+        - orientation
+        - path connectivity
+        (Texture is NOT updated here; caller must call load_texture())
+        """
+
+        # Decrease orientation index modulo 4
         self.orientation = (TileOrientation(self.orientation).value - 1) % 4
 
-        # update texture + path
-        self.load_texture()
+        # Recompute connectivity
         self.set_paths()
 
     def rotate_right(self):
-        # rotate orientation clockwise
+        """
+        Rotates the tile 90° clockwise.
+
+        Updates:
+        - orientation
+        - path connectivity
+        (Texture is NOT updated here; caller must call load_texture())
+        """
+
+        # Increase orientation index modulo 4
         self.orientation = (TileOrientation(self.orientation).value + 1) % 4
 
-        # update texture + path
-        self.load_texture()
+        # Recompute connectivity
         self.set_paths()
-
 
 class Board:
     def __init__(self, width: int = 7):
