@@ -1,5 +1,3 @@
-# TODO: docs
-
 from __future__ import annotations
 
 import pygame
@@ -22,12 +20,16 @@ from client.screens.menu.message_screen import MessageScreen
 from client.screens.menu.no_server_screen import NoServerScreen
 from client.screens.menu.settings_screen import SettingsScreen
 
-#ScreenManager, mit dem die Screens gewechselt werden können
+
 class SceneManager:
-    def __init__(self, connection: ClientConnection, transport_state: ClientState) -> None:
+    """Owns the active screen and keeps it in sync with client/network state."""
+
+    def __init__(self, connection: ClientConnection, transport_state: ClientState, surface: pygame.Surface) -> None:
         self.connection = connection
         self.transport_state = transport_state
+        self.surface = surface
         self.current_scene: SceneTypes | None = None
+        self.current_screen: BaseScreen | None = None
         self.client_settings = ClientSettings()
         self.runtime_state = RuntimeState()
         self.display_state = ClientDisplayState()
@@ -35,62 +37,63 @@ class SceneManager:
         self._seen_error_version = 0
         self._seen_game_left_version = 0
 
-    #Wechsle zur korrekten Scene
-    def switch_scene(self, scene_name: SceneTypes, surface: pygame.Surface) -> BaseScreen:
-        self.current_scene = scene_name
-        scene: BaseScreen
-        match scene_name:
+    def go_to(self, scene: SceneTypes) -> None:
+        """Switch to a new scene by creating its screen instance."""
+        if scene == self.current_scene:
+            return
+        self.current_scene = scene
+        self.current_screen = self._create_screen(scene)
+
+    def _create_screen(self, scene: SceneTypes) -> BaseScreen:
+        """Instantiate the screen implementation for a scene enum."""
+        match scene:
             case SceneTypes.MAIN_MENU:
-                scene = MainMenuScreen(surface, self)
+                return MainMenuScreen(self.surface, self)
             case SceneTypes.SERVER_DOWN:
-                scene = NoServerScreen(surface)
+                return NoServerScreen(self.surface)
             case SceneTypes.SETTINGS:
-                scene = SettingsScreen(surface, self)
+                return SettingsScreen(self.surface, self)
             case SceneTypes.CREATE_LOBBY:
-                scene = CreateLobbyScreen(surface, self)
+                return CreateLobbyScreen(self.surface, self)
             case SceneTypes.JOIN_LOBBY:
-                scene = JoinLobbyScreen(surface, self)
+                return JoinLobbyScreen(self.surface, self)
             case SceneTypes.LOBBY:
-                scene = LobbyScreen(surface, self)
+                return LobbyScreen(self.surface, self)
             case SceneTypes.GAME:
-                scene = GameScreen(surface, self)
+                return GameScreen(self.surface, self)
             case SceneTypes.POST_GAME:
-                scene = PostGameScreen(surface, self)
+                return PostGameScreen(self.surface, self)
             case SceneTypes.TUTORIAL:
                 # TODO: Replace the placeholder with the actual interactive tutorial
-                scene = MessageScreen(surface, self, title="Tutorial", message="Coming soon")
-            #Wenn keine vernünftige Scene übergeben wurde, tu nichts. Sollte nie passieren.
-            case _:
-                scene = MainMenuScreen(surface, self)
-        
-        return scene
+                return MessageScreen(self.surface, self, title="Tutorial", message="Coming soon")
 
-    #Rendere den Screen in jedem Frame
-    def update_screen(self, screen: BaseScreen, dt: float) -> None:
-        screen.update(dt)
-        screen.draw()
+    def handle_event(self, event: pygame.event.Event) -> None:
+        """Forward one pygame event to the current screen."""
+        if self.current_screen is not None:
+            self.current_screen.handle_event(event)
+
+    def tick(self, dt: float) -> None:
+        """Update and draw the current screen, then present the frame."""
+        if self.current_screen is not None:
+            self.current_screen.update(dt)
+            self.current_screen.draw()
         pygame.display.flip()
 
-    def sync_transport(self, surface: pygame.Surface) -> BaseScreen | None:
-        next_scene: SceneTypes | None = None
-
+    def sync_transport(self) -> None:
+        """Apply network-driven state changes and move to the matching scene."""
         if self.transport_state.snapshot_version != self._seen_snapshot_version:
             self._seen_snapshot_version = self.transport_state.snapshot_version
             snapshot = self.transport_state.game_snapshot
             if snapshot is not None:
                 self.display_state.apply_snapshot(snapshot)
-                self.runtime_state.game.spare_rotation = 0
-                self.runtime_state.clear_pending()
-                self.runtime_state.clear_errors()
-                next_scene = self._scene_from_snapshot()
+                self._reset_runtime_state()
+                self.go_to(self._scene_from_snapshot())
 
         if self.transport_state.game_left_version != self._seen_game_left_version:
             self._seen_game_left_version = self.transport_state.game_left_version
             self.display_state.clear()
-            self.runtime_state.game.spare_rotation = 0
-            self.runtime_state.clear_pending()
-            self.runtime_state.clear_errors()
-            next_scene = SceneTypes.MAIN_MENU
+            self._reset_runtime_state()
+            self.go_to(SceneTypes.MAIN_MENU)
 
         if self.transport_state.error_version != self._seen_error_version:
             self._seen_error_version = self.transport_state.error_version
@@ -98,11 +101,14 @@ class SceneManager:
             if error is not None:
                 apply_server_error(self.runtime_state, error)
 
-        if next_scene is None or next_scene == self.current_scene:
-            return None
-        return self.switch_scene(next_scene, surface)
+    def _reset_runtime_state(self) -> None:
+        """Clear local-only UI state that should not survive scene changes."""
+        self.runtime_state.game.spare_rotation = 0
+        self.runtime_state.clear_pending()
+        self.runtime_state.clear_errors()
 
     def _scene_from_snapshot(self) -> SceneTypes:
+        """Infer the visible scene from the latest server snapshot."""
         if self.display_state.is_post_game:
             return SceneTypes.POST_GAME
         if self.display_state.is_game:

@@ -2,7 +2,8 @@
 
 import pygame
 
-import client.network.handlers
+import client.network.handlers # Unused import, but needed for the handlers to load
+
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
@@ -20,36 +21,38 @@ def main() -> None:
     # Connect to the server
     conn = ClientConnection()
     state = ClientState()
-    scene_manager = SceneManager(conn, state)
+    scene_manager = SceneManager(conn, state, surface)
     
-    #Wenn eine Verbindung zum Server aufgebaut werden kann, gehe ins Hauptmenü, sonst zeige eine Fehlermeldung.
-    if conn.connect(SERVER_HOST, SERVER_PORT):
+    # Try to connect to the server and set the initial scene based on the connection result
+    connected = conn.connect(SERVER_HOST, SERVER_PORT)
+    if connected:
         current_scene = SceneTypes.MAIN_MENU
     else:
         current_scene = SceneTypes.SERVER_DOWN
 
-    screen = scene_manager.switch_scene(current_scene, surface)
+    scene_manager.go_to(current_scene)
 
     # Main game loop
     running = True
     while running:
         dt = clock.tick(FPS) / 1000.0
+
+        # Poll the server for incoming messages
         conn.poll(state)
-        next_screen = scene_manager.sync_transport(surface)
-        if next_screen is not None:
-            screen = next_screen
 
+        # Check if the server sent an update that requires a scene change
+        scene_manager.sync_transport()
+
+        # Handle Pygame events
         events = pygame.event.get()
-
         for event in events:
             if event.type == pygame.QUIT:
                 running = False
             else:
-                next_screen = screen.handle_event(event)
-                if next_screen is not None:
-                    screen = next_screen
+                scene_manager.handle_event(event)
 
-        scene_manager.update_screen(screen, dt)
+        # Run the renderer for the current screen
+        scene_manager.tick(dt)
 
     conn.disconnect()
     pygame.quit()

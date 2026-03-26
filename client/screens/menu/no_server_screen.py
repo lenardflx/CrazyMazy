@@ -1,7 +1,6 @@
 # Author: Lenard Felix
 
 from __future__ import annotations
-from typing import Optional
 import pygame
 from client.screens.core.base_screen import BaseScreen
 
@@ -10,8 +9,8 @@ class NoServerScreen(BaseScreen):
     def __init__(self, surface: pygame.Surface) -> None:
         super().__init__(surface)
 
-    def handle_event(self, event: pygame.event.Event) -> Optional[BaseScreen]:
-        return None
+    def handle_event(self, event: pygame.event.Event) -> None:
+        del event
 
     def update(self, dt: float) -> None:
         pass

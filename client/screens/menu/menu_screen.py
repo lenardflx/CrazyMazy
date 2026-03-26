@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import pygame as pg
 
@@ -36,7 +36,6 @@ class MenuScreen(BaseScreen):
         self.title = title
         self.is_main_menu = is_main_menu
         self.message = message
-        self._requested_scene: SceneTypes | None = None
         self.dialog: ConfirmDialog | None = None
 
         self.title_font = pg.font.SysFont("verdana", 42, bold=True)
@@ -54,7 +53,7 @@ class MenuScreen(BaseScreen):
             self.back_button = Button(
                 pg.Rect(42, 34, 120, 46),
                 "Back",
-                lambda: self._request_scene(SceneTypes.MAIN_MENU),
+                lambda: self.scene_manager.go_to(SceneTypes.MAIN_MENU),
             )
         if buttons:
             self._build_buttons(buttons)
@@ -69,37 +68,21 @@ class MenuScreen(BaseScreen):
         for index, (label, target, variant) in enumerate(specs):
             rect = pg.Rect(left, start_y + index * gap, button_width, button_height)
             action = (
-                (lambda scene=target: self._request_scene(scene))
+                (lambda scene=target: self.scene_manager.go_to(scene))
                 if isinstance(target, SceneTypes)
                 else target
             )
             self.buttons.append(Button(rect, label, action, variant=variant))
 
-    def _request_scene(self, scene: SceneTypes) -> None:
-        self._requested_scene = scene
-
-    def handle_event(self, event: pg.event.Event) -> Optional[BaseScreen]:
+    def handle_event(self, event: pg.event.Event) -> None:
         if self.dialog is not None:
             self.dialog.handle_event(event)
-            if self._requested_scene is not None:
-                next_screen = self.scene_manager.switch_scene(self._requested_scene, self.surface)
-                self._requested_scene = None
-                return next_screen
-            return None
+            return
 
         if self.back_button is not None:
             self.back_button.handle_event(event)
-            if self._requested_scene is not None:
-                next_screen = self.scene_manager.switch_scene(self._requested_scene, self.surface)
-                self._requested_scene = None
-                return next_screen
 
         self.handle_content_event(event)
-        if self._requested_scene is not None:
-            next_screen = self.scene_manager.switch_scene(self._requested_scene, self.surface)
-            self._requested_scene = None
-            return next_screen
-        return None
 
     def update(self, dt: float) -> None:
         del dt

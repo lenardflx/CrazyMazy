@@ -11,7 +11,6 @@ from client.ui.game_views import board_layout, draw_board, draw_player_rows, dra
 from client.ui.theme import BACKGROUND, PANEL, TEXT_MUTED, TEXT_PRIMARY, font
 from shared.models import TurnPhase
 from client.screens.core.base_screen import BaseScreen
-from client.screens.core.scene_types import SceneTypes
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -26,7 +25,6 @@ class GameScreen(BaseScreen):
         self.small_font = font(15)
         self.button_font = font(18, bold=True)
         self.dialog: ConfirmDialog | None = None
-        self.requested_scene: SceneTypes | None = None
         self.give_up_button = Button(pg.Rect(surface.get_width() - 280, 24, 120, 40), "Give Up", self._confirm_give_up)
         self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 120, 40), "Menu", self._confirm_quit)
 
@@ -47,22 +45,16 @@ class GameScreen(BaseScreen):
         request_give_up(self.scene_manager.connection, self.scene_manager.runtime_state)
         self.dialog = None
 
-    def handle_event(self, event: pg.event.Event) -> BaseScreen | None:
+    def handle_event(self, event: pg.event.Event) -> None:
         if self.dialog is not None:
             self.dialog.handle_event(event)
-            if self.requested_scene is not None:
-                next_screen = self.scene_manager.switch_scene(self.requested_scene, self.surface)
-                self.requested_scene = None
-                return next_screen
-            if self.scene_manager.display_state.is_post_game:
-                return self.scene_manager.switch_scene(SceneTypes.POST_GAME, self.surface)
-            return None
+            return
 
         self.give_up_button.handle_event(event)
         self.menu_button.handle_event(event)
         display = self.scene_manager.display_state
         if not display.is_game or display.board is None or display.spare_tile is None:
-            return self.scene_manager.switch_scene(SceneTypes.MAIN_MENU, self.surface)
+            return
 
         left_rect, right_rect = self._layout_sections()
         cells, arrows = board_layout(left_rect, display.board_size)[2:]
@@ -89,7 +81,6 @@ class GameScreen(BaseScreen):
             for position, cell in cells.items():
                 if move_enabled and cell.collidepoint(event.pos):
                     request_move_player(self.scene_manager.connection, self.scene_manager.runtime_state, position[0], position[1])
-        return None
 
     def update(self, dt: float) -> None:
         del dt
