@@ -2,7 +2,7 @@
 
 from server.db.sql_repo import PlayerRepositorySQL
 from shared.models import PlayerColor
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 def test_create_player():
     player_repository_sql = PlayerRepositorySQL()
