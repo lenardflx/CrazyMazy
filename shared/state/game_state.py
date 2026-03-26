@@ -10,31 +10,6 @@ from client.ui.textures import TILE_IMAGES
 
 # IMPORTANT: most of this should now be covered by models.py and the board lib. At least as a temporary solution that however works with the codebase
 
-class GamePhase(Enum):
-    LOBBY = 0
-    IN_GAME = 1
-    POST_GAME = 2
-
-class GameState:
-    def __init__(self, phase: GamePhase, game_code: str):
-        self.phase = phase
-        self.game_code = game_code
-        self.board: None | Board = None
-
-    @staticmethod
-    def create_new_game():
-        return GameState(GamePhase.LOBBY, new_game_id())
-
-    def setup_game(self):
-        """
-        generate random board
-        :return:
-        """
-        # create a 7x7 board by default, use user input later
-        self.board = Board(7)
-        # self.board.randomize()
-        pass
-
 class TileType(Enum):
     STRAIGHT = 0
     T_PIECE = 1
@@ -113,17 +88,14 @@ class Tile:
         Then we rotate the deque to match the actual orientation.
         """
 
-        # Base connectivity pattern for NORTH orientation
-        if self.type == TileType.STRAIGHT:
-            path = deque([1, 0, 1, 0])   # open N + S
-        elif self.type == TileType.CORNER:
-            path = deque([1, 1, 0, 0])   # open N + E
-        elif self.type == TileType.T_PIECE:
-            path = deque([1, 1, 0, 1])   # open N + E + W
-        elif self.type == TileType.WALL:
-            path = deque([0, 0, 0, 0])   # no openings
-        else:
-            raise TileError(f"unknown Tile-Type: '{self.type}'")
+        # base path pattern for orientation NORTH
+        parse_Tiletype = {TileType.STRAIGHT: [1,0,1,0], # N E S W
+                          TileType.CORNER : [1,1,0,0],
+                          TileType.T_PIECE : [1,1,0,1],
+                          TileType.WALL : [0,0,0,0]}
+        # set exit values for path
+        path = deque(parse_Tiletype[self.type])
+
 
         # Rotate the connectivity pattern according to orientation
         # TileOrientation.value is 0=N, 1=E, 2=S, 3=W
@@ -141,19 +113,15 @@ class Tile:
 
         # Fetch base NORTH-facing texture
         texture = TILE_IMAGES[TileType(self.type).name]
+        # get degree values for rotation of every orientation
+        parse_orientation = {TileOrientation.NORTH : 0,
+                          TileOrientation.EAST : 270,
+                          TileOrientation.SOUTH : 180,
+                          TileOrientation.WEST : 90}
 
         # Rotate depending on orientation
         # Note: pygame rotates counter-clockwise, so EAST = 270° etc.
-        if self.orientation == TileOrientation.NORTH.value:
-            self.texture = texture
-        elif self.orientation == TileOrientation.EAST.value:
-            self.texture = pygame.transform.rotate(texture, 270)
-        elif self.orientation == TileOrientation.SOUTH.value:
-            self.texture = pygame.transform.rotate(texture, 180)
-        elif self.orientation == TileOrientation.WEST.value:
-            self.texture = pygame.transform.rotate(texture, 90)
-        else:
-            raise TileError(f"unknown orientation: '{self.orientation}'")
+        self.texture = pygame.transform.rotate(texture, parse_orientation[self.orientation])
 
     def rotate_left(self):
         """
@@ -188,21 +156,26 @@ class Tile:
         self.set_paths()
 
 class Board:
-    def __init__(self, width: int = 7):
+    def __init__(self, width: int):
         """
         Represents the full game board.
 
         Args:
             width: Board dimension (Labyrinth uses 7×7).
         """
-
-        self.width = width
+        if width >= 7 and width % 2 == 1:
+            self.width = width
+        else:
+            self.width = 7
         self.tiles = {}     # (x, y) → Tile
         self.spare = None   # tile currently outside the board
 
+        # lenght of stack
+        stack_len = (self.width ** 2 + 1) - ((self.width // 2 + 1) ** 2)
+
         # --- Build the stack of movable tiles ---
         # 9 corner tiles without treasures
-        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for _ in range(9)]
+        stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for _ in range(int((stack_len-12) * 0.33))]
 
         # 6 corner tiles with treasures (treasure IDs 22–27)
         stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(6)]
@@ -211,7 +184,13 @@ class Board:
         stack += [Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(i+16)) for i in range(6)]
 
         # 13 straight tiles without treasures (only 0° or 180° matter)
-        stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for _ in range(13)]
+        stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for _ in range(int((stack_len-12) * 0.66))]
+
+        # fill rounding Error with corners
+        if len(stack) < self.width ** 2 + 1:
+            stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for _ in range(stack_len-len(stack))]
+        # delete rounding Error
+        stack = stack[:stack_len]
 
         shuffle(stack)
         self.stack = stack
@@ -248,7 +227,7 @@ class Board:
         if direction == TileOrientation.WEST:
             return x - 1, y
 
-    def move_possible(self, position: Tuple[int, int], direction: TileOrientation):
+    def move_possible(self, position: Tuple[int, int], direction: TileOrientation) -> bool:
         """
         Checks whether movement from a tile in a given direction is allowed.
 
@@ -276,11 +255,11 @@ class Board:
     # Pathfinding
     # -------------------------------------------------------------------------
 
-    def pathvalidating(self, start_position: Tuple[int, int], end_position: Tuple[int, int]):
+    def pathvalidating(self, start_position: Tuple[int, int], end_position: Tuple[int, int]) -> bool:
         """Returns True if end_position is reachable from start_position."""
         return end_position in self.pathfind(start_position)
 
-    def pathfind(self, position: Tuple[int, int], visited=[]):
+    def pathfind(self, position: Tuple[int, int], visited : list[Tuple[int, int]] = []) -> list[Tuple[int, int]]:
         """
         Depth‑first search to find all reachable tiles from a starting position.
         """
@@ -292,10 +271,12 @@ class Board:
             direction = TileOrientation(d)
             neighbour = self.get_neighbour(position, direction)
 
+            # can I move to this neighbour?
             if neighbour and neighbour not in visited:
                 if self.move_possible(position, direction):
                     self.pathfind(neighbour, visited)
 
+        # return all visited (which means all reachable) tiles
         return visited
 
     # -------------------------------------------------------------------------
@@ -308,8 +289,11 @@ class Board:
         and leaves the remaining spaces as None to be filled later.
         """
 
-        treasure_order = [i + 4 for i in range(12)]
-        shuffle(treasure_order)
+        # fill stack with blanks to get a random distribution of treasure or no treasure over all fixed tiles
+        treasure_stack = [None for _ in range(((self.width // 2) + 1)**2 - 4)] # gaps² - 4 corners
+        # add 12 treasure to the treasure stack
+        treasure_stack[:12] = [TreasureType(i+4) for i in range(12)]
+        shuffle(treasure_stack)
         counter = 0
 
         for i in range(self.width):
@@ -327,21 +311,21 @@ class Board:
 
                 # --- Fixed T‑pieces on edges (even coordinates only) ---
                 elif i == 0 and j % 2 == 0 and 0 < j < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, TreasureType(treasure_order[counter]))
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, treasure_stack[counter])
                     counter += 1
                 elif i == self.width - 1 and j % 2 == 0 and 0 < j < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.NORTH, TreasureType(treasure_order[counter]))
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.NORTH, treasure_stack[counter])
                     counter += 1
                 elif j == 0 and i % 2 == 0 and 0 < i < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, TreasureType(treasure_order[counter]))
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, treasure_stack[counter])
                     counter += 1
                 elif j == self.width - 1 and i % 2 == 0 and 0 < i < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.WEST, TreasureType(treasure_order[counter]))
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.WEST, treasure_stack[counter])
                     counter += 1
 
                 # --- Middle T‑pieces (even/even coordinates) ---
                 elif i % 2 == 0 and j % 2 == 0:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(treasure_order[counter]))
+                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), treasure_stack[counter])
                     counter += 1
 
                 # --- Remaining spaces are filled later ---
@@ -371,6 +355,7 @@ class Board:
                     self.tiles[(j, i)] = self.stack[counter]
                     counter += 1
 
+        # spare tile for insertion later
         self.spare = self.stack[counter]
 
     # -------------------------------------------------------------------------

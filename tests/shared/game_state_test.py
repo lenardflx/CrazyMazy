@@ -5,7 +5,8 @@ from random import randint
 class TestCreateBoard(unittest.TestCase):
 
     def _randomBoard(self):
-        board = Board()
+        #board = Board(randint(3,8)*2 + 1)
+        board = Board(9)
         board.create_board()
         return board
 
@@ -25,7 +26,7 @@ class TestCreateBoard(unittest.TestCase):
         for key in board.tiles:
             if board.tiles[key] is not None:
                 counter += 1
-        self.assertEqual(counter, 16)
+        self.assertEqual(counter, ((board.width // 2) + 1)**2)
 
     def test_board_full(self):
         # tests if the board is full of tiles
@@ -34,6 +35,7 @@ class TestCreateBoard(unittest.TestCase):
         for i in range(board.width):
             for j in range(board.width):
                 self.assertTrue(board.tiles[(j,i)] is not None)
+
 
     def test_treasures(self):
         # tests if there are enough treasures on the board and that they are all diffrent
