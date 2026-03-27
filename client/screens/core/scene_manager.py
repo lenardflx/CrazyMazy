@@ -82,7 +82,15 @@ class SceneManager:
         pygame.display.flip()
 
     def sync_transport(self) -> None:
-        """Apply network-driven state changes and move to the matching scene."""
+        """
+        Takes the current `ClientState` and checks if it contains any attribute
+        with information that is more recent than what is currently displayed.
+
+        So, if the `ClientState` has received a more recent snapshot version
+        of any error messages or the game board, an update is initiated in the
+        corresponding scene classes.
+        """
+        # check if a new
         if self.transport_state.snapshot_version != self._seen_snapshot_version:
             self._seen_snapshot_version = self.transport_state.snapshot_version
             snapshot = self.transport_state.game_snapshot
@@ -91,6 +99,7 @@ class SceneManager:
                 self._reset_runtime_state()
                 self.go_to(self._scene_from_snapshot())
 
+        # TODO staged for removal, client directly leaves the game
         if self.transport_state.game_left_version != self._seen_game_left_version:
             self._seen_game_left_version = self.transport_state.game_left_version
             self.display_state.clear()
