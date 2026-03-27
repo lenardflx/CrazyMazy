@@ -5,7 +5,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
+from shared.types.enums import PlayerColor
+from shared.types.data import GameData, PlayerData, TileData, TreasureData
 
 
 class GameRepository(ABC):

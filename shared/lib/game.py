@@ -13,8 +13,8 @@ from shared.lib.parse import (
     parse_optional_str,
     parse_str,
 )
-from shared.models import GamePhase, InsertionSide, PlayerResult, TileType, TreasureType, TurnPhase
-from shared.schema import (
+from shared.types.enums import GamePhase, InsertionSide, PlayerResult, TileType, TreasureType, TurnPhase
+from shared.types.payloads import (
     ClientGameMovePlayerPayload,
     ClientGameShiftTilePayload,
     GamePlacementPayload,

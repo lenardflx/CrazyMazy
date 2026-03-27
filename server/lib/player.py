@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from shared.models import PlayerColor, PlayerData, PlayerStatus
+from shared.types.enums import PlayerColor, PlayerStatus
+from shared.types.data import PlayerData
 
 
 def normalize_display_name(name: str) -> str:

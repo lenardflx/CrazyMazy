@@ -18,20 +18,16 @@ from server.lib.player import (
     normalize_display_name,
     session_players,
 )
-from shared.models import (
-    GameData,
+from shared.types.enums import (
     GameEndReason,
     GamePhase,
     InsertionSide,
-    PlayerData,
     PlayerResult,
     PlayerStatus,
-    TileData,
     TreasureType,
-    TreasureData,
     TurnPhase,
-    utcnow,
 )
+from shared.types.data import GameData, PlayerData, TileData, TreasureData, utcnow
 from shared.state.game_state import (
     GameState,
     Board,

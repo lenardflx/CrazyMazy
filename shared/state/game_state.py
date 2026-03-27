@@ -1,27 +1,28 @@
 # Author: Lennart William Owen, Raphael Eiden, Sarah Trapp, Lenard Felix
 
 from collections import deque
-from enum import Enum
 from random import randint, shuffle
 from dataclasses import dataclass
 from uuid import UUID
 
-from shared.models import (
-    GameData,
+from shared.types.enums import (
     GamePhase,
     InsertionSide,
     PlayerColor,
-    PlayerData,
     PlayerResult,
     PlayerStatus,
-    TileData,
     TileOrientation,
     TileType,
-    TreasureData,
     TreasureType,
     TurnPhase,
 )
-from shared.schema import GameSnapshotPayload, LastShiftPayload, PublicPlayerPayload, TilePayload, ViewerPayload
+from shared.types.data import (
+    GameData,
+    PlayerData,
+    TileData,
+    TreasureData,
+)
+from shared.types.payloads import GameSnapshotPayload, LastShiftPayload, PublicPlayerPayload, TilePayload, ViewerPayload
 from shared.state.errors import BoardError
 
 Position = tuple[int, int]

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
-from shared.models import GamePhase
+from shared.types.enums import GamePhase
 from client.ui.controls import Button
 from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen

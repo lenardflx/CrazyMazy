@@ -9,7 +9,8 @@ from uuid import UUID
 from sqlmodel import SQLModel, Session, select
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
+from shared.types.enums import PlayerColor
+from shared.types.data import GameData, PlayerData, TileData, TreasureData
 from shared.table_models import GameTable, PlayerTable, TileTable, TreasureTable
 
 ResultT = TypeVar("ResultT")

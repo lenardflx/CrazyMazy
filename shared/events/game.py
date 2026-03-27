@@ -19,7 +19,7 @@ from shared.lib.game import (
 from shared.lib.parse import parse_int, parse_str
 from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
-from shared.schema import (
+from shared.types.payloads import (
     ClientCreateLobbyPayload,
     ClientJoinGamePayload,
     GameSnapshotPayload,

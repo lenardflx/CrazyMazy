@@ -12,7 +12,7 @@ from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, font
-from shared.models import GamePhase
+from shared.types.enums import GamePhase
 from shared.state.game_state import SnapshotGameState
 
 if TYPE_CHECKING:

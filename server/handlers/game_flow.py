@@ -20,7 +20,7 @@ from shared.events import (
     ClientGameStartEvent,
     ClientJoinGameEvent,
 )
-from shared.models import InsertionSide
+from shared.types.enums import InsertionSide
 
 
 @dispatcher.handler(ClientCreateLobbyEvent)

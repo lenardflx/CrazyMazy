@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import cast
 
 from server.lib.game import can_join_game, is_valid_board_size, is_valid_join_code, normalize_join_code
-from shared.models import GameData, GamePhase, PlayerData, PlayerStatus
+from shared.types.enums import GamePhase, PlayerStatus
+from shared.types.data import GameData, PlayerData
 
 
 @dataclass

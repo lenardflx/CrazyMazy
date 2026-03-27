@@ -6,7 +6,7 @@ from client.network.errors import apply_server_error
 from client.network.state import ClientState
 from client.screens.core.scene_types import SceneTypes
 from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation, RuntimeState
-from shared.models import GamePhase
+from shared.types.enums import GamePhase
 from shared.state.game_state import SnapshotGameState
 
 

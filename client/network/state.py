@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from shared.schema import ErrorPayload, GameSnapshotPayload, ServerGameLeftPayload
+from shared.types.payloads import ErrorPayload, GameSnapshotPayload, ServerGameLeftPayload
 
 
 @dataclass(slots=True)

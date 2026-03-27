@@ -14,21 +14,18 @@ from shared.lib.parse import (
     parse_optional_str,
     parse_str,
 )
-from shared.models import (
-    GameData,
+from shared.types.enums import (
     GamePhase,
     InsertionSide,
-    PlayerData,
     PlayerColor,
     PlayerResult,
     PlayerStatus,
-    TileData,
     TileType,
     TreasureType,
-    TreasureData,
     TurnPhase,
 )
-from shared.schema import (
+from shared.types.data import GameData, PlayerData, TileData, TreasureData
+from shared.types.payloads import (
     GameSnapshotPayload,
     LastMovePayload,
     LastShiftPayload,

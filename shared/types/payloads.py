@@ -6,16 +6,22 @@ from typing import NotRequired, TypedDict
 
 
 class ErrorPayload(TypedDict):
+    """Standard error payload returned by the server."""
+
     code: str
     message: str
 
 
 class PositionPayload(TypedDict):
+    """Serialized board coordinate."""
+
     x: int
     y: int
 
 
 class TilePayload(TypedDict):
+    """Serialized tile state used in snapshots and board-related events."""
+
     id: str
     tile_type: str
     rotation: int
@@ -26,6 +32,8 @@ class TilePayload(TypedDict):
 
 
 class PublicPlayerPayload(TypedDict):
+    """Player fields visible to every viewer of a game snapshot."""
+
     id: str
     display_name: str
     status: str
@@ -39,6 +47,8 @@ class PublicPlayerPayload(TypedDict):
 
 
 class ViewerPayload(TypedDict):
+    """Viewer-specific player metadata included only for the current recipient."""
+
     player_id: str
     is_leader: bool
     is_current_player: bool
@@ -48,6 +58,8 @@ class ViewerPayload(TypedDict):
 
 
 class TurnPayload(TypedDict):
+    """Serialized turn-state metadata for the current game revision."""
+
     current_player_id: str | None
     turn_phase: str | None
     blocked_insertion_side: str | None
@@ -55,18 +67,24 @@ class TurnPayload(TypedDict):
 
 
 class LastShiftPayload(TypedDict):
+    """Animation metadata for the most recent tile shift."""
+
     side: str
     index: int
     rotation: int
 
 
 class LastMovePayload(TypedDict):
+    """Animation metadata for the most recent player movement."""
+
     player_id: str
     path: list[PositionPayload]
     collected_treasure_type: str | None
 
 
 class GameSnapshotPayload(TypedDict):
+    """Full client-facing snapshot of the game at a specific revision."""
+
     game_id: str
     code: str
     phase: str
@@ -83,27 +101,37 @@ class GameSnapshotPayload(TypedDict):
 
 
 class ClientCreateLobbyPayload(TypedDict):
+    """Client request payload for creating a lobby."""
+
     board_size: int
     player_name: str
 
 
 class ClientJoinGamePayload(TypedDict):
+    """Client request payload for joining an existing game."""
+
     join_code: str
     player_name: str
 
 
 class ClientGameShiftTilePayload(TypedDict):
+    """Client request payload for a tile shift action."""
+
     insertion_side: str
     insertion_index: int
     rotation: int
 
 
 class ClientGameMovePlayerPayload(TypedDict):
+    """Client request payload for moving a player token."""
+
     x: int
     y: int
 
 
 class ServerGameStartedPayload(TypedDict):
+    """Server event payload announcing transition from lobby to active game."""
+
     game_id: str
     revision: int
     phase: str
@@ -112,6 +140,8 @@ class ServerGameStartedPayload(TypedDict):
 
 
 class ServerGameTileShiftedPayload(TypedDict):
+    """Server event payload for a completed tile shift."""
+
     game_id: str
     revision: int
     insertion_side: str
@@ -124,6 +154,8 @@ class ServerGameTileShiftedPayload(TypedDict):
 
 
 class ServerGamePlayerMovedPayload(TypedDict):
+    """Server event payload for a completed player move."""
+
     game_id: str
     revision: int
     player_id: str
@@ -134,6 +166,8 @@ class ServerGamePlayerMovedPayload(TypedDict):
 
 
 class ServerGameTurnChangedPayload(TypedDict):
+    """Server event payload for turn ownership or phase changes."""
+
     game_id: str
     revision: int
     current_player_id: str | None
@@ -143,12 +177,16 @@ class ServerGameTurnChangedPayload(TypedDict):
 
 
 class GamePlacementPayload(TypedDict):
+    """Placement entry for a finished game result list."""
+
     player_id: str
     result: str
     placement: int | None
 
 
 class ServerGameFinishedPayload(TypedDict):
+    """Server event payload announcing final game results."""
+
     game_id: str
     revision: int
     winner_player_id: str | None
@@ -156,4 +194,6 @@ class ServerGameFinishedPayload(TypedDict):
 
 
 class ServerGameLeftPayload(TypedDict):
+    """Server payload describing why the client was removed from a game view."""
+
     reason: str

@@ -16,7 +16,8 @@ import random
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
+from shared.types.enums import PlayerColor
+from shared.types.data import GameData, PlayerData, TileData, TreasureData
 
 
 class GameRepositoryInMemory(GameRepository):

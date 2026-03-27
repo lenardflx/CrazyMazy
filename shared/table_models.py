@@ -2,7 +2,7 @@
  
 from __future__ import annotations
 
-from shared.models import PlayerData, TileData, TreasureData, GameData
+from shared.types.data import PlayerData, TileData, TreasureData, GameData
 
 
 class PlayerTable(PlayerData, table=True):

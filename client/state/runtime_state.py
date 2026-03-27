@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-from shared.models import InsertionSide, TreasureType
+from shared.types.enums import InsertionSide, TreasureType
 from shared.lib.lobby import VALID_BOARD_SIZES
 
 

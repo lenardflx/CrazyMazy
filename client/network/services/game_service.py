@@ -7,7 +7,7 @@ from shared.events import (
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
 )
-from shared.models import InsertionSide
+from shared.types.enums import InsertionSide
 
 from client.network.services._service import RequestService
 from client.state.runtime_state import ErrorTarget, PendingRequest

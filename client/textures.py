@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from shared.models import PlayerColor, PlayerSkin, TreasureType
+from shared.types.enums import PlayerColor, PlayerSkin, TreasureType
 from shared.paths import BASE_DIR
 
 

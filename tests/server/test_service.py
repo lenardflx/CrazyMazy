@@ -9,7 +9,7 @@ from server.db.memory_repo import (
     TreasureRepositoryInMemory,
 )
 from server.service import GameService
-from shared.models import GameEndReason, GamePhase, PlayerStatus, TurnPhase
+from shared.types.enums import GameEndReason, GamePhase, PlayerStatus, TurnPhase
 
 
 def make_service() -> GameService:

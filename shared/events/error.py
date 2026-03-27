@@ -8,7 +8,7 @@ from typing import Any, Mapping, Self
 from shared.events.event import Event
 from shared.lib.error import parse_error_payload
 from shared.protocol import Message
-from shared.schema import ErrorPayload
+from shared.types.payloads import ErrorPayload
 
 
 @dataclass(frozen=True)

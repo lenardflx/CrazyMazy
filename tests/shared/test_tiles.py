@@ -1,4 +1,4 @@
-from shared.models import InsertionSide, TileOrientation, TileType
+from shared.types.enums import InsertionSide, TileOrientation, TileType
 from shared.state.game_state import Board, Tile
 
 

@@ -2,7 +2,8 @@
 
 from server.db.sql_repo import TreasureRepositorySQL
 from server.db.engine import create_engine_for_environment
-from shared.models import TreasureType, TreasureData
+from shared.types.enums import TreasureType
+from shared.types.data import TreasureData
 from uuid import uuid4
 
 def create_treasure_data():

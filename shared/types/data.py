@@ -4,111 +4,28 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from enum import StrEnum, Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
 
+from shared.types.enums import (
+    GameEndReason,
+    GamePhase,
+    InsertionSide,
+    PlayerColor,
+    PlayerResult,
+    PlayerSkin,
+    PlayerStatus,
+    TileType,
+    TreasureType,
+    TurnPhase,
+)
 
+# TODO: Lib
 def utcnow() -> datetime:
     """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
-
-class PlayerStatus(StrEnum):
-    """
-    Defines the participation status of a player in the current game lifecycle.
-    Players that WIN or GIVE UP are considered OBSERVERS, while those that leave the game are DEPARTED.
-    """
-    ACTIVE = "ACTIVE"
-    OBSERVER = "OBSERVER"
-    DEPARTED = "DEPARTED"
-
-
-class PlayerResult(StrEnum):
-    """
-    Defines the final outcome of a player within the current game loop.
-    """
-    NONE = "NONE"
-    WON = "WON"
-    FORFEITED = "FORFEITED"
-
-
-class PlayerColor(StrEnum):
-    """
-    Defines the identity of a player's figure on the board.
-    """
-    RED = "RED"
-    BLUE = "BLUE"
-    GREEN = "GREEN"
-    YELLOW = "YELLOW"
-
-
-class PlayerSkin(StrEnum):
-    DEFAULT = "DEFAULT"
-
-
-class TileType(StrEnum):
-    STRAIGHT = "STRAIGHT"
-    CORNER = "CORNER"
-    T = "T"
-    WALL = "WALL"
-
-
-class TreasureType(StrEnum):
-    SKULL = "SKULL"
-    SWORD = "SWORD"
-    GOLDBAG = "GOLDBAG"
-    KEYS = "KEYS"
-    EMERALD = "EMERALD"
-    ARMOR = "ARMOR"
-    BOOK = "BOOK"
-    CROWN = "CROWN"
-    CHEST = "CHEST"
-    CANDLE = "CANDLE"
-    MAP = "MAP"
-    RING = "RING"
-    DRAGON = "DRAGON"
-    GHOST = "GHOST"
-    BAT = "BAT"
-    GOBLIN = "GOBLIN"
-    PRINCESS = "PRINCESS"
-    GENIE = "GENIE"
-    BUG = "BUG"
-    OWL = "OWL"
-    LIZARD = "LIZARD"
-    SPIDER = "SPIDER"
-    FLY = "FLY"
-    RAT = "RAT"
-
-class TileOrientation(Enum):
-    NORTH = 0
-    EAST = 1
-    SOUTH = 2
-    WEST = 3
-
-
-class GamePhase(StrEnum):
-    PREGAME = "PREGAME"
-    GAME = "GAME"
-    POSTGAME = "POSTGAME"
-
-
-class GameEndReason(StrEnum):
-    PLAYERS_LEFT = "PLAYERS_LEFT"
-    COMPLETED = "COMPLETED"
-
-
-class TurnPhase(StrEnum):
-    SHIFT = "SHIFT" # move tile
-    MOVE = "MOVE" # move player position
-
-
-class InsertionSide(StrEnum):
-    TOP = "TOP"
-    RIGHT = "RIGHT"
-    BOTTOM = "BOTTOM"
-    LEFT = "LEFT"
 
 
 class PlayerData(SQLModel):

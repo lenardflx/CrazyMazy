@@ -10,7 +10,7 @@ from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.ui.controls import Button
 from client.ui.theme import TEXT_MUTED
 from client.screens.menu.menu_screen import MenuScreen
-from shared.models import GamePhase
+from shared.types.enums import GamePhase
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
