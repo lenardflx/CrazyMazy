@@ -39,7 +39,7 @@ class ClientSettings:
         self.write_JSON()
         self.master_volume = val_volume
 
-
+    #Setze die Musik-Lautstärke
     def set_music_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
@@ -47,13 +47,14 @@ class ClientSettings:
         self.write_JSON()
         self.music_volume = val_volume
 
-
+    #Setze die Effekt-Lautstärke
     def set_effects_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.effects_volume = val_volume
 
 
+    #Setze den Fullscreen Status
     def set_fullscreen(self, val_fullscreen:bool)->None:
         self.fullscreen = val_fullscreen
         if self.fullscreen:
@@ -66,19 +67,19 @@ class ClientSettings:
 
         self.write_JSON()
 
-
+    #Returnt die Master Lautstärke
     def get_master_volume(self)->int:
         return self.master_volume
     
-
+    #Returnt die Musik Lautstärke
     def get_music_volume(self)->int:
         return self.music_volume
 
-
+    #Returnt die Effekt Lautstärke
     def get_effects_volume(self)->int:
         return self.effects_volume
 
-
+    #Returnt den Fullscreen Status
     def get_fullscreen(self)->bool:
         return self.fullscreen
 
@@ -104,7 +105,7 @@ class ClientSettings:
         with open(BASE_DIR / "data/settings_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
 
-
+    #Liest die lokalen Einstellungen aus der JSON
     def read_JSON(self)->None:
         try:
             with open(BASE_DIR / "data/settings_data.json", mode="r", encoding="utf-8") as f:

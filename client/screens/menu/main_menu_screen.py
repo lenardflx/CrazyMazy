@@ -29,9 +29,10 @@ class MainMenuScreen(MenuScreen):
                 ("Quit", self._quit, "secondary"),
             ],
         )
-
+    #Bestätige, dass du das Spiel verlassen willst
     def _quit(self) -> None:
         self.show_confirm("Quit Game?", "Close the client now?", self._post_quit, confirm_label="Quit")
 
+    #Packe das Quit Event in die Event Pipeline
     def _post_quit(self) -> None:
         pg.event.post(pg.event.Event(pg.QUIT))

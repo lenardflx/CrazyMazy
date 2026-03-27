@@ -1,4 +1,4 @@
-# Author: Tamay Engin, Lukas Saur-Brosch
+# Author: Lukas Saur-Brosch, Tamay Engin
 
 from server.db.sql_repo import TileRepositorySQL
 from server.db.engine import create_engine_for_environment
