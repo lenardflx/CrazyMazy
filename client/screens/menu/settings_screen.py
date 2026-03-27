@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.ui.controls import Checkbox, Slider
-from client.ui.theme import TEXT_PRIMARY
+from client.state.ui.controls import Checkbox, Slider
+from client.state.ui.theme import TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
 
 if TYPE_CHECKING:
