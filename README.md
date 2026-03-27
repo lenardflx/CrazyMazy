@@ -51,6 +51,11 @@ pytest
 ├── client/      # Pygame GUI client (screens, UI, network, state)
 ├── server/      # TCP socket server (handlers, game service, db)
 ├── shared/      # Models, events, protocol, and game logic used by both
+├── docs/        # Architecture and gameplay documentation
 ├── tests/       # Pytest test suite
 └── assets/      # Game images and UI assets
 ```
+
+## Documentation
+
+Start with [docs/README.md](./docs/README.md).
