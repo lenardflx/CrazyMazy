@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import pygame
+from client.config import WINDOW_WIDTH, WINDOW_HEIGHT
 
 from shared.paths import BASE_DIR
+from sys import platform
 
 #FIXME: man kann die Attribute zu Klassenattributen machen, um die von außen zu ändern
 class ClientSettings:
@@ -39,13 +42,21 @@ class ClientSettings:
             raise ValueError("value has to be between 0 and 100")
         cls.effects_volume = val_volume
 
-    @classmethod
-    def toggle_fullscreen(cls):
-        cls.fullscreen = not cls.fullscreen
-    
-    @classmethod
-    def get_master_volume(cls)->int:
-        return cls.master_volume
+    def set_fullscreen(self, val_fullscreen:bool)->None:
+        self.fullscreen = val_fullscreen
+        if self.fullscreen:
+            if platform == "win32":
+                pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            else:
+                pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+        else:
+            pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+        self.write_JSON()
+
+
+    def get_master_volume(self)->int:
+        return self.master_volume
     
     @classmethod
     def get_music_volume(cls)->int:
