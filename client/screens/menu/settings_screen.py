@@ -69,7 +69,17 @@ class SettingsScreen(MenuScreen):
             changed = self.fullscreen_checkbox.handle_event(event) or changed
 
         if changed:
+            prev_fullscreen = self.scene_manager.client_settings.fullscreen
             self._sync_settings()
+            settings = self.scene_manager.client_settings
+            self.scene_manager.audio.apply_settings(
+                settings.master_volume,
+                settings.music_volume,
+                settings.effects_volume,
+            )
+            settings.write_JSON()
+            if settings.fullscreen != prev_fullscreen:
+                self.scene_manager.apply_fullscreen(settings.fullscreen)
 
     def draw_content(self, rect: pg.Rect) -> None:
         super().draw_content(rect)

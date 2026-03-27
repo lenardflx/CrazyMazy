@@ -4,6 +4,7 @@ import pygame
 
 import client.network.handlers # Unused import, but needed for the handlers to load
 
+from client.sound.manager import AudioManager
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
@@ -21,14 +22,20 @@ def main() -> None:
     # Connect to the server
     conn = ClientConnection()
     state = ClientState()
-    scene_manager = SceneManager(conn, state, surface)
+    audio = AudioManager()
+    scene_manager = SceneManager(conn, state, surface, audio)
     
     # Try to connect to the server and set the initial scene based on the connection result
+    print(f"Connecting to server at {SERVER_HOST}:{SERVER_PORT}...")
     connected = conn.connect(SERVER_HOST, SERVER_PORT)
     if connected:
         current_scene = SceneTypes.MAIN_MENU
+        print("Connected to server successfully.")
     else:
         current_scene = SceneTypes.SERVER_DOWN
+
+    if scene_manager.client_settings.fullscreen:
+        scene_manager.apply_fullscreen(True)
 
     scene_manager.go_to(current_scene)
 
