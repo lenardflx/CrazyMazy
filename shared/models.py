@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import StrEnum, Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -41,6 +41,7 @@ class TileType(StrEnum):
     STRAIGHT = "STRAIGHT"
     CORNER = "CORNER"
     T = "T"
+    WALL = "WALL"
 
 
 class TreasureType(StrEnum):
@@ -68,6 +69,12 @@ class TreasureType(StrEnum):
     SPIDER = "SPIDER"
     FLY = "FLY"
     RAT = "RAT"
+
+class TileOrientation(Enum):
+    NORTH = 0
+    EAST = 1
+    SOUTH = 2
+    WEST = 3
 
 
 class GamePhase(StrEnum):

@@ -7,22 +7,23 @@ from random import randint, shuffle
 from typing import Tuple
 import pygame
 from shared.state.textures import TILE_IMAGES
+from shared.models import TileType, TreasureType, TileOrientation
 
 # IMPORTANT: most of this should now be covered by models.py and the board lib. At least as a temporary solution that however works with the codebase
 
-class TileType(Enum):
+class TileType_old(Enum):
     STRAIGHT = 0
     T_PIECE = 1
     CORNER = 2
     WALL = 3
 
-class TileOrientation(Enum):
+class TileOrientation_old(Enum):
     NORTH = 0
     EAST = 1
     SOUTH = 2
     WEST = 3
 
-class TreasureType(Enum):
+class TreasureType_old(Enum):
     YELLOW = 0
     BLUE = 1
     RED = 2
@@ -91,7 +92,7 @@ class Tile:
         # base path pattern for orientation NORTH
         parse_Tiletype = {TileType.STRAIGHT: [1,0,1,0], # N E S W
                           TileType.CORNER : [1,1,0,0],
-                          TileType.T_PIECE : [1,1,0,1],
+                          TileType.T : [1,1,0,1],
                           TileType.WALL : [0,0,0,0]}
         # set exit values for path
         path = deque(parse_Tiletype[self.type])
@@ -170,18 +171,21 @@ class Board:
         self.tiles = {}     # (x, y) → Tile
         self.spare = None   # tile currently outside the board
 
+        # make a treasure list for better distribution across movable and non-movable tiles
+        self.treasure_list = list(TreasureType)
+
         # lenght of stack
-        stack_len = (self.width ** 2 + 1) - ((self.width // 2 + 1) ** 2)
+        stack_len = (self.width ** 2 + 1) - ((self.width // 2 + 1) ** 2) # boardsize² - fixed tiles
 
         # --- Build the stack of movable tiles ---
         # 9 corner tiles without treasures
         stack = [Tile(TileType.CORNER, TileOrientation(randint(0, 3))) for _ in range(int((stack_len-12) * 0.33))]
 
         # 6 corner tiles with treasures (treasure IDs 22–27)
-        stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(i+22)) for i in range(6)]
+        stack += [Tile(TileType.CORNER, TileOrientation(randint(0, 3)), TreasureType(self.treasure_list[i+18])) for i in range(6)] # not a clean solution for the treasures but it works
 
         # 6 T‑pieces with treasures (treasure IDs 16–21)
-        stack += [Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), TreasureType(i+16)) for i in range(6)]
+        stack += [Tile(TileType.T, TileOrientation(randint(0, 3)), TreasureType(self.treasure_list[i+12])) for i in range(6)]
 
         # 13 straight tiles without treasures (only 0° or 180° matter)
         stack += [Tile(TileType.STRAIGHT, TileOrientation(randint(0, 1))) for _ in range(int((stack_len-12) * 0.66))]
@@ -292,7 +296,7 @@ class Board:
         # fill stack with blanks to get a random distribution of treasure or no treasure over all fixed tiles
         treasure_stack = [None for _ in range(((self.width // 2) + 1)**2 - 4)] # gaps² - 4 corners
         # add 12 treasure to the treasure stack
-        treasure_stack[:12] = [TreasureType(i+4) for i in range(12)]
+        treasure_stack[:12] = [TreasureType(self.treasure_list[i]) for i in range(12)]
         shuffle(treasure_stack)
         counter = 0
 
@@ -301,31 +305,31 @@ class Board:
 
                 # --- Fixed corner tiles ---
                 if i == 0 and j == 0:
-                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.EAST, TreasureType.YELLOW)
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.EAST)
                 elif i == 0 and j == self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.SOUTH, TreasureType.BLUE)
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.SOUTH)
                 elif i == self.width - 1 and j == 0:
-                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.NORTH, TreasureType.RED)
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.NORTH)
                 elif i == self.width - 1 and j == self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.WEST, TreasureType.GREEN)
+                    self.tiles[(j, i)] = Tile(TileType.CORNER, TileOrientation.WEST)
 
                 # --- Fixed T‑pieces on edges (even coordinates only) ---
                 elif i == 0 and j % 2 == 0 and 0 < j < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, treasure_stack[counter])
+                    self.tiles[(j, i)] = Tile(TileType.T, TileOrientation.EAST, treasure_stack[counter])
                     counter += 1
                 elif i == self.width - 1 and j % 2 == 0 and 0 < j < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.NORTH, treasure_stack[counter])
+                    self.tiles[(j, i)] = Tile(TileType.T, TileOrientation.NORTH, treasure_stack[counter])
                     counter += 1
                 elif j == 0 and i % 2 == 0 and 0 < i < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.EAST, treasure_stack[counter])
+                    self.tiles[(j, i)] = Tile(TileType.T, TileOrientation.EAST, treasure_stack[counter])
                     counter += 1
                 elif j == self.width - 1 and i % 2 == 0 and 0 < i < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation.WEST, treasure_stack[counter])
+                    self.tiles[(j, i)] = Tile(TileType.T, TileOrientation.WEST, treasure_stack[counter])
                     counter += 1
 
                 # --- Middle T‑pieces (even/even coordinates) ---
                 elif i % 2 == 0 and j % 2 == 0:
-                    self.tiles[(j, i)] = Tile(TileType.T_PIECE, TileOrientation(randint(0, 3)), treasure_stack[counter])
+                    self.tiles[(j, i)] = Tile(TileType.T, TileOrientation(randint(0, 3)), treasure_stack[counter])
                     counter += 1
 
                 # --- Remaining spaces are filled later ---
