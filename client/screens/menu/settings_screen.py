@@ -71,7 +71,16 @@ class SettingsScreen(MenuScreen):
 
         self.apply_button.handle_event(event)
         if changed:
-            pass
+            prev_fullscreen = self.scene_manager.client_settings.fullscreen
+            settings = self.scene_manager.client_settings
+            self.scene_manager.audio.apply_settings(
+                settings.master_volume,
+                settings.music_volume,
+                settings.effects_volume,
+            )
+            settings.write_JSON()
+            if settings.fullscreen != prev_fullscreen:
+                self.scene_manager.apply_fullscreen(settings.fullscreen)
 
     def draw_content(self, rect: pg.Rect) -> None:
         super().draw_content(rect)

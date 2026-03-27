@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pygame.locals import HWSURFACE, DOUBLEBUF, NOFRAME, RESIZABLE
 import json
-from shared.state.textures import BASE_DIR
-import pygame
-from client.config import WINDOW_HEIGHT, WINDOW_WIDTH
 
-FULLSCREEN_FLAGS = HWSURFACE | DOUBLEBUF | NOFRAME
-RESIZABLE_FLAGS = HWSURFACE | DOUBLEBUF | RESIZABLE
+from shared.paths import BASE_DIR
 
 #FIXME: man kann die Attribute zu Klassenattributen machen, um die von außen zu ändern
 class ClientSettings:
@@ -44,18 +38,14 @@ class ClientSettings:
             raise ValueError("value has to be between 0 and 100")
         self.effects_volume = val_volume
         self.write_JSON()
-    
+
     def set_fullscreen(self, val_fullscreen:bool)->None:
         self.fullscreen = val_fullscreen
-        if val_fullscreen:
-            pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        else:
-            pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self.write_JSON()
 
 
-#    def toggle_fullscreen(self):
-#        self.fullscreen = not self.fullscreen
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
     
 
     def get_master_volume(self)->int:
@@ -71,26 +61,25 @@ class ClientSettings:
 
 
     def get_fullscreen(self)->bool:
-        if self.fullscreen:
-            return True
-        else:
-            return False
-  
-    
+        return self.fullscreen
+
     def write_JSON(self)->None:
         setting_values = {
             "master_volume": self.get_master_volume(),
             "music_volume": self.get_music_volume(),
             "effects_volume": self.get_effects_volume(),
-            "fullscreen": self.get_fullscreen()
+            "fullscreen": self.get_fullscreen(),
         }
-        with open(BASE_DIR / "client/state/settings_data.json", mode="w", encoding="utf-8") as f:
+        with open(BASE_DIR / "data/settings_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
 
 
     def read_JSON(self)->None:
-        with open(BASE_DIR / "client/state/settings_data.json", mode="r", encoding="utf-8") as f:
-            read_settings_data = json.load(f)
+        try:
+            with open(BASE_DIR / "data/settings_data.json", mode="r", encoding="utf-8") as f:
+                read_settings_data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return
         for name, val in read_settings_data.items():
             match name:
                 case "master_volume":

@@ -1,12 +1,9 @@
 # Author: Lenard Felix
 
-from pathlib import Path
-
 import pygame
 
 from shared.models import TreasureType, PlayerColor, PlayerSkin
-
-BASE_DIR = Path(__file__).resolve().parents[2]
+from shared.paths import BASE_DIR
 
 
 def image_load(path: str) -> pygame.Surface:
