@@ -7,40 +7,52 @@ from client.config import WINDOW_WIDTH, WINDOW_HEIGHT
 from shared.paths import BASE_DIR
 from sys import platform
 
-#FIXME: man kann die Attribute zu Klassenattributen machen, um die von außen zu ändern
+#Singleton
 class ClientSettings:
-    master_volume: int = 100
-    music_volume: int = 100
-    effects_volume: int = 100
 
-    fullscreen: bool = False
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(ClientSettings, cls).__new__(cls)
+            cls._instance.read_JSON()
+        return cls._instance
+
+
+    def __init__(self):
+        self.master_volume: int = 100
+        self.music_volume: int = 100
+        self.effects_volume: int = 100
+
+        self.fullscreen: bool = False
 
         # initialize last known user's setting
-        #read_JSON()
+        self.read_JSON()
         
+
     #fullscreen wird umgangen mittels pygame.display.get_desktop_sizes()[0] -> als neue WindowDimensionen
     #und die flags sind dann HWSURFACE | DOUBLEBUF | NOFRAME bzw 1073741857
-    @classmethod
-    def set_master_volume(cls, val_volume:int)->None:
+    def set_master_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.master_volume = val_volume
         self.write_JSON()
-        cls.master_volume = val_volume
+        self.master_volume = val_volume
 
-    @classmethod
-    def set_music_volume(cls, val_volume:int)->None:
+
+    def set_music_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.music_volume = val_volume
         self.write_JSON()
-        cls.music_volume = val_volume
+        self.music_volume = val_volume
 
-    @classmethod
-    def set_effects_volume(cls, val_volume:int)->None:
+
+    def set_effects_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
-        cls.effects_volume = val_volume
+        self.effects_volume = val_volume
+
 
     def set_fullscreen(self, val_fullscreen:bool)->None:
         self.fullscreen = val_fullscreen
@@ -58,37 +70,36 @@ class ClientSettings:
     def get_master_volume(self)->int:
         return self.master_volume
     
-    @classmethod
-    def get_music_volume(cls)->int:
-        return cls.music_volume
 
-    @classmethod
-    def get_effects_volume(cls)->int:
-        return cls.effects_volume
+    def get_music_volume(self)->int:
+        return self.music_volume
+
+
+    def get_effects_volume(self)->int:
+        return self.effects_volume
 
 
     def get_fullscreen(self)->bool:
         return self.fullscreen
 
-    def write_JSON(self)->None:
-    @classmethod
-    def get_flags(cls)->int:
-        if cls.fullscreen:
+
+    def get_flags(self)->int:
+        if self.fullscreen:
             return 1073741857
         else:
             return 1073741841
   
-    @classmethod
-    def write_JSON(cls)->None:
+
+    def write_JSON(self)->None:
         setting_values = {
             "master_volume": self.get_master_volume(),
             "music_volume": self.get_music_volume(),
             "effects_volume": self.get_effects_volume(),
             "fullscreen": self.get_fullscreen(),
-            "master_volume": cls.get_master_volume(),
-            "music_volume": cls.get_music_volume(),
-            "effects_volume": cls.get_effects_volume(),
-            "flags": cls.get_flags()
+            "master_volume": self.get_master_volume(),
+            "music_volume": self.get_music_volume(),
+            "effects_volume": self.get_effects_volume(),
+            "flags": self.get_flags()
         }
         with open(BASE_DIR / "data/settings_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
@@ -100,20 +111,15 @@ class ClientSettings:
                 read_settings_data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             return
-    @classmethod
-    def read_JSON(cls)->None:
-        with open(BASE_DIR / "client/state/settings_data.json", mode="r", encoding="utf-8") as f:
-            read_settings_data = json.load(f)
         for name, val in read_settings_data.items():
             match name:
                 case "master_volume":
-                    cls.set_master_volume(val)
+                    self.set_master_volume(val)
                 case "music_volume":
-                    cls.set_music_volume(val)
+                    self.set_music_volume(val)
                 case "effects_volume":
-                    cls.set_effects_volume(val)
+                    self.set_effects_volume(val)
                 case "fullscreen":
                     self.set_fullscreen(val)
-                    cls.toggle_fullscreen()
                 case _:
                     raise NotImplementedError("attribute not implemented in json")
