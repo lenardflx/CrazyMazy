@@ -3,7 +3,7 @@ from __future__ import annotations
 import pygame
 
 from client.sound.sounds import MUSIC_TRACKS, SFX
-from shared.state.textures import BASE_DIR
+from shared.paths import BASE_DIR
 
 
 class AudioManager:
@@ -27,10 +27,6 @@ class AudioManager:
         self._effective_music: float = 1.0
         self._effective_sfx: float = 1.0
 
-    # ------------------------------------------------------------------
-    # Settings bridge
-    # ------------------------------------------------------------------
-
     def apply_settings(self, master: int, music: int, effects: int) -> None:
         """Recompute effective volumes and push them to the mixer immediately."""
         m = master / 100
@@ -41,16 +37,14 @@ class AudioManager:
         for sound in self._sfx.values():
             sound.set_volume(self._effective_sfx)
 
-    # ------------------------------------------------------------------
-    # Playback
-    # ------------------------------------------------------------------
-
     def play_sfx(self, key: str) -> None:
+        """Play a sound effect by key, if it exists."""
         sound = self._sfx.get(key)
         if sound is not None:
             sound.play()
 
     def play_music(self, key: str, *, loops: int = -1) -> None:
+        """Play a music track by key, if it exists."""
         path = self._music_paths.get(key)
         if path is None:
             return
@@ -59,4 +53,5 @@ class AudioManager:
         pygame.mixer.music.play(loops)
 
     def stop_music(self) -> None:
+        """Stop any currently playing music."""
         pygame.mixer.music.stop()

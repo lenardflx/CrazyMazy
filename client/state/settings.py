@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from shared.state.textures import BASE_DIR
+from shared.paths import BASE_DIR
 
 #FIXME: man kann die Attribute zu Klassenattributen machen, um die von außen zu ändern
 class ClientSettings:
