@@ -32,6 +32,11 @@ class ClientSettings:
 
     #fullscreen wird umgangen mittels pygame.display.get_desktop_sizes()[0] -> als neue WindowDimensionen
     #und die flags sind dann HWSURFACE | DOUBLEBUF | NOFRAME bzw 1073741857
+<<<<<<< HEAD
+=======
+
+    #Setze die Master Lautstärke
+>>>>>>> 4b074e3ae40cc9c715040c9102b73829ba5fbe21
     def set_master_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
@@ -53,7 +58,10 @@ class ClientSettings:
             raise ValueError("value has to be between 0 and 100")
         self.effects_volume = val_volume
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 4b074e3ae40cc9c715040c9102b73829ba5fbe21
     #Setze den Fullscreen Status
     def set_fullscreen(self, val_fullscreen:bool)->None:
         self.fullscreen = val_fullscreen
@@ -83,6 +91,7 @@ class ClientSettings:
     def get_fullscreen(self)->bool:
         return self.fullscreen
 
+<<<<<<< HEAD
 
     def get_flags(self)->int:
         if self.fullscreen:
@@ -91,6 +100,9 @@ class ClientSettings:
             return 1073741841
   
 
+=======
+    #Speichert die Einstellungen lokal in einer JSON
+>>>>>>> 4b074e3ae40cc9c715040c9102b73829ba5fbe21
     def write_JSON(self)->None:
         setting_values = {
             "master_volume": self.get_master_volume(),
