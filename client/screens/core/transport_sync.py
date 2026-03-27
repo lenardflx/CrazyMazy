@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from client.network.errors import apply_server_error
 from client.network.state import ClientState
 from client.screens.core.scene_types import SceneTypes
 from client.state.display_state import ClientDisplayState

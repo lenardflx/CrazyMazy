@@ -31,7 +31,6 @@ from shared.schema import (
     ServerGameTurnChangedPayload,
 )
 
-
 @dataclass(frozen=True)
 class ClientCreateLobbyEvent(Event):
     message_type = "client.game.create_lobby"
@@ -61,6 +60,11 @@ class ClientCreateLobbyEvent(Event):
 
 @dataclass(frozen=True)
 class ClientJoinGameEvent(Event):
+    """
+    This event is fired by the client when a player has typed in their display name
+    and an invitation code and now wants to join a game. When received, the server checks
+    whether the game actually exists
+    """
     message_type = "client.game.join"
 
     join_code: str
@@ -287,6 +291,7 @@ class ServerGameFinishedEvent(Event):
 
 @dataclass(frozen=True)
 class ServerGameLeftEvent(Event):
+    # sent to the player who left, redundant staged for removal!!
     message_type = "server.game.left"
 
     payload: ServerGameLeftPayload
