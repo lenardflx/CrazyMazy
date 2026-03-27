@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pygame
 
+from sys import platform
 from client.config import WINDOW_WIDTH, WINDOW_HEIGHT
 from client.sound.manager import AudioManager
 from client.network.client_connection import ClientConnection
@@ -63,7 +64,10 @@ class SceneManager:
 
     def apply_fullscreen(self, fullscreen: bool) -> None:
         if fullscreen:
-            pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+            if platform == "win32":
+                pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            else:
+                pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
         else:
             pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
