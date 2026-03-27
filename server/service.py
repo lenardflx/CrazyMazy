@@ -583,10 +583,6 @@ class GameService:
         home_x, home_y = start_position_for_color(game.board_size, player.piece_color)
         return player.position_x == home_x and player.position_y == home_y
 
-
-def _serialize_position_path(path: list[tuple[int, int]]) -> str:
-    return ";".join(f"{x},{y}" for x, y in path)
-
     def _active_treasure(self, player_id: UUID) -> TreasureData | None:
         """Return the player's next uncollected treasure, or ``None`` if all are collected."""
         treasures = sorted(self.treasure_repo.list_by_player_id(player_id), key=lambda current: current.order_index)
@@ -621,3 +617,7 @@ def _serialize_position_path(path: list[tuple[int, int]]) -> str:
         if player.position_x is None or player.position_y is None:
             return None
         return player.position_x, player.position_y
+
+# TODO: is this clean? + probably should be in lib
+def _serialize_position_path(path: list[tuple[int, int]]) -> str:
+    return ";".join(f"{x},{y}" for x, y in path)
