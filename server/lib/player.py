@@ -39,13 +39,18 @@ def next_join_order(players: Iterable[PlayerData]) -> int:
 
 
 def active_players(players: Iterable[PlayerData]) -> list[PlayerData]:
-    """Return only the players who have not departed."""
+    """Return only players who are still active participants in the round."""
+    return [player for player in players if player.status == PlayerStatus.ACTIVE]
+
+
+def session_players(players: Iterable[PlayerData]) -> list[PlayerData]:
+    """Return players who are still present in the session, including spectators."""
     return [player for player in players if player.status != PlayerStatus.DEPARTED]
 
 
 def next_available_color(players: Iterable[PlayerData]) -> PlayerColor | None:
     """Return the first unused player color in priority order, or ``None`` if all are taken."""
-    used = {player.piece_color for player in active_players(players)}
+    used = {player.piece_color for player in session_players(players)}
 
     for color in (
         PlayerColor.RED,

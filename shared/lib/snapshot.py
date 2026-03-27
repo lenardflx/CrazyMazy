@@ -325,16 +325,20 @@ def make_public_player_payload(player: PlayerData, treasures: list[TreasureData]
 
 
 def make_viewer_payload(game: GameData, player: PlayerData | None, treasures: list[TreasureData]) -> ViewerPayload | None:
-    """Build the viewer payload for the local player, including private treasure info, or ``None`` if spectating."""
+    """Build the viewer payload for the local player, including private treasure info."""
     if player is None:
         return None
     ordered = sorted(treasures, key=lambda current: current.order_index)
     collected = [treasure.treasure_type.value for treasure in ordered if treasure.collected]
-    active_treasure_type = next((treasure.treasure_type.value for treasure in ordered if not treasure.collected), None)
+    active_treasure_type = (
+        next((treasure.treasure_type.value for treasure in ordered if not treasure.collected), None)
+        if player.status == PlayerStatus.ACTIVE
+        else None
+    )
     return {
         "player_id": str(player.id),
         "is_leader": game.leader_player_id == player.id,
-        "is_current_player": game.current_player_id == player.id,
+        "is_current_player": player.status == PlayerStatus.ACTIVE and game.current_player_id == player.id,
         "active_treasure_type": active_treasure_type,
         "collected_treasures": collected,
         "remaining_treasure_count": sum(1 for treasure in ordered if not treasure.collected),

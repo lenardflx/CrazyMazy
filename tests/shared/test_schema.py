@@ -144,3 +144,22 @@ def test_snapshot_game_state_rejects_active_game_without_board_tiles() -> None:
         assert str(exc) == "Active game snapshot is missing board tiles"
     else:
         raise AssertionError("Expected active game snapshots without tiles to be rejected")
+
+
+def test_snapshot_game_state_uses_spectating_prompt_for_observer_viewer() -> None:
+    payload = make_snapshot_payload()
+    players = payload["players"]
+    assert isinstance(players, list)
+    viewer_player = players[0]
+    assert isinstance(viewer_player, dict)
+    viewer_player["status"] = "OBSERVER"
+
+    viewer = payload["viewer"]
+    assert isinstance(viewer, dict)
+    viewer["is_current_player"] = False
+    viewer["active_treasure_type"] = None
+
+    game_state = SnapshotGameState.from_snapshot(payload)
+
+    assert game_state.viewer_is_spectator is True
+    assert game_state.turn_prompt == "Spectating"

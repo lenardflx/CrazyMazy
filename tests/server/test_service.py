@@ -9,7 +9,7 @@ from server.db.memory_repo import (
     TreasureRepositoryInMemory,
 )
 from server.service import GameService
-from shared.models import GameEndReason, GamePhase, PlayerResult, PlayerStatus
+from shared.models import GameEndReason, GamePhase, PlayerStatus
 
 
 def make_service() -> GameService:
@@ -155,7 +155,7 @@ def test_leave_game_moves_active_game_to_postgame_when_everyone_has_left() -> No
     assert service.find_game(created.game.id) is not None
 
 
-def test_give_up_marks_player_forfeited_and_ends_active_game() -> None:
+def test_give_up_turns_player_into_observer_and_ends_two_player_game() -> None:
     service = make_service()
     created = service.create_lobby(7, "Ada", "conn_1")
     joined = service.join_game(created.game.code, "Bob", "conn_2")
@@ -166,8 +166,28 @@ def test_give_up_marks_player_forfeited_and_ends_active_game() -> None:
     state = service.give_up(joined.player.id)
 
     assert state is not None
-    forfeiting_player = next(player for player in state.players if player.id == joined.player.id)
-    assert forfeiting_player.result == PlayerResult.FORFEITED
-    assert forfeiting_player.status == PlayerStatus.DEPARTED
+    observer = next(player for player in state.players if player.id == joined.player.id)
+    assert observer.status == PlayerStatus.OBSERVER
+    assert observer.connection_id == joined.player.connection_id
     assert state.game.game_phase == GamePhase.POSTGAME
     assert state.game.end_reason == GameEndReason.PLAYERS_LEFT
+
+
+def test_give_up_turns_player_into_observer_and_passes_turn_when_other_players_remain() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    third = service.join_game(created.game.code, "Cara", "conn_3")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = joined.player.id
+    service.game_repo.update_game(created.game)
+
+    state = service.give_up(joined.player.id)
+
+    assert state is not None
+    observer = next(player for player in state.players if player.id == joined.player.id)
+    assert observer.status == PlayerStatus.OBSERVER
+    assert observer.connection_id == joined.player.connection_id
+    assert state.game.game_phase == GamePhase.GAME
+    assert state.game.end_reason is None
+    assert state.game.current_player_id == third.player.id

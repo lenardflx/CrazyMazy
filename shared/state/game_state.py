@@ -633,6 +633,7 @@ class SnapshotPlayerState:
     def is_inactive(self) -> bool:
         return self.is_departed or self.is_observer
 
+    # TODO: better layout, and this sucks :(
     def sidebar_status(self, *, post_game: bool = False) -> str | None:
         if self.is_departed:
             return "Left"
@@ -694,6 +695,10 @@ class SnapshotGameState:
         return "" if self.viewer is None else self.viewer.player_id
 
     @property
+    def viewer_player(self) -> SnapshotPlayerState | None:
+        return next((player for player in self.players if player.id == self.viewer_id), None)
+
+    @property
     def current_player_id(self) -> str:
         return "" if self.turn.current_player_id is None else self.turn.current_player_id
 
@@ -706,6 +711,11 @@ class SnapshotGameState:
         return self.viewer_id == self.current_player_id
 
     @property
+    def viewer_is_spectator(self) -> bool:
+        viewer = self.viewer_player
+        return viewer is not None and viewer.is_observer
+
+    @property
     def can_shift(self) -> bool:
         return self.viewer_turn and self.turn.phase == TurnPhase.SHIFT
 
@@ -715,6 +725,8 @@ class SnapshotGameState:
 
     @property
     def turn_prompt(self) -> str:
+        if self.viewer_is_spectator:
+            return "Spectating"
         if self.can_shift:
             return "Your turn: insert a tile"
         if self.can_move:

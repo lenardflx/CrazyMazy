@@ -88,7 +88,7 @@ def handle_end_turn(ctx: RequestContext, event: ClientGameEndTurnEvent) -> list[
 @dispatcher.handler(ClientGameGiveUpEvent)
 def handle_give_up(ctx: RequestContext, event: ClientGameGiveUpEvent) -> list[OutgoingMessage]:
     del event
-    return _handle_departure_game_update(ctx, lambda player_id: game_service.give_up(player_id), "GAVE_UP")
+    return _handle_optional_connection_game_update(ctx, lambda player_id: game_service.give_up(player_id))
 
 
 @dispatcher.handler(ClientGameLeaveEvent)
