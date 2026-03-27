@@ -1,13 +1,14 @@
 # Author: Lennart William Owen, Raphael Eiden, Sarah Trapp, Lenard Felix
- 
+
 from collections import deque
 from enum import Enum
-from shared.state.errors import BoardError
 from random import randint, shuffle
+from dataclasses import dataclass, field
 from typing import Tuple
-import pygame
-from shared.state.textures import TILE_IMAGES
-from shared.models import TileType, TreasureType, TileOrientation
+
+from shared.models import GamePhase, InsertionSide, PlayerColor, PlayerResult, PlayerStatus, TileOrientation, TileType, TreasureType, TurnPhase
+from shared.schema import GameSnapshotPayload, PublicPlayerPayload, TilePayload, ViewerPayload
+from shared.state.errors import BoardError
 
 # IMPORTANT: most of this should now be covered by models.py and the board lib. At least as a temporary solution that however works with the codebase
 
@@ -71,9 +72,6 @@ class Tile:
         self.orientation = orientation
         self.treasure = treasure
 
-        # Will hold the rotated pygame.Surface after load_texture()
-        self.texture = None
-
         # Path connectivity in order [N, E, S, W]
         # Example: [1,0,1,0] means open to North + South
         self.path = None
@@ -105,25 +103,6 @@ class Tile:
         # Convert deque → list for easier use elsewhere
         self.path = list(path)
 
-    def load_texture(self):
-        """
-        Loads the base texture for this tile type and rotates it to match orientation.
-
-        The TILE_IMAGES table stores unrotated (NORTH-facing) textures.
-        """
-
-        # Fetch base NORTH-facing texture
-        texture = TILE_IMAGES[TileType(self.type).name]
-        # get degree values for rotation of every orientation
-        parse_orientation = {TileOrientation.NORTH : 0,
-                          TileOrientation.EAST : 270,
-                          TileOrientation.SOUTH : 180,
-                          TileOrientation.WEST : 90}
-
-        # Rotate depending on orientation
-        # Note: pygame rotates counter-clockwise, so EAST = 270° etc.
-        self.texture = pygame.transform.rotate(texture, parse_orientation[self.orientation])
-
     def rotate_left(self):
         """
         Rotates the tile 90° counter-clockwise.
@@ -131,7 +110,6 @@ class Tile:
         Updates:
         - orientation
         - path connectivity
-        (Texture is NOT updated here; caller must call load_texture())
         """
 
         # Decrease orientation index modulo 4
@@ -140,6 +118,14 @@ class Tile:
         # Recompute connectivity
         self.set_paths()
 
+    @classmethod
+    def from_payload(cls, payload: TilePayload) -> "Tile":
+        return cls(
+            TileType(payload["tile_type"]),
+            TileOrientation(payload["rotation"]),
+            None if payload["treasure_type"] is None else TreasureType(payload["treasure_type"]),
+        )
+
     def rotate_right(self):
         """
         Rotates the tile 90° clockwise.
@@ -147,7 +133,6 @@ class Tile:
         Updates:
         - orientation
         - path connectivity
-        (Texture is NOT updated here; caller must call load_texture())
         """
 
         # Increase orientation index modulo 4
@@ -263,10 +248,12 @@ class Board:
         """Returns True if end_position is reachable from start_position."""
         return end_position in self.pathfind(start_position)
 
-    def pathfind(self, position: Tuple[int, int], visited : list[Tuple[int, int]] = []) -> list[Tuple[int, int]]:
+    def pathfind(self, position: Tuple[int, int], visited : list[Tuple[int, int]] | None = None) -> list[Tuple[int, int]]:
         """
         Depth‑first search to find all reachable tiles from a starting position.
         """
+        if visited is None:
+            visited = []
 
         visited.append(position)
 
@@ -294,7 +281,7 @@ class Board:
         """
 
         # fill stack with blanks to get a random distribution of treasure or no treasure over all fixed tiles
-        treasure_stack = [None for _ in range(((self.width // 2) + 1)**2 - 4)] # gaps² - 4 corners
+        treasure_stack: list[TreasureType | None] = [None for _ in range(((self.width // 2) + 1)**2 - 4)] # gaps² - 4 corners
         # add 12 treasure to the treasure stack
         treasure_stack[:12] = [TreasureType(self.treasure_list[i]) for i in range(12)]
         shuffle(treasure_stack)
@@ -415,3 +402,136 @@ class Board:
                 ram = self.tiles[(x, i)]
                 self.tiles[(x, i)] = self.spare
                 self.spare = ram
+
+    @classmethod
+    def from_payloads(cls, width: int, tiles: list[TilePayload]) -> "Board":
+        board = cls(width)
+        board.tiles = {}
+        board.stack = []
+        board.spare = None
+        for payload in tiles:
+            tile = Tile.from_payload(payload)
+            if payload["is_spare"]:
+                if board.spare is not None:
+                    raise ValueError("Board payload contains multiple spare tiles")
+                board.spare = tile
+                continue
+            if "column" not in payload or "row" not in payload:
+                raise ValueError("Board payload tile is missing row/column")
+            board.tiles[(payload["column"], payload["row"])] = tile
+        if board.spare is None:
+            raise ValueError("Board payload contains no spare tile")
+        return board
+
+
+@dataclass(slots=True)
+class PlayerState:
+    id: str
+    display_name: str
+    status: PlayerStatus
+    result: PlayerResult
+    placement: int | None
+    join_order: int
+    piece_color: PlayerColor
+    position: tuple[int, int] | None
+    collected_treasures: list[TreasureType] = field(default_factory=list)
+    remaining_treasure_count: int = 0
+
+    @classmethod
+    def from_payload(cls, payload: PublicPlayerPayload) -> "PlayerState":
+        position_payload = payload["position"]
+        position = None if position_payload is None else (position_payload["x"], position_payload["y"])
+        return cls(
+            id=payload["id"],
+            display_name=payload["display_name"],
+            status=PlayerStatus(payload["status"]),
+            result=PlayerResult(payload["result"]),
+            placement=payload["placement"],
+            join_order=payload["join_order"],
+            piece_color=PlayerColor(payload["piece_color"]),
+            position=position,
+            collected_treasures=[TreasureType(value) for value in payload["collected_treasures"]],
+            remaining_treasure_count=payload["remaining_treasure_count"],
+        )
+
+
+@dataclass(slots=True)
+class ViewerState:
+    player_id: str
+    is_leader: bool
+    is_current_player: bool
+    active_treasure_type: TreasureType | None
+    collected_treasures: list[TreasureType] = field(default_factory=list)
+    remaining_treasure_count: int = 0
+
+    @classmethod
+    def from_payload(cls, payload: ViewerPayload) -> "ViewerState":
+        return cls(
+            player_id=payload["player_id"],
+            is_leader=payload["is_leader"],
+            is_current_player=payload["is_current_player"],
+            active_treasure_type=None if payload["active_treasure_type"] is None else TreasureType(payload["active_treasure_type"]),
+            collected_treasures=[TreasureType(value) for value in payload["collected_treasures"]],
+            remaining_treasure_count=payload["remaining_treasure_count"],
+        )
+
+
+@dataclass(slots=True)
+class TurnState:
+    current_player_id: str | None
+    phase: TurnPhase | None
+    blocked_insertion_side: InsertionSide | None
+    blocked_insertion_index: int | None
+
+
+@dataclass(slots=True)
+class GameState:
+    game_id: str
+    code: str
+    phase: GamePhase
+    revision: int
+    board_size: int
+    leader_player_id: str | None
+    turn: TurnState
+    board: Board
+    players: list[PlayerState] = field(default_factory=list)
+    viewer: ViewerState | None = None
+
+    @property
+    def ordered_players(self) -> list[PlayerState]:
+        return sorted(self.players, key=lambda player: player.join_order)
+
+    def player_by_id(self, player_id: str | None) -> PlayerState | None:
+        if player_id is None:
+            return None
+        return next((player for player in self.players if player.id == player_id), None)
+
+    @property
+    def current_player(self) -> PlayerState | None:
+        return self.player_by_id(self.turn.current_player_id)
+
+    def reachable_for_player(self, player_id: str | None) -> set[tuple[int, int]]:
+        player = self.player_by_id(player_id)
+        if player is None or player.position is None:
+            return set()
+        return set(self.board.pathfind(player.position))
+
+    @classmethod
+    def from_snapshot(cls, snapshot: GameSnapshotPayload) -> "GameState":
+        return cls(
+            game_id=snapshot["game_id"],
+            code=snapshot["code"],
+            phase=GamePhase(snapshot["phase"]),
+            revision=snapshot["revision"],
+            board_size=snapshot["board_size"],
+            leader_player_id=snapshot["leader_player_id"],
+            turn=TurnState(
+                current_player_id=snapshot["turn"]["current_player_id"],
+                phase=None if snapshot["turn"]["turn_phase"] is None else TurnPhase(snapshot["turn"]["turn_phase"]),
+                blocked_insertion_side=None if snapshot["turn"]["blocked_insertion_side"] is None else InsertionSide(snapshot["turn"]["blocked_insertion_side"]),
+                blocked_insertion_index=snapshot["turn"]["blocked_insertion_index"],
+            ),
+            board=Board.from_payloads(snapshot["board_size"], snapshot["tiles"]),
+            players=[PlayerState.from_payload(player) for player in snapshot["players"]],
+            viewer=None if snapshot["viewer"] is None else ViewerState.from_payload(snapshot["viewer"]),
+        )
