@@ -9,7 +9,7 @@ from server.db.memory_repo import (
     TreasureRepositoryInMemory,
 )
 from server.service import GameService
-from shared.models import GameEndReason, GamePhase, PlayerStatus
+from shared.models import GameEndReason, GamePhase, PlayerStatus, TurnPhase
 
 
 def make_service() -> GameService:
@@ -191,3 +191,33 @@ def test_give_up_turns_player_into_observer_and_passes_turn_when_other_players_r
     assert state.game.game_phase == GamePhase.GAME
     assert state.game.end_reason is None
     assert state.game.current_player_id == third.player.id
+
+
+def test_move_player_stores_last_move_path_and_collected_treasure() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    service.join_game(created.game.code, "Bob", "conn_2")
+    started = service.start_game(created.player.id)
+    current_player = next(player for player in started.players if player.id == started.game.current_player_id)
+    assert current_player.position_x is not None
+    assert current_player.position_y is not None
+
+    game = service.find_game(started.game.id)
+    assert game is not None
+    game.turn_phase = TurnPhase.MOVE
+    service.game_repo.update_game(game)
+
+    active_treasure = service.treasure_repo.list_by_player_id(current_player.id)[0]
+    tile = next(
+        tile
+        for tile in service.tile_repo.list_by_game_id(started.game.id)
+        if tile.column == current_player.position_x and tile.row == current_player.position_y
+    )
+    tile.treasure_type = active_treasure.treasure_type
+    service.tile_repo.update_tile(tile)
+
+    state = service.move_player(current_player.id, current_player.position_x, current_player.position_y)
+
+    assert state.game.last_move_player_id == current_player.id
+    assert state.game.last_move_path == f"{current_player.position_x},{current_player.position_y}"
+    assert state.game.last_move_collected_treasure_type == active_treasure.treasure_type

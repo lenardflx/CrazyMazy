@@ -1,4 +1,4 @@
-from shared.models import TileOrientation, TileType
+from shared.models import InsertionSide, TileOrientation, TileType
 from shared.state.game_state import Board, Tile
 
 
@@ -68,3 +68,15 @@ def test_board_from_payloads_rejects_multiple_spare_tiles() -> None:
         assert str(exc) == "Board payload contains multiple spare tiles"
     else:
         raise AssertionError("Expected Board.from_payloads to reject payloads with multiple spare tiles")
+
+
+def test_board_shift_tile_applies_rotation_relative_to_current_spare_orientation() -> None:
+    board = Board(7)
+    board.create_blocked_board()
+    board.spare = Tile(TileType.CORNER, TileOrientation.SOUTH)
+
+    board.shift_tile(InsertionSide.LEFT, 1, 1)
+
+    inserted_tile = board.tiles[(0, 1)]
+    assert inserted_tile is not None
+    assert inserted_tile.orientation == TileOrientation.WEST

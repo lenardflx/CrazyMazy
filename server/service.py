@@ -32,7 +32,14 @@ from shared.models import (
     TurnPhase,
     utcnow,
 )
-from shared.state.game_state import GameState, Board, assign_treasures, is_valid_insertion_index, opposite_side, start_position_for_color
+from shared.state.game_state import (
+    GameState,
+    Board,
+    assign_treasures,
+    is_valid_insertion_index,
+    opposite_side,
+    start_position_for_color,
+)
 
 
 @dataclass(slots=True)
@@ -74,7 +81,7 @@ class GameService:
         game = self.game_repo.create_game(board_size)
         leader = self._create_player_for_game(
             game=game,
-            display_name=leader_display_name,
+            display_name=leader_display_name, # TODO: add constraints to display names (no symbols, length limit, etc.)
             connection_id=connection_id,
         )
 
@@ -252,6 +259,12 @@ class GameService:
         game.current_player_id = active[0].id
         game.blocked_insertion_side = None
         game.blocked_insertion_index = None
+        game.last_shift_side = None
+        game.last_shift_index = None
+        game.last_shift_rotation = None
+        game.last_move_player_id = None
+        game.last_move_path = None
+        game.last_move_collected_treasure_type = None
         game.started_at = utcnow()
         game.ended_at = None
         game.revision += 1
@@ -305,6 +318,12 @@ class GameService:
         game.turn_phase = TurnPhase.MOVE
         game.blocked_insertion_side = opposite_side(side)
         game.blocked_insertion_index = index
+        game.last_shift_side = side
+        game.last_shift_index = index
+        game.last_shift_rotation = rotation
+        game.last_move_player_id = None
+        game.last_move_path = None
+        game.last_move_collected_treasure_type = None
         game.revision += 1
         game = self.game_repo.update_game(game)
         updated = self.get_game_state(game.id)
@@ -333,13 +352,20 @@ class GameService:
         if start is None:
             raise ValueError("Player has no position")
         destination = (x, y)
-        if not state.board.can_reach(start, destination):
+        path = state.board.path_to(start, destination)
+        if path is None:
             raise ValueError("Target position is not reachable")
 
         player.position_x = x
         player.position_y = y
         self.player_repo.update_player(player)
-        self._collect_treasure_if_present(player, state.board.tile_treasure_at(destination))
+        collected_treasure_type = self._collect_treasure_if_present(player, state.board.tile_treasure_at(destination))
+        game.last_shift_side = None
+        game.last_shift_index = None
+        game.last_shift_rotation = None
+        game.last_move_player_id = player.id
+        game.last_move_path = _serialize_position_path(path)
+        game.last_move_collected_treasure_type = collected_treasure_type
 
         # Check win condition: all treasures collected and back at the home corner.
         if self._player_has_won(game, player):
@@ -415,6 +441,12 @@ class GameService:
             game.turn_phase = TurnPhase.SHIFT
             game.blocked_insertion_side = None
             game.blocked_insertion_index = None
+            game.last_shift_side = None
+            game.last_shift_index = None
+            game.last_shift_rotation = None
+            game.last_move_player_id = None
+            game.last_move_path = None
+            game.last_move_collected_treasure_type = None
 
         # Hand the leader role to an active player when possible, otherwise the earliest remaining session player.
         if game.leader_player_id == player.id:
@@ -479,6 +511,9 @@ class GameService:
         game.turn_phase = TurnPhase.SHIFT
         game.blocked_insertion_side = None
         game.blocked_insertion_index = None
+        game.last_shift_side = None
+        game.last_shift_index = None
+        game.last_shift_rotation = None
         game.revision += 1
         game = self.game_repo.update_game(game)
         state = self.get_game_state(game.id)
@@ -529,16 +564,17 @@ class GameService:
                     )
                 )
 
-    def _collect_treasure_if_present(self, player: PlayerData, treasure_type: TreasureType | None) -> None:
+    def _collect_treasure_if_present(self, player: PlayerData, treasure_type: TreasureType | None) -> TreasureType | None:
         """Mark the player's active treasure as collected if it matches the tile's treasure."""
         if treasure_type is None:
-            return
+            return None
         target = self._active_treasure(player.id)
         if target is None or target.treasure_type != treasure_type:
-            return
+            return None
         target.collected = True
         target.collected_at = utcnow()
         self.treasure_repo.update_treasure(target)
+        return treasure_type
 
     def _player_has_won(self, game: GameData, player: PlayerData) -> bool:
         """Return ``True`` if the player has collected all treasures and returned home."""
@@ -546,6 +582,10 @@ class GameService:
             return False
         home_x, home_y = start_position_for_color(game.board_size, player.piece_color)
         return player.position_x == home_x and player.position_y == home_y
+
+
+def _serialize_position_path(path: list[tuple[int, int]]) -> str:
+    return ";".join(f"{x},{y}" for x, y in path)
 
     def _active_treasure(self, player_id: UUID) -> TreasureData | None:
         """Return the player's next uncollected treasure, or ``None`` if all are collected."""

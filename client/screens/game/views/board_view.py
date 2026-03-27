@@ -5,6 +5,7 @@ from typing import Literal, cast
 
 import pygame as pg
 
+from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation
 from client.textures import TILE_IMAGES, TREASURE_IMAGES
 from client.ui.theme import DISABLED, MOVE_HIGHLIGHT, PANEL, PANEL_ALT, TEXT_PRIMARY, blend_color, font
 from shared.models import InsertionSide, PlayerColor, TreasureType
@@ -86,8 +87,16 @@ class BoardView:
             players_panel=players_panel,
         )
 
-    def draw(self, surface: pg.Surface, layout: GameBoardLayout, game_state: SnapshotGameState, spare_tile: Tile) -> None:
-        self._draw_board(surface, layout, game_state)
+    def draw(
+        self,
+        surface: pg.Surface,
+        layout: GameBoardLayout,
+        game_state: SnapshotGameState,
+        spare_tile: Tile,
+        shift_animation: BoardShiftAnimation | None,
+        move_animation: PlayerMoveAnimation | None,
+    ) -> None:
+        self._draw_board(surface, layout, game_state, shift_animation, move_animation)
         self._draw_spare_panel(surface, layout, spare_tile, game_state)
 
     def resolve_click(self, pos: tuple[int, int], layout: GameBoardLayout, game_state: SnapshotGameState) -> BoardClick:
@@ -121,7 +130,14 @@ class BoardView:
             )
         return arrows
 
-    def _draw_board(self, surface: pg.Surface, layout: GameBoardLayout, game_state: SnapshotGameState) -> None:
+    def _draw_board(
+        self,
+        surface: pg.Surface,
+        layout: GameBoardLayout,
+        game_state: SnapshotGameState,
+        shift_animation: BoardShiftAnimation | None,
+        move_animation: PlayerMoveAnimation | None,
+    ) -> None:
         pg.draw.rect(surface, PANEL_ALT, layout.board_rect.inflate(20, 20), border_radius=20)
         pg.draw.rect(surface, PANEL, layout.board_rect, border_radius=16)
 
@@ -131,19 +147,30 @@ class BoardView:
                 continue
             self._draw_tile(
                 surface,
-                rect,
+                self._animated_rect(rect, position, layout.cell_size, shift_animation),
                 tile,
                 home_color=game_state.home_color_at(position),
                 highlight=game_state.is_position_reachable(position),
             )
 
+        if shift_animation is not None:
+            self._draw_outgoing_tile(surface, layout, game_state, shift_animation)
+
         for player in game_state.ordered_players:
             if player.position is None:
                 continue
-            pg.draw.circle(surface, player_color(player), layout.cells[player.position].center, max(8, layout.cell_size // 7))
+            if move_animation is not None and player.id == move_animation.player_id:
+                animated_center = self._moving_player_center(layout, move_animation)
+                pg.draw.circle(surface, player_color(player), animated_center, max(8, layout.cell_size // 7))
+                # TODO: When the walking animation reaches the destination and
+                # `move_animation.collected_treasure_type` is set, trigger the client-side
+                # treasure pickup effect from here so token movement and treasure feedback stay synced.
+                continue
+            player_rect = self._animated_rect(layout.cells[player.position], player.position, layout.cell_size, shift_animation)
+            pg.draw.circle(surface, player_color(player), player_rect.center, max(8, layout.cell_size // 7))
 
         for arrow in layout.arrows:
-            self._draw_arrow(surface, arrow, enabled=game_state.can_shift)
+            self._draw_arrow(surface, arrow, enabled=game_state.can_shift and shift_animation is None and move_animation is None)
 
     def _draw_spare_panel(
         self,
@@ -217,6 +244,72 @@ class BoardView:
             InsertionSide.RIGHT: [(cx - 7, cy), (cx + 2, cy - 7), (cx + 2, cy + 7)],
         }
         pg.draw.polygon(surface, color, points[arrow.side])
+
+    def _animated_rect(
+        self,
+        rect: pg.Rect,
+        position: tuple[int, int],
+        cell_size: int,
+        animation: BoardShiftAnimation | None,
+    ) -> pg.Rect:
+        if animation is None or not self._matches_shift_line(position, animation):
+            return rect
+        offset = round(cell_size * (1.0 - animation.eased_progress))
+        dx, dy = self._travel_vector(animation.side)
+        return rect.move(-dx * offset, -dy * offset)
+
+    def _draw_outgoing_tile(
+        self,
+        surface: pg.Surface,
+        layout: GameBoardLayout,
+        game_state: SnapshotGameState,
+        animation: BoardShiftAnimation,
+    ) -> None:
+        if game_state.spare_tile is None:
+            return
+        outgoing_position = self._outgoing_position(game_state.board_size, animation)
+        outgoing_rect = layout.cells[outgoing_position].copy()
+        offset = round(layout.cell_size * animation.eased_progress)
+        dx, dy = self._travel_vector(animation.side)
+        self._draw_tile(surface, outgoing_rect.move(dx * offset, dy * offset), game_state.spare_tile)
+
+    def _matches_shift_line(self, position: tuple[int, int], animation: BoardShiftAnimation) -> bool:
+        x, y = position
+        if animation.side in (InsertionSide.LEFT, InsertionSide.RIGHT):
+            return y == animation.index
+        return x == animation.index
+
+    def _outgoing_position(self, board_size: int, animation: BoardShiftAnimation) -> tuple[int, int]:
+        if animation.side == InsertionSide.LEFT:
+            return board_size - 1, animation.index
+        if animation.side == InsertionSide.RIGHT:
+            return 0, animation.index
+        if animation.side == InsertionSide.TOP:
+            return animation.index, board_size - 1
+        return animation.index, 0
+
+    def _travel_vector(self, side: InsertionSide) -> tuple[int, int]:
+        return {
+            InsertionSide.LEFT: (1, 0),
+            InsertionSide.RIGHT: (-1, 0),
+            InsertionSide.TOP: (0, 1),
+            InsertionSide.BOTTOM: (0, -1),
+        }[side]
+
+    def _moving_player_center(self, layout: GameBoardLayout, animation: PlayerMoveAnimation) -> tuple[int, int]:
+        if len(animation.path) < 2:
+            return layout.cells[animation.path[-1]].center
+
+        total_segments = len(animation.path) - 1
+        scaled_progress = animation.eased_progress * total_segments
+        segment_index = min(total_segments - 1, int(scaled_progress))
+        segment_progress = scaled_progress - segment_index
+        start = layout.cells[animation.path[segment_index]].center
+        end = layout.cells[animation.path[segment_index + 1]].center
+        return (
+            round(start[0] + (end[0] - start[0]) * segment_progress),
+            round(start[1] + (end[1] - start[1]) * segment_progress),
+        )
 
 
 def player_color(player: SnapshotPlayerState) -> tuple[int, int, int]:

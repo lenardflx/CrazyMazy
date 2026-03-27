@@ -222,6 +222,16 @@ class GameData(SQLModel):
     blocked_insertion_side: Optional[InsertionSide] = Field(default=None)
     blocked_insertion_index: Optional[int] = Field(default=None)
 
+    # Last executed shift, used by clients for board-slide animation.
+    last_shift_side: Optional[InsertionSide] = Field(default=None)
+    last_shift_index: Optional[int] = Field(default=None)
+    last_shift_rotation: Optional[int] = Field(default=None)
+
+    # Last executed move, used by clients for walking and treasure animations.
+    last_move_player_id: Optional[UUID] = Field(default=None, foreign_key="player.id", index=True)
+    last_move_path: Optional[str] = Field(default=None)
+    last_move_collected_treasure_type: Optional[TreasureType] = Field(default=None)
+
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
     started_at: Optional[datetime] = Field(default=None)

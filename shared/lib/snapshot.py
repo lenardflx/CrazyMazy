@@ -30,6 +30,8 @@ from shared.models import (
 )
 from shared.schema import (
     GameSnapshotPayload,
+    LastMovePayload,
+    LastShiftPayload,
     PositionPayload,
     PublicPlayerPayload,
     TilePayload,
@@ -198,6 +200,38 @@ def _parse_turn_payload(payload: Any) -> TurnPayload | None:
     }
 
 
+def _parse_last_shift_payload(payload: Any) -> LastShiftPayload | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    side = parse_enum(payload.get("side"), InsertionSide)
+    index = parse_int(payload.get("index"))
+    rotation = parse_int(payload.get("rotation"))
+    if side is None or index is None or rotation is None:
+        return None
+    return {"side": side, "index": index, "rotation": rotation}
+
+
+def _parse_last_move_payload(payload: Any) -> LastMovePayload | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    player_id = parse_str(payload.get("player_id"))
+    path = _parse_position_list(payload.get("path"))
+    collected_treasure_type = parse_optional_enum(payload.get("collected_treasure_type"), TreasureType)
+    if player_id is None or path is None:
+        return None
+    return {
+        "player_id": player_id,
+        "path": path,
+        "collected_treasure_type": collected_treasure_type,
+    }
+
+
 def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPayload | None:
     """Parse a full game snapshot payload, or ``None`` if any required field is missing or malformed."""
     game_id = parse_str(payload.get("game_id"))
@@ -211,6 +245,8 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
     reachable_positions_raw = payload.get("reachable_positions")
     players_raw = payload.get("players")
     viewer_raw = payload.get("viewer")
+    last_shift = _parse_last_shift_payload(payload.get("last_shift"))
+    last_move = _parse_last_move_payload(payload.get("last_move"))
 
     if game_id is None or code is None or phase is None or turn is None or revision is None or board_size is None:
         return None
@@ -241,7 +277,7 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
         if viewer is None:
             return None
 
-    return {
+    snapshot: GameSnapshotPayload = {
         "game_id": game_id,
         "code": code,
         "phase": phase,
@@ -254,6 +290,17 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
         "players": players,
         "viewer": viewer,
     }
+    if "last_shift" in payload:
+        if payload.get("last_shift") is not None and last_shift is None:
+            return None
+        if last_shift is not None:
+            snapshot["last_shift"] = last_shift
+    if "last_move" in payload:
+        if payload.get("last_move") is not None and last_move is None:
+            return None
+        if last_move is not None:
+            snapshot["last_move"] = last_move
+    return snapshot
 
 
 def make_game_snapshot_payload(
@@ -267,7 +314,7 @@ def make_game_snapshot_payload(
     """Build a full ``GameSnapshotPayload`` from the current server-side game state."""
     viewer_player = next((player for player in players if str(player.id) == viewer_player_id), None)
     reachable_positions = _reachable_positions_for_viewer(game, viewer_player, tiles)
-    return {
+    snapshot: GameSnapshotPayload = {
         "game_id": str(game.id),
         "code": game.code,
         "phase": game.game_phase,
@@ -285,6 +332,22 @@ def make_game_snapshot_payload(
         "players": [make_public_player_payload(player, treasures_by_player.get(player.id, [])) for player in players],
         "viewer": make_viewer_payload(game, viewer_player, treasures_by_player.get(viewer_player.id, []) if viewer_player is not None else []),
     }
+    if game.last_shift_side is not None and game.last_shift_index is not None and game.last_shift_rotation is not None:
+        snapshot["last_shift"] = {
+            "side": game.last_shift_side,
+            "index": game.last_shift_index,
+            "rotation": game.last_shift_rotation,
+        }
+    last_move_path = _parse_position_path(game.last_move_path)
+    if game.last_move_player_id is not None and last_move_path:
+        snapshot["last_move"] = {
+            "player_id": str(game.last_move_player_id),
+            "path": [{"x": x, "y": y} for x, y in last_move_path],
+            "collected_treasure_type": (
+                None if game.last_move_collected_treasure_type is None else game.last_move_collected_treasure_type
+            ),
+        }
+    return snapshot
 
 
 def _reachable_positions_for_viewer(
@@ -359,3 +422,21 @@ def make_tile_payload(tile: TileData) -> TilePayload:
     if tile.column is not None:
         payload["column"] = tile.column
     return payload
+
+
+def _parse_position_path(encoded: str | None) -> list[tuple[int, int]] | None:
+    if encoded is None:
+        return None
+    if encoded == "":
+        return []
+
+    path: list[tuple[int, int]] = []
+    for segment in encoded.split(";"):
+        x_raw, separator, y_raw = segment.partition(",")
+        if separator != ",":
+            return None
+        try:
+            path.append((int(x_raw), int(y_raw)))
+        except ValueError:
+            return None
+    return path

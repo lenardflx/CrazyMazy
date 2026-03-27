@@ -54,6 +54,18 @@ class TurnPayload(TypedDict):
     blocked_insertion_index: int | None
 
 
+class LastShiftPayload(TypedDict):
+    side: str
+    index: int
+    rotation: int
+
+
+class LastMovePayload(TypedDict):
+    player_id: str
+    path: list[PositionPayload]
+    collected_treasure_type: str | None
+
+
 class GameSnapshotPayload(TypedDict):
     game_id: str
     code: str
@@ -66,6 +78,8 @@ class GameSnapshotPayload(TypedDict):
     reachable_positions: list[PositionPayload]
     players: list[PublicPlayerPayload]
     viewer: ViewerPayload | None
+    last_shift: NotRequired[LastShiftPayload]
+    last_move: NotRequired[LastMovePayload]
 
 
 class ClientCreateLobbyPayload(TypedDict):

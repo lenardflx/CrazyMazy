@@ -21,7 +21,7 @@ from shared.models import (
     TreasureType,
     TurnPhase,
 )
-from shared.schema import GameSnapshotPayload, PublicPlayerPayload, TilePayload, ViewerPayload
+from shared.schema import GameSnapshotPayload, LastShiftPayload, PublicPlayerPayload, TilePayload, ViewerPayload
 from shared.state.errors import BoardError
 
 Position = tuple[int, int]
@@ -317,6 +317,12 @@ class Board:
     def can_reach(self, start: Position, destination: Position) -> bool:
         return destination in self.reachable_positions(start)
 
+    def path_to(self, start: Position, destination: Position) -> list[Position] | None:
+        if not self.can_reach(start, destination):
+            return None
+        # TODO: Replace this placeholder with the real path reconstruction algorithm.
+        return [destination]
+
     def pathfind(self, position: Position, visited: list[Position] | None = None) -> list[Position]:
         """
         Depth‑first search to find all reachable tiles from a starting position.
@@ -504,7 +510,7 @@ class Board:
             raise ValueError(f"Invalid insertion index: {index}")
         if self.spare is None:
             raise ValueError("Board has no spare tile")
-        self.spare.orientation = TileOrientation(rotation % 4)
+        self.spare.orientation = TileOrientation((self.spare.orientation.value + rotation) % 4)
         self.spare.set_paths()
         x, y = self._insertion_coordinates(side, index)
         self.insert_tile(x, y)
@@ -672,6 +678,28 @@ class SnapshotTurnState:
     phase: TurnPhase | None
 
 
+@dataclass(slots=True, frozen=True)
+class SnapshotLastShift:
+    side: InsertionSide
+    index: int
+    rotation: int
+
+    @classmethod
+    def from_payload(cls, payload: LastShiftPayload) -> "SnapshotLastShift":
+        return cls(
+            side=InsertionSide(payload["side"]),
+            index=payload["index"],
+            rotation=payload["rotation"],
+        )
+
+
+@dataclass(slots=True, frozen=True)
+class SnapshotLastMove:
+    player_id: str
+    path: list[Position]
+    collected_treasure_type: TreasureType | None
+
+
 @dataclass(slots=True)
 class SnapshotGameState:
     game_id: str
@@ -685,6 +713,8 @@ class SnapshotGameState:
     players: list[SnapshotPlayerState]
     reachable_positions: set[Position]
     viewer: SnapshotViewerState | None = None
+    last_shift: SnapshotLastShift | None = None
+    last_move: SnapshotLastMove | None = None
 
     @property
     def ordered_players(self) -> list[SnapshotPlayerState]:
@@ -775,6 +805,20 @@ class SnapshotGameState:
             players=[SnapshotPlayerState.from_payload(player) for player in snapshot["players"]],
             reachable_positions={(position["x"], position["y"]) for position in snapshot["reachable_positions"]},
             viewer=None if snapshot["viewer"] is None else SnapshotViewerState.from_payload(snapshot["viewer"]),
+            last_shift=None if "last_shift" not in snapshot else SnapshotLastShift.from_payload(snapshot["last_shift"]),
+            last_move=(
+                None
+                if "last_move" not in snapshot
+                else SnapshotLastMove(
+                    player_id=snapshot["last_move"]["player_id"],
+                    path=[(position["x"], position["y"]) for position in snapshot["last_move"]["path"]],
+                    collected_treasure_type=(
+                        None
+                        if snapshot["last_move"]["collected_treasure_type"] is None
+                        else TreasureType(snapshot["last_move"]["collected_treasure_type"])
+                    ),
+                )
+            ),
         )
 
 

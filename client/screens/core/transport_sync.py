@@ -5,7 +5,7 @@ from __future__ import annotations
 from client.network.errors import apply_server_error
 from client.network.state import ClientState
 from client.screens.core.scene_types import SceneTypes
-from client.state.runtime_state import RuntimeState
+from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation, RuntimeState
 from shared.models import GamePhase
 from shared.state.game_state import SnapshotGameState
 
@@ -44,12 +44,15 @@ class TransportSync:
             if snapshot is not None:
                 self._game_state = SnapshotGameState.from_snapshot(snapshot)
                 self._reset_runtime()
+                self._start_animations(self._game_state)
                 target_scene = self._scene_from_snapshot()
 
         if self._transport.game_left_version != self._seen_game_left_version:
             self._seen_game_left_version = self._transport.game_left_version
             self._game_state = None
             self._reset_runtime()
+            self._runtime.game.shift_animation = None
+            self._runtime.game.move_animation = None
             target_scene = SceneTypes.MAIN_MENU
 
         if self._transport.error_version != self._seen_error_version:
@@ -64,6 +67,27 @@ class TransportSync:
         self._runtime.game.spare_rotation = 0
         self._runtime.clear_pending()
         self._runtime.clear_errors()
+
+    def _start_animations(self, game_state: SnapshotGameState) -> None:
+        shift = game_state.last_shift
+        self._runtime.game.shift_animation = (
+            None
+            if shift is None
+            else BoardShiftAnimation(
+                side=shift.side,
+                index=shift.index,
+            )
+        )
+        move = game_state.last_move
+        self._runtime.game.move_animation = (
+            None
+            if move is None or len(move.path) < 2
+            else PlayerMoveAnimation(
+                player_id=move.player_id,
+                path=move.path,
+                collected_treasure_type=move.collected_treasure_type,
+            )
+        )
 
     def _scene_from_snapshot(self) -> SceneTypes:
         if self._game_state is None:

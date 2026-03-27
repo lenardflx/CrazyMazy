@@ -71,6 +71,10 @@ class GameScreen(BaseScreen):
         self.give_up_button.handle_event(event)
         self.menu_button.handle_event(event)
 
+        runtime_game = self.scene_manager.runtime_state.game
+        if runtime_game.shift_animation is not None or runtime_game.move_animation is not None:
+            return
+
         game_state = self.scene_manager.game_state
         layout = self._game_layout(game_state)
         if game_state is None or layout is None or event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
@@ -84,7 +88,18 @@ class GameScreen(BaseScreen):
         self._handle_board_click(click)
 
     def update(self, dt: float) -> None:
-        del dt
+        runtime_game = self.scene_manager.runtime_state.game
+        shift_animation = runtime_game.shift_animation
+        if shift_animation is not None:
+            shift_animation.advance(dt)
+            if shift_animation.is_finished:
+                runtime_game.shift_animation = None
+
+        move_animation = runtime_game.move_animation
+        if move_animation is not None:
+            move_animation.advance(dt)
+            if move_animation.is_finished:
+                runtime_game.move_animation = None
 
     def draw(self) -> None:
         self.surface.fill(BACKGROUND)
@@ -101,6 +116,8 @@ class GameScreen(BaseScreen):
             layout,
             game_state,
             spare_tile,
+            self.scene_manager.runtime_state.game.shift_animation,
+            self.scene_manager.runtime_state.game.move_animation,
         )
         self.player_panel_view.draw(
             self.surface,

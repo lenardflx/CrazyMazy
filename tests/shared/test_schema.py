@@ -163,3 +163,39 @@ def test_snapshot_game_state_uses_spectating_prompt_for_observer_viewer() -> Non
 
     assert game_state.viewer_is_spectator is True
     assert game_state.turn_prompt == "Spectating"
+
+
+def test_snapshot_game_state_parses_last_shift_metadata() -> None:
+    payload = make_snapshot_payload()
+    payload["last_shift"] = {
+        "side": "LEFT",
+        "index": 3,
+        "rotation": 2,
+    }
+
+    game_state = SnapshotGameState.from_snapshot(payload)
+
+    assert game_state.last_shift is not None
+    assert game_state.last_shift.side == "LEFT"
+    assert game_state.last_shift.index == 3
+    assert game_state.last_shift.rotation == 2
+
+
+def test_snapshot_game_state_parses_last_move_metadata() -> None:
+    payload = make_snapshot_payload()
+    payload["last_move"] = {
+        "player_id": "550e8400-e29b-41d4-a716-446655440001",
+        "path": [
+            {"x": 1, "y": 2},
+            {"x": 1, "y": 3},
+            {"x": 2, "y": 3},
+        ],
+        "collected_treasure_type": "BOOK",
+    }
+
+    game_state = SnapshotGameState.from_snapshot(payload)
+
+    assert game_state.last_move is not None
+    assert game_state.last_move.player_id == "550e8400-e29b-41d4-a716-446655440001"
+    assert game_state.last_move.path == [(1, 2), (1, 3), (2, 3)]
+    assert game_state.last_move.collected_treasure_type == "BOOK"
