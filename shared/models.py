@@ -33,6 +33,10 @@ class PlayerColor(StrEnum):
     YELLOW = "YELLOW"
 
 
+class PlayerSkin(StrEnum):
+    DEFAULT = "DEFAULT"
+
+
 class TileType(StrEnum):
     STRAIGHT = "STRAIGHT"
     CORNER = "CORNER"
@@ -114,6 +118,7 @@ class PlayerData(SQLModel):
 
     # Player figure identity
     piece_color: PlayerColor = Field(index=True)
+    skin: PlayerSkin = Field(default=PlayerSkin.DEFAULT)
 
     # Current game's position of the player
     position_x: Optional[int] = Field(default=None)
