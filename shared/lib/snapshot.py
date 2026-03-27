@@ -36,6 +36,7 @@ from shared.schema import (
     TurnPayload,
     ViewerPayload,
 )
+from shared.state.game_state import Board
 
 
 def _parse_position(payload: Any) -> PositionPayload | None:
@@ -65,6 +66,19 @@ def _parse_treasure_list(payload: Any) -> list[str] | None:
             return None
         treasures.append(treasure_type)
     return treasures
+
+
+def _parse_position_list(payload: Any) -> list[PositionPayload] | None:
+    if not isinstance(payload, list):
+        return None
+
+    positions: list[PositionPayload] = []
+    for item in payload:
+        position = _parse_position(item)
+        if position is None:
+            return None
+        positions.append(position)
+    return positions
 
 
 def _parse_tile_payload(payload: Any) -> TilePayload | None:
@@ -194,12 +208,16 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
     leader_player_id = parse_optional_str(payload.get("leader_player_id"))
     turn = _parse_turn_payload(payload.get("turn"))
     tiles_raw = payload.get("tiles")
+    reachable_positions_raw = payload.get("reachable_positions")
     players_raw = payload.get("players")
     viewer_raw = payload.get("viewer")
 
     if game_id is None or code is None or phase is None or turn is None or revision is None or board_size is None:
         return None
     if not isinstance(tiles_raw, list) or not isinstance(players_raw, list):
+        return None
+    reachable_positions = _parse_position_list(reachable_positions_raw)
+    if reachable_positions is None:
         return None
 
     tiles: list[TilePayload] = []
@@ -232,6 +250,7 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
         "leader_player_id": leader_player_id,
         "turn": turn,
         "tiles": tiles,
+        "reachable_positions": reachable_positions,
         "players": players,
         "viewer": viewer,
     }
@@ -247,6 +266,7 @@ def make_game_snapshot_payload(
 ) -> GameSnapshotPayload:
     """Build a full ``GameSnapshotPayload`` from the current server-side game state."""
     viewer_player = next((player for player in players if str(player.id) == viewer_player_id), None)
+    reachable_positions = _reachable_positions_for_viewer(game, viewer_player, tiles)
     return {
         "game_id": str(game.id),
         "code": game.code,
@@ -260,11 +280,27 @@ def make_game_snapshot_payload(
             "blocked_insertion_side": game.blocked_insertion_side,
             "blocked_insertion_index": game.blocked_insertion_index,
         },
-        # TODO: Extend the snapshot with reachable move targets for client-side move highlighting.
         "tiles": [make_tile_payload(tile) for tile in tiles],
+        "reachable_positions": [{"x": x, "y": y} for x, y in reachable_positions],
         "players": [make_public_player_payload(player, treasures_by_player.get(player.id, [])) for player in players],
         "viewer": make_viewer_payload(game, viewer_player, treasures_by_player.get(viewer_player.id, []) if viewer_player is not None else []),
     }
+
+
+def _reachable_positions_for_viewer(
+    game: GameData,
+    viewer_player: PlayerData | None,
+    tiles: list[TileData],
+) -> list[tuple[int, int]]:
+    if viewer_player is None or game.game_phase != GamePhase.GAME:
+        return []
+    if game.turn_phase != TurnPhase.MOVE or game.current_player_id != viewer_player.id:
+        return []
+    if viewer_player.position_x is None or viewer_player.position_y is None or not tiles:
+        return []
+
+    board = Board.from_tile_data(game, tiles)
+    return sorted(board.reachable_positions((viewer_player.position_x, viewer_player.position_y)))
 
 
 def make_public_player_payload(player: PlayerData, treasures: list[TreasureData]) -> PublicPlayerPayload:

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.network.actions import request_leave_game, request_start_game
+from shared.lib.lobby import MIN_STARTABLE_PLAYERS
+from shared.models import GamePhase
 from client.ui.controls import Button
 from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
@@ -32,33 +34,33 @@ class LobbyScreen(MenuScreen):
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         super().handle_content_event(event)
-        self.start_button.enabled = self.scene_manager.display_state.can_viewer_start_lobby()
+        self.start_button.enabled = self._can_start_lobby()
         self.start_button.handle_event(event)
         self.leave_button.handle_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
         super().draw_content(rect)
-        display = self.scene_manager.display_state
-        if not display.is_lobby:
+        game_state = self.scene_manager.game_state
+        if game_state is None or game_state.phase != GamePhase.PREGAME:
             return
-        can_start = display.can_viewer_start_lobby()
+        can_start = self._can_start_lobby()
         self.start_button.enabled = can_start
-        code = self.section_font.render(f"Code: {display.code}", True, TEXT_PRIMARY)
+        code = self.section_font.render(f"Code: {game_state.code}", True, TEXT_PRIMARY)
         self.surface.blit(code, (self.content_rect.x, self.content_rect.y + 62))
-        size = self.body_font.render(f"Board Size: {display.board_size}", True, TEXT_MUTED)
+        size = self.body_font.render(f"Board Size: {game_state.board_size}", True, TEXT_MUTED)
         self.surface.blit(size, (self.content_rect.x, self.content_rect.y + 98))
 
-        for index, player in enumerate(display.players):
+        for index, player in enumerate(game_state.ordered_players):
             row = pg.Rect(self.content_rect.x, self.content_rect.y + 146 + index * 58, self.content_rect.width, 46)
             fill = PANEL
             pg.draw.rect(self.surface, fill, row, border_radius=12)
             tags: list[str] = []
-            if player["id"] == display.viewer_id:
+            if player.id == game_state.viewer_id:
                 tags.append("You")
-            if player["id"] == display.leader_id:
+            if player.id == (game_state.leader_player_id or ""):
                 tags.append("Leader")
             marker = " • ".join(tags)
-            label = self.body_font.render(player["display_name"], True, TEXT_PRIMARY)
+            label = self.body_font.render(player.display_name, True, TEXT_PRIMARY)
             status = self.small_font.render(marker, True, TEXT_MUTED) if marker else None
             self.surface.blit(label, (row.x + 16, row.y + 12))
             if status is not None:
@@ -69,3 +71,12 @@ class LobbyScreen(MenuScreen):
         if self.scene_manager.runtime_state.global_error_message:
             error = self.small_font.render(self.scene_manager.runtime_state.global_error_message, True, (150, 58, 48))
             self.surface.blit(error, (self.content_rect.x, self.content_rect.bottom - 88))
+
+    def _can_start_lobby(self) -> bool:
+        game_state = self.scene_manager.game_state
+        return (
+            game_state is not None
+            and game_state.phase == GamePhase.PREGAME
+            and game_state.viewer_id == (game_state.leader_player_id or "")
+            and len(game_state.players) >= MIN_STARTABLE_PLAYERS
+        )

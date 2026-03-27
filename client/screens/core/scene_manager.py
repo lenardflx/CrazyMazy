@@ -13,9 +13,9 @@ from client.screens.core.base_screen import BaseScreen
 from client.screens.core.scene_types import SceneTypes
 from client.screens.core.screen_factory import create_screen
 from client.screens.core.transport_sync import TransportSync
-from client.state.display_state import ClientDisplayState
 from client.state.runtime_state import RuntimeState
 from client.state.settings import ClientSettings
+from shared.state.game_state import SnapshotGameState
 
 
 class SceneManager:
@@ -32,13 +32,12 @@ class SceneManager:
         self.surface = surface
         self.audio = audio
         self.client_settings = ClientSettings()
-        self.display_state = ClientDisplayState()
         self.runtime_state = RuntimeState()
 
         self.current_scene: SceneTypes | None = None
         self.current_screen: BaseScreen | None = None
 
-        self._transport_sync = TransportSync(transport_state, self.display_state, self.runtime_state)
+        self._transport_sync = TransportSync(transport_state, self.runtime_state)
 
         self.audio.apply_settings(
             self.client_settings.master_volume,
@@ -79,3 +78,7 @@ class SceneManager:
         target = self._transport_sync.sync()
         if target is not None:
             self.go_to(target)
+
+    @property
+    def game_state(self) -> SnapshotGameState | None:
+        return self._transport_sync.game_state

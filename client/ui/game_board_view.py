@@ -7,12 +7,17 @@ from typing import cast
 import pygame as pg
 
 from client.textures import TILE_IMAGES, TREASURE_IMAGES
-from client.state.display_state import PLAYER_COLOR_VALUES, TileView
 from client.ui.theme import DISABLED, PANEL, PANEL_ALT, TEXT_PRIMARY, blend_color, font
-from shared.models import InsertionSide, PlayerColor, TileType, TreasureType
-from shared.schema import PositionPayload, PublicPlayerPayload
+from shared.models import InsertionSide, PlayerColor, TreasureType
+from shared.state.game_state import SnapshotGameState, SnapshotPlayerState, Tile, home_color_for_position
 
 MOVE_HIGHLIGHT = (240, 207, 112)
+PLAYER_COLOR_VALUES = {
+    PlayerColor.RED: (210, 74, 74),
+    PlayerColor.BLUE: (63, 109, 215),
+    PlayerColor.GREEN: (80, 156, 93),
+    PlayerColor.YELLOW: (209, 173, 59),
+}
 
 
 @dataclass(slots=True, frozen=True)
@@ -72,8 +77,8 @@ def spare_tile_panel_layout(rect: pg.Rect) -> SpareTilePanelLayout:
 def draw_board(
     surface: pg.Surface,
     layout: BoardLayout,
-    board: Sequence[Sequence[TileView]],
-    players: Sequence[PublicPlayerPayload],
+    game_state: SnapshotGameState,
+    players: Sequence[SnapshotPlayerState],
     *,
     shift_enabled: bool,
 ) -> None:
@@ -81,14 +86,22 @@ def draw_board(
     pg.draw.rect(surface, PANEL, layout.board_rect, border_radius=16)
 
     for position, tile_rect in layout.cells.items():
-        tile = board[position[1]][position[0]]
-        draw_tile(surface, tile_rect, tile, highlight=False)
+        tile = game_state.tile_at(position)
+        if tile is None:
+            continue
+        draw_tile(
+            surface,
+            tile_rect,
+            tile,
+            home_color=home_color_for_position(game_state.board_size, position),
+            highlight=game_state.is_position_reachable(position),
+        )
 
     for player in players:
-        player_position: PositionPayload | None = player["position"]
+        player_position = player.position
         if player_position is None:
             continue
-        player_rect = layout.cells[(player_position["x"], player_position["y"])]
+        player_rect = layout.cells[player_position]
         pg.draw.circle(surface, player_color(player), player_rect.center, max(8, layout.cell_size // 7))
 
     for arrow in layout.arrows:
@@ -98,7 +111,7 @@ def draw_board(
 def draw_spare_tile_panel(
     surface: pg.Surface,
     rect: pg.Rect,
-    spare_tile: TileView,
+    tile: Tile,
     active_treasure_type: TreasureType | None,
     *,
     rotation_enabled: bool,
@@ -108,7 +121,7 @@ def draw_spare_tile_panel(
     surface.blit(title_font.render("Current Tile", True, TEXT_PRIMARY), (rect.x + 18, rect.y + 16))
 
     layout = spare_tile_panel_layout(rect)
-    draw_tile(surface, layout.tile_rect, spare_tile)
+    draw_tile(surface, layout.tile_rect, tile)
 
     button_fill = PANEL_ALT if rotation_enabled else blend_color(PANEL_ALT, DISABLED, 0.7)
     button_text = TEXT_PRIMARY if rotation_enabled else DISABLED
@@ -125,42 +138,51 @@ def draw_spare_tile_panel(
         surface.blit(treasure_surface, treasure_surface.get_rect(center=layout.stack_rect.center))
 
 
-def draw_tile(surface: pg.Surface, rect: pg.Rect, tile: TileView, *, highlight: bool = False) -> None:
+def draw_tile(
+    surface: pg.Surface,
+    rect: pg.Rect,
+    tile: Tile,
+    *,
+    home_color: PlayerColor | None = None,
+    highlight: bool = False,
+) -> None:
     radius = _tile_radius(rect.size)
     shadow = rect.move(0, 2)
     pg.draw.rect(surface, (77, 62, 48, 40), shadow, border_radius=radius)
     image = _rounded_tile_image(tile, rect.size, highlight=highlight)
     surface.blit(image, rect)
-    _draw_home_marker(surface, rect, tile)
-    treasure_surface = _treasure_surface(tile.treasure_type, (22, 22))
+    _draw_home_marker(surface, rect, home_color)
+    treasure_surface = _treasure_surface(tile.treasure, (22, 22))
     if treasure_surface is not None:
         badge_rect = treasure_surface.get_rect(topright=(rect.right - 6, rect.y + 6))
         surface.blit(treasure_surface, badge_rect)
 
 
-def player_color(player: PublicPlayerPayload) -> tuple[int, int, int]:
-    piece_color = cast(PlayerColor, player["piece_color"])
+def player_color(player: SnapshotPlayerState) -> tuple[int, int, int]:
+    piece_color = cast(PlayerColor, player.piece_color)
     return PLAYER_COLOR_VALUES[piece_color]
 
 
-def _tile_surface(tile_type: TileType, rotation: int) -> pg.Surface:
-    texture = TILE_IMAGES[tile_type.value]
+def _tile_surface(tile: Tile) -> pg.Surface:
+    texture = TILE_IMAGES[tile.type.value]
+    rotation = tile.orientation.value
     angle = (-90 * rotation) % 360
     return pg.transform.rotate(texture, angle)
 
 
-def _treasure_surface(treasure_type: TreasureType | None, size: tuple[int, int]) -> pg.Surface | None:
+def _treasure_surface(treasure_type: str | TreasureType | None, size: tuple[int, int]) -> pg.Surface | None:
     if treasure_type is None:
         return None
-    return pg.transform.scale(TREASURE_IMAGES[treasure_type.value], size)
+    key = treasure_type.value if isinstance(treasure_type, TreasureType) else treasure_type
+    return pg.transform.scale(TREASURE_IMAGES[key], size)
 
 
 def _tile_radius(size: tuple[int, int]) -> int:
     return max(6, min(14, min(size) // 7))
 
 
-def _rounded_tile_image(tile: TileView, size: tuple[int, int], *, highlight: bool) -> pg.Surface:
-    tile_image = pg.transform.scale(_tile_surface(tile.tile_type, tile.rotation), size)
+def _rounded_tile_image(tile: Tile, size: tuple[int, int], *, highlight: bool) -> pg.Surface:
+    tile_image = pg.transform.scale(_tile_surface(tile), size)
     clipped = pg.Surface(size, pg.SRCALPHA)
     clipped.blit(tile_image, (0, 0))
 
@@ -176,11 +198,11 @@ def _rounded_tile_image(tile: TileView, size: tuple[int, int], *, highlight: boo
     return clipped
 
 
-def _draw_home_marker(surface: pg.Surface, rect: pg.Rect, tile: TileView) -> None:
-    if tile.home_color is None:
+def _draw_home_marker(surface: pg.Surface, rect: pg.Rect, home_color: PlayerColor | None) -> None:
+    if home_color is None:
         return
     badge = pg.Rect(rect.x + 8, rect.bottom - 20, 12, 12)
-    pg.draw.circle(surface, PLAYER_COLOR_VALUES[tile.home_color], badge.center, 6)
+    pg.draw.circle(surface, PLAYER_COLOR_VALUES[home_color], badge.center, 6)
     pg.draw.circle(surface, (247, 239, 224), badge.center, 6, 2)
 
 

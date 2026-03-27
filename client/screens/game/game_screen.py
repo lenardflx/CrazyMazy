@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import TYPE_CHECKING
 
 import pygame as pg
@@ -15,10 +14,10 @@ from client.ui.dialogs import ConfirmDialog
 from client.ui.game_board_view import draw_board, draw_spare_tile_panel
 from client.ui.player_rows_view import draw_player_rows
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, font
-from shared.models import TurnPhase
+from shared.models import GamePhase, TurnPhase
+from shared.state.game_state import SnapshotGameState, Tile
 
 if TYPE_CHECKING:
-    from client.state.display_state import ClientDisplayState, TileView
     from client.screens.core.scene_manager import SceneManager
 
 
@@ -58,12 +57,12 @@ class GameScreen(BaseScreen):
         self.give_up_button.handle_event(event)
         self.menu_button.handle_event(event)
 
-        display = self.scene_manager.display_state
-        layout = self._game_layout(display)
-        if layout is None or event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
+        game_state = self.scene_manager.game_state
+        layout = self._game_layout(game_state)
+        if game_state is None or layout is None or event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
             return
 
-        if self._can_shift(display):
+        if self._can_shift(game_state):
             if layout.rotate_left_button.collidepoint(event.pos):
                 self._rotate_spare(-1)
                 return
@@ -83,10 +82,11 @@ class GameScreen(BaseScreen):
                     self.scene_manager.runtime_state.game.spare_rotation = 0
                 return
 
-        if self._can_move(display):
+        if self._can_move(game_state):
             for position, cell in layout.board.cells.items():
                 if cell.collidepoint(event.pos):
-                    request_move_player(self.scene_manager.connection, self.scene_manager.runtime_state, position[0], position[1])
+                    if game_state.is_position_reachable(position):
+                        request_move_player(self.scene_manager.connection, self.scene_manager.runtime_state, position[0], position[1])
                     return
 
     def update(self, dt: float) -> None:
@@ -94,24 +94,28 @@ class GameScreen(BaseScreen):
 
     def draw(self) -> None:
         self.surface.fill(BACKGROUND)
-        display = self.scene_manager.display_state
-        layout = self._game_layout(display)
-        if layout is None:
+        game_state = self.scene_manager.game_state
+        layout = self._game_layout(game_state)
+        if game_state is None or layout is None:
             return
 
-        viewer_turn = self._viewer_turn(display)
-        shift_enabled = self._can_shift(display)
-        draw_board(self.surface, layout.board, display.board, display.players, shift_enabled=shift_enabled)
+        viewer_turn = self._viewer_turn(game_state)
+        shift_enabled = self._can_shift(game_state)
+        spare_tile = game_state.spare_tile
+        if spare_tile is None:
+            return
+        rotated_spare_tile = self._display_spare_tile(spare_tile)
+        draw_board(self.surface, layout.board, game_state, game_state.ordered_players, shift_enabled=shift_enabled)
         draw_spare_tile_panel(
             self.surface,
             layout.spare_panel,
-            self._display_spare_tile(display),
-            display.active_treasure_type,
+            rotated_spare_tile,
+            game_state.active_treasure_type,
             rotation_enabled=shift_enabled,
         )
-        draw_player_rows(self.surface, layout.players_panel, display.players, active_player_id=display.current_player_id)
+        draw_player_rows(self.surface, layout.players_panel, game_state.ordered_players, active_player_id=game_state.current_player_id)
 
-        status = self.title_font.render(self._turn_text(viewer_turn, display.turn_phase), True, TEXT_PRIMARY)
+        status = self.title_font.render(self._turn_text(viewer_turn, game_state.turn.phase), True, TEXT_PRIMARY)
         self.surface.blit(status, (24, 28))
         self.give_up_button.draw(self.surface, self.button_font)
         self.menu_button.draw(self.surface, self.button_font)
@@ -123,27 +127,27 @@ class GameScreen(BaseScreen):
         if self.dialog is not None:
             self.dialog.draw(self.surface)
 
-    def _game_layout(self, display: ClientDisplayState) -> GameScreenLayout | None:
-        if not display.is_game or display.board is None or display.spare_tile is None:
+    def _game_layout(self, game_state: SnapshotGameState | None) -> GameScreenLayout | None:
+        if game_state is None or game_state.phase != GamePhase.GAME or game_state.spare_tile is None:
             return None
-        return create_game_screen_layout(self.surface.get_rect(), display.board_size)
+        return create_game_screen_layout(self.surface.get_rect(), game_state.board_size)
 
-    def _viewer_turn(self, display: ClientDisplayState) -> bool:
-        return display.viewer_id == display.current_player_id
+    def _viewer_turn(self, game_state: SnapshotGameState) -> bool:
+        return game_state.viewer_id == game_state.current_player_id
 
-    def _can_shift(self, display: ClientDisplayState) -> bool:
-        return self._viewer_turn(display) and display.turn_phase == TurnPhase.SHIFT
+    def _can_shift(self, game_state: SnapshotGameState) -> bool:
+        return self._viewer_turn(game_state) and game_state.turn.phase == TurnPhase.SHIFT
 
-    def _can_move(self, display: ClientDisplayState) -> bool:
-        return self._viewer_turn(display) and display.turn_phase == TurnPhase.MOVE
+    def _can_move(self, game_state: SnapshotGameState) -> bool:
+        return self._viewer_turn(game_state) and game_state.turn.phase == TurnPhase.MOVE
 
     def _rotate_spare(self, direction: int) -> None:
         game_state = self.scene_manager.runtime_state.game
         game_state.spare_rotation = (game_state.spare_rotation + direction) % 4
 
-    def _display_spare_tile(self, display: ClientDisplayState) -> TileView:
+    def _display_spare_tile(self, tile: Tile) -> Tile:
         spare_rotation = self.scene_manager.runtime_state.game.spare_rotation
-        return replace(display.spare_tile, rotation=(display.spare_tile.rotation + spare_rotation) % 4)
+        return type(tile)(tile.type, (tile.orientation.value + spare_rotation) % 4, tile.treasure)
 
     # TODO: we probably also want to display a color or smth to make it easier to identify whose turn it is, or even a dialog/popup when the player's turn starts
     def _turn_text(self, viewer_turn: bool, turn_phase: TurnPhase) -> str:

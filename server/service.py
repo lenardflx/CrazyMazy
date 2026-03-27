@@ -7,17 +7,6 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from shared.lib.board import (
-    assign_treasures,
-    create_board_tiles,
-    is_valid_insertion_index,
-    opposite_side,
-    reachable_positions,
-    shift_player_position,
-    shift_tiles,
-    split_board_tiles,
-    start_position_for_color,
-)
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
 from server.lib.game import can_join_game, is_valid_board_size, normalize_join_code
 from server.lib.player import (
@@ -42,14 +31,7 @@ from shared.models import (
     TurnPhase,
     utcnow,
 )
-
-
-@dataclass(slots=True)
-class GameState:
-    game: GameData
-    players: list[PlayerData]
-    tiles: list[TileData]
-    treasures_by_player: dict[UUID, list[TreasureData]]
+from shared.state.game_state import GameState, Board, assign_treasures, is_valid_insertion_index, opposite_side, start_position_for_color
 
 
 @dataclass(slots=True)
@@ -161,7 +143,7 @@ class GameService:
         players = self.player_repo.list_by_game_id(game.id)
         tiles = self.tile_repo.list_by_game_id(game.id)
         treasures_by_player = {player.id: self.treasure_repo.list_by_player_id(player.id) for player in players}
-        return GameState(game=game, players=players, tiles=tiles, treasures_by_player=treasures_by_player)
+        return GameState.from_models(game, players, tiles, treasures_by_player)
 
     def get_connection_state(self, connection_id: str) -> ConnectionState | None:
         """Resolve an active WebSocket connection to its game and player.
@@ -307,24 +289,14 @@ class GameService:
         state = self.get_game_state(game.id)
         if state is None:
             raise ValueError("Game not found")
-        tiles = state.tiles
-
-        # Mutate tile positions and orientations in-place, then persist all updated tiles.
-        shift_tiles(
-            tiles,
-            board_size=game.board_size,
-            side=side,
-            index=index,
-            rotation=rotation,
-        )
-        for tile in tiles:
+        state.board.shift_tile(side, index, rotation)
+        for tile in state.tiles:
             self.tile_repo.update_tile(tile)
 
         # Carry any players that were sitting on the shifted row/column to their new position.
         for current in state.players:
-            shifted = shift_player_position(
+            shifted = state.board.shift_player_position(
                 self._player_position(current),
-                board_size=game.board_size,
                 side=side,
                 index=index,
             )
@@ -361,19 +333,17 @@ class GameService:
         if state is None:
             raise ValueError("Game not found")
 
-        # Split tiles into the positioned board dict and the spare tile for reachability checks.
-        board, _ = split_board_tiles(state.tiles)
         start = self._player_position(player)
         if start is None:
             raise ValueError("Player has no position")
         destination = (x, y)
-        if destination not in reachable_positions(board, start):
+        if not state.board.can_reach(start, destination):
             raise ValueError("Target position is not reachable")
 
         player.position_x = x
         player.position_y = y
         self.player_repo.update_player(player)
-        self._collect_treasure_if_present(player, board[destination].treasure_type)
+        self._collect_treasure_if_present(player, state.board.tile_treasure_at(destination))
 
         # Check win condition: all treasures collected and back at the home corner.
         if self._player_has_won(game, player):
@@ -416,6 +386,9 @@ class GameService:
 
         # End the game if fewer than 2 players remain during an active game.
         if game.game_phase == GamePhase.GAME and len(remaining_players) < 2:
+            if game.leader_player_id == player.id and remaining_players:
+                next_leader = min(remaining_players, key=lambda current: current.join_order)
+                game.leader_player_id = next_leader.id
             game.game_phase = GamePhase.POSTGAME
             game.end_reason = GameEndReason.PLAYERS_LEFT
             game.current_player_id = None
@@ -531,8 +504,8 @@ class GameService:
 
     def _create_runtime_board(self, game: GameData) -> None:
         """Generate and persist a fresh set of board tiles for the game."""
-        tiles = create_board_tiles(game.id, game.board_size)
-        for tile in tiles:
+        board = Board.create_runtime(game)
+        for tile in board.to_tile_data(game.id):
             self.tile_repo.create_tile(tile)
 
     def _assign_treasures(self, players: list[PlayerData]) -> None:

@@ -56,7 +56,7 @@ def test_join_game_assigns_next_slot_automatically() -> None:
     assert joined.game.id == created.game.id
     assert joined.player.display_name == "Bob"
     assert joined.player.join_order == 1
-    assert joined.player.piece_color.value == "BLUE"
+    assert joined.player.piece_color.value == "YELLOW"
 
 
 def test_join_game_rejects_taken_display_name() -> None:

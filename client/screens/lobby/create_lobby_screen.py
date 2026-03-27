@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.network.actions import request_create_lobby
+from shared.lib.lobby import VALID_BOARD_SIZES
 from client.ui.controls import Button, TextInput
 from client.ui.theme import TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
@@ -22,7 +23,7 @@ class CreateLobbyScreen(MenuScreen):
         form = self.scene_manager.runtime_state.create_lobby
         center_x = self.content_rect.centerx
         self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name, placeholder="Your name")
-        sizes = self.scene_manager.display_state.available_board_sizes
+        sizes = tuple(sorted(VALID_BOARD_SIZES))
         self.size_buttons = []
         for index, size in enumerate(sizes):
             button = Button(

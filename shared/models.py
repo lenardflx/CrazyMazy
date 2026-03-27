@@ -12,21 +12,32 @@ from sqlmodel import Field, SQLModel
 
 
 def utcnow() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
 
 class PlayerStatus(StrEnum):
+    """
+    Defines the participation status of a player in the current game lifecycle.
+    Players that WIN or GIVE UP are considered OBSERVERS, while those that leave the game are DEPARTED.
+    """
     ACTIVE = "ACTIVE"
     OBSERVER = "OBSERVER"
     DEPARTED = "DEPARTED"
 
 
 class PlayerResult(StrEnum):
+    """
+    Defines the final outcome of a player within the current game loop.
+    """
     NONE = "NONE"
     WON = "WON"
     FORFEITED = "FORFEITED"
 
 
 class PlayerColor(StrEnum):
+    """
+    Defines the identity of a player's figure on the board.
+    """
     RED = "RED"
     BLUE = "BLUE"
     GREEN = "GREEN"

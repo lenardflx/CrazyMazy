@@ -11,7 +11,7 @@ def test_tile_rotate_left_updates_orientation_and_paths() -> None:
     tile = Tile(TileType.T, TileOrientation.SOUTH)
     tile.rotate_left()
     assert tile.orientation == TileOrientation.EAST
-    assert tile.path == [1, 1, 0, 1]
+    assert tile.path == [1, 1, 1, 0]
 
 
 def test_tile_rotate_right_updates_orientation_and_paths() -> None:

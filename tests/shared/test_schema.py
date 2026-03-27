@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from shared.lib.snapshot import parse_game_snapshot_payload
+from shared.state.game_state import SnapshotGameState
 
 
 def make_snapshot_payload() -> dict[str, object]:
@@ -36,6 +37,10 @@ def make_snapshot_payload() -> dict[str, object]:
                 "is_spare": True,
                 "treasure_type": None,
             },
+        ],
+        "reachable_positions": [
+            {"x": 1, "y": 2},
+            {"x": 1, "y": 3},
         ],
         "players": [
             {
@@ -105,3 +110,37 @@ def test_parse_game_snapshot_payload_strips_hidden_player_fields() -> None:
 
     assert parsed is not None
     assert "active_treasure_type" not in parsed["players"][0]
+
+
+def test_parse_game_snapshot_payload_rejects_invalid_reachable_positions() -> None:
+    payload = make_snapshot_payload()
+    payload["reachable_positions"] = [{"x": 1}]
+
+    assert parse_game_snapshot_payload(payload) is None
+
+
+def test_snapshot_game_state_allows_pregame_without_board_tiles() -> None:
+    payload = make_snapshot_payload()
+    payload["phase"] = "PREGAME"
+    payload["tiles"] = []
+    payload["reachable_positions"] = []
+
+    game_state = SnapshotGameState.from_snapshot(payload)
+
+    assert game_state.phase == "PREGAME"
+    assert game_state.board is None
+    assert game_state.spare_tile is None
+
+
+def test_snapshot_game_state_rejects_active_game_without_board_tiles() -> None:
+    payload = make_snapshot_payload()
+    payload["phase"] = "GAME"
+    payload["tiles"] = []
+    payload["reachable_positions"] = []
+
+    try:
+        SnapshotGameState.from_snapshot(payload)
+    except ValueError as exc:
+        assert str(exc) == "Active game snapshot is missing board tiles"
+    else:
+        raise AssertionError("Expected active game snapshots without tiles to be rejected")

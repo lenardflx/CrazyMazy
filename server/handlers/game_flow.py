@@ -9,7 +9,7 @@ from server.db import game_service
 from server.handlers._responses import error_response, left_response, map_value_error_code, snapshot_response
 from server.network.dispatch import dispatcher
 from server.network.models import OutgoingMessage, RequestContext
-from server.service import GameState
+from shared.state.game_state import GameState
 from shared.events import (
     ClientCreateLobbyEvent,
     ClientGameEndTurnEvent,

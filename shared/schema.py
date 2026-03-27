@@ -63,6 +63,7 @@ class GameSnapshotPayload(TypedDict):
     leader_player_id: str | None
     turn: TurnPayload
     tiles: list[TilePayload]
+    reachable_positions: list[PositionPayload]
     players: list[PublicPlayerPayload]
     viewer: ViewerPayload | None
 

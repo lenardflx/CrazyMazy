@@ -11,6 +11,7 @@ from client.ui.controls import Button
 from client.ui.player_rows_view import draw_player_rows
 from client.ui.theme import TEXT_MUTED
 from client.screens.menu.menu_screen import MenuScreen
+from shared.models import GamePhase
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -39,12 +40,12 @@ class PostGameScreen(MenuScreen):
 
     def draw_content(self, rect: pg.Rect) -> None:
         super().draw_content(rect)
-        display = self.scene_manager.display_state
-        if not display.is_post_game:
+        game_state = self.scene_manager.game_state
+        if game_state is None or game_state.phase != GamePhase.POSTGAME:
             return
         subtitle = self.body_font.render("Placements", True, TEXT_MUTED)
         self.surface.blit(subtitle, (self.content_rect.x, self.content_rect.y + 54))
-        draw_player_rows(self.surface, pg.Rect(self.content_rect.x, self.content_rect.y + 92, self.content_rect.width, 360), display.players, active_player_id=None, post_game=True)
+        draw_player_rows(self.surface, pg.Rect(self.content_rect.x, self.content_rect.y + 92, self.content_rect.width, 360), game_state.ordered_players, active_player_id=None, post_game=True)
         self.menu_button.draw(self.surface, self.button_font)
         self.play_again_button.draw(self.surface, self.button_font)
         if self.scene_manager.runtime_state.global_error_message:
