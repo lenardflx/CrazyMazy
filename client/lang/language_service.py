@@ -24,7 +24,6 @@ class LanguageService:
         if isinstance(message, DisplayMessage):
             return self.general_messages.get(message, f"msg::{str(message)}")
         elif isinstance(message, ErrorCode):
-            print("rendering error")
             return self.error_messages.get(message, f"err::{str(message)}")
         else:
             return "Error loading message, unknown message type."

@@ -6,6 +6,7 @@ import pygame
 
 from sys import platform
 from client.config import WINDOW_WIDTH, WINDOW_HEIGHT
+from client.lang import language_service
 from client.sound.manager import AudioManager
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
@@ -72,6 +73,8 @@ class SceneManager:
             pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     def sync_transport(self) -> None:
-        target = self._transport_sync.sync()
+        target, error = self._transport_sync.sync()
+        if error is not None:
+            self.current_screen.error_message = language_service.get_message(error)
         if target is not None:
             self.go_to(target)

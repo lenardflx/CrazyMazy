@@ -7,6 +7,7 @@ from client.network.state import ClientState
 from client.screens.core.scene_types import SceneTypes
 from client.state.display_state import ClientDisplayState
 from client.state.runtime_state import RuntimeState
+from shared.protocol import ErrorCode
 
 
 class TransportSync:
@@ -30,9 +31,10 @@ class TransportSync:
         self._seen_error_version = 0
         self._seen_game_left_version = 0
 
-    def sync(self) -> SceneTypes | None:
+    def sync(self) -> tuple[SceneTypes | None, ErrorCode | None] | None:
         """Process pending transport events. Returns a scene to navigate to, or None."""
         target_scene: SceneTypes | None = None
+        error: ErrorCode | None = None
 
         if self._transport.snapshot_version != self._seen_snapshot_version:
             self._seen_snapshot_version = self._transport.snapshot_version
@@ -51,10 +53,8 @@ class TransportSync:
         if self._transport.error_version != self._seen_error_version:
             self._seen_error_version = self._transport.error_version
             error = self._transport.last_error
-            if error is not None:
-                apply_server_error(self._runtime, error)
 
-        return target_scene
+        return target_scene, error
 
     def _reset_runtime(self) -> None:
         self._runtime.game.spare_rotation = 0
