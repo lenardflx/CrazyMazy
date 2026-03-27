@@ -8,4 +8,4 @@ WINDOW_HEIGHT = 720
 FPS = 60
 
 SERVER_HOST: str = os.getenv("CLIENT_SERVER_HOST", "localhost")
-SERVER_PORT: int = int(os.getenv("CLIENT_SERVER_PORT", "5555"))
+SERVER_PORT: int = int(os.getenv("PORT", "5555"))

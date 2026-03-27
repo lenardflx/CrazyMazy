@@ -73,12 +73,20 @@ class TextInput:
         self.placeholder = placeholder
         self.max_length = max_length
         self.active = False
+        self._cursor_visible = True
+        self._cursor_timer = 0
+        self._cursor_interval = 530  # ms
 
     def handle_event(self, event: pg.event.Event) -> bool:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             self.active = self.rect.collidepoint(event.pos)
+            if self.active:
+                self._cursor_visible = True
+                self._cursor_timer = 0
             return self.active
         if event.type == pg.KEYDOWN and self.active:
+            self._cursor_visible = True
+            self._cursor_timer = 0
             if event.key == pg.K_BACKSPACE:
                 self.text = self.text[:-1]
                 return True
@@ -89,18 +97,44 @@ class TextInput:
                 return True
         return False
 
+    def update(self, dt: int) -> None:
+        """Call each frame with delta time in milliseconds to advance the cursor blink."""
+        if not self.active:
+            self._cursor_visible = False
+            self._cursor_timer = 0
+            return
+        self._cursor_timer += dt
+        if self._cursor_timer >= self._cursor_interval:
+            self._cursor_timer %= self._cursor_interval
+            self._cursor_visible = not self._cursor_visible
+
     def draw(self, surface: pg.Surface, label_font: pg.font.Font, value_font: pg.font.Font, label: str) -> None:
         caption = label_font.render(label, True, TEXT_PRIMARY)
         surface.blit(caption, (self.rect.x, self.rect.y - 28))
+
         fill = PANEL if self.active else blend_color(PANEL, PANEL_ALT, 0.2)
         border = ACCENT if self.active else blend_color(PANEL_ALT, ACCENT_DARK, 0.25)
         pg.draw.rect(surface, fill, self.rect, border_radius=14)
         pg.draw.rect(surface, border, self.rect, width=1, border_radius=14)
+
         content = self.text if self.text else self.placeholder
         color = TEXT_PRIMARY if self.text else TEXT_MUTED
-        text = value_font.render(content, True, color)
-        surface.blit(text, (self.rect.x + 14, self.rect.y + 10))
+        text_surf = value_font.render(content, True, color)
+        text_x = self.rect.x + 14
+        text_y = self.rect.y + 10
+        surface.blit(text_surf, (text_x, text_y))
 
+        if self.active and self._cursor_visible and self.text:
+            cursor_x = text_x + value_font.size(self.text)[0] + 2
+            cursor_top = text_y + 2
+            cursor_bottom = text_y + value_font.get_height() - 2
+            pg.draw.line(surface, TEXT_PRIMARY, (cursor_x, cursor_top), (cursor_x, cursor_bottom), 1)
+        elif self.active and self._cursor_visible and not self.text:
+            # Cursor at start position when field is empty (skip placeholder offset)
+            cursor_x = text_x + 1
+            cursor_top = text_y + 2
+            cursor_bottom = text_y + value_font.get_height() - 2
+            pg.draw.line(surface, TEXT_MUTED, (cursor_x, cursor_top), (cursor_x, cursor_bottom), 1)
 
 class Checkbox:
     def __init__(self, rect: pg.Rect, label: str, value: bool) -> None:
