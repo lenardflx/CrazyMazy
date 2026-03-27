@@ -10,83 +10,82 @@ RESIZABLE_FLAGS = HWSURFACE | DOUBLEBUF | RESIZABLE
 
 #FIXME: man kann die Attribute zu Klassenattributen machen, um die von außen zu ändern
 class ClientSettings:
-    def __init__(self):
-        self.master_volume: int = 100
-        self.music_volume: int = 100
-        self.effects_volume: int = 100
+    master_volume: int = 100
+    music_volume: int = 100
+    effects_volume: int = 100
 
-        self.fullscreen: bool = False
+    fullscreen: bool = False
 
         # initialize last known user's setting
-        self.read_JSON()
-
+        #read_JSON()
+        
     #fullscreen wird umgangen mittels pygame.display.get_desktop_sizes()[0] -> als neue WindowDimensionen
     #und die flags sind dann HWSURFACE | DOUBLEBUF | NOFRAME bzw 1073741857
-
-    def set_master_volume(self, val_volume:int)->None:
+    @classmethod
+    def set_master_volume(cls, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
-        self.master_volume = val_volume
+        cls.master_volume = val_volume
 
-
-    def set_music_volume(self, val_volume:int)->None:
+    @classmethod
+    def set_music_volume(cls, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
-        self.music_volume = val_volume
+        cls.music_volume = val_volume
 
-
-    def set_effects_volume(self, val_volume:int)->None:
+    @classmethod
+    def set_effects_volume(cls, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
-        self.effects_volume = val_volume
+        cls.effects_volume = val_volume
 
-
-    def toggle_fullscreen(self):
-        self.fullscreen = not self.fullscreen
+    @classmethod
+    def toggle_fullscreen(cls):
+        cls.fullscreen = not cls.fullscreen
     
-
-    def get_master_volume(self)->int:
-        return self.master_volume
+    @classmethod
+    def get_master_volume(cls)->int:
+        return cls.master_volume
     
+    @classmethod
+    def get_music_volume(cls)->int:
+        return cls.music_volume
 
-    def get_music_volume(self)->int:
-        return self.music_volume
+    @classmethod
+    def get_effects_volume(cls)->int:
+        return cls.effects_volume
 
-
-    def get_effects_volume(self)->int:
-        return self.effects_volume
-
-
-    def get_flags(self)->int:
-        if self.fullscreen:
+    @classmethod
+    def get_flags(cls)->int:
+        if cls.fullscreen:
             return 1073741857
         else:
             return 1073741841
   
-    
-    def write_JSON(self)->None:
+    @classmethod
+    def write_JSON(cls)->None:
         setting_values = {
-            "master_volume": self.get_master_volume(),
-            "music_volume": self.get_music_volume(),
-            "effects_volume": self.get_effects_volume(),
-            "flags": self.get_flags()
+            "master_volume": cls.get_master_volume(),
+            "music_volume": cls.get_music_volume(),
+            "effects_volume": cls.get_effects_volume(),
+            "flags": cls.get_flags()
         }
         with open(BASE_DIR / "client/state/settings_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
 
-
-    def read_JSON(self)->None:
+    @classmethod
+    def read_JSON(cls)->None:
         with open(BASE_DIR / "client/state/settings_data.json", mode="r", encoding="utf-8") as f:
             read_settings_data = json.load(f)
         for name, val in read_settings_data.items():
             match name:
                 case "master_volume":
-                    self.set_master_volume(val)
+                    cls.set_master_volume(val)
                 case "music_volume":
-                    self.set_music_volume(val)
+                    cls.set_music_volume(val)
                 case "effects_volume":
-                    self.set_effects_volume(val)
+                    cls.set_effects_volume(val)
                 case "fullscreen":
-                    self.toggle_fullscreen()
+                    cls.toggle_fullscreen()
                 case _:
                     raise NotImplementedError("attribute not implemented in json")
