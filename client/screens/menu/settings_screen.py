@@ -42,10 +42,14 @@ class SettingsScreen(MenuScreen):
 
     def _sync_settings(self) -> None:
         settings = self.scene_manager.client_settings
-        settings.master_volume = self.volume_sliders[0].value
-        settings.music_volume = self.volume_sliders[1].value
-        settings.effects_volume = self.volume_sliders[2].value
-        settings.fullscreen = self.fullscreen_checkbox.value
+        settings.set_master_volume(self.volume_sliders[0].value)
+        settings.set_music_volume(self.volume_sliders[1].value)
+        settings.set_effects_volume(self.volume_sliders[2].value)
+        settings.set_fullscreen(self.fullscreen_checkbox.value)
+        #settings.master_volume = self.volume_sliders[0].value
+        #settings.music_volume = self.volume_sliders[1].value
+        #settings.effects_volume = self.volume_sliders[2].value
+        #settings.fullscreen = self.fullscreen_checkbox.value
 
     def _apply_layout(self) -> None:
         left = self.content_area.x

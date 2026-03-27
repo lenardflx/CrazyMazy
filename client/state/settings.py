@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pygame.locals import HWSURFACE, DOUBLEBUF, NOFRAME, RESIZABLE
 import json
 from shared.state.textures import BASE_DIR
+import pygame
+from client.config import WINDOW_HEIGHT, WINDOW_WIDTH
 
 FULLSCREEN_FLAGS = HWSURFACE | DOUBLEBUF | NOFRAME
 RESIZABLE_FLAGS = HWSURFACE | DOUBLEBUF | RESIZABLE
@@ -26,29 +28,33 @@ class ClientSettings:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.master_volume = val_volume
+        self.write_JSON()
 
 
     def set_music_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.music_volume = val_volume
+        self.write_JSON()
 
 
     def set_effects_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.effects_volume = val_volume
+        self.write_JSON()
     
+    def set_fullscreen(self, val_fullscreen:bool)->None:
+        self.fullscreen = val_fullscreen
+        if val_fullscreen:
+            pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        else:
+            pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.write_JSON()
 
-    def set_flags(self, val_flag:int)->None:
-        possible_flags = [1073741841, 1073741857]
-        if val_flag not in possible_flags:
-            raise ValueError("not a valid flag")
-        self.flags = val_flag
 
-
-    def toggle_fullscreen(self):
-        self.fullscreen = not self.fullscreen
+#    def toggle_fullscreen(self):
+#        self.fullscreen = not self.fullscreen
     
 
     def get_master_volume(self)->int:
@@ -63,11 +69,11 @@ class ClientSettings:
         return self.effects_volume
 
 
-    def get_flags(self)->int:
+    def get_fullscreen(self)->bool:
         if self.fullscreen:
-            return 1073741857
+            return True
         else:
-            return 1073741841
+            return False
   
     
     def write_JSON(self)->None:
@@ -75,7 +81,7 @@ class ClientSettings:
             "master_volume": self.get_master_volume(),
             "music_volume": self.get_music_volume(),
             "effects_volume": self.get_effects_volume(),
-            "flags": self.get_flags()
+            "fullscreen": self.get_fullscreen()
         }
         with open(BASE_DIR / "client/state/settings_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
@@ -93,6 +99,6 @@ class ClientSettings:
                 case "effects_volume":
                     self.set_effects_volume(val)
                 case "fullscreen":
-                    self.toggle_fullscreen()
+                    self.set_fullscreen(val)
                 case _:
                     raise NotImplementedError("attribute not implemented in json")
