@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_create_lobby
 from shared.lib.lobby import VALID_BOARD_SIZES
 from client.ui.controls import Button, TextInput
 from client.ui.theme import TEXT_PRIMARY
@@ -52,9 +51,7 @@ class CreateLobbyScreen(MenuScreen):
         return handle_click
 
     def _create_lobby(self) -> None:
-        request_create_lobby(
-            self.scene_manager.connection,
-            self.scene_manager.runtime_state,
+        self.scene_manager.lobby_service.create_lobby(
             self.name_input.text,
             self.scene_manager.runtime_state.create_lobby.board_size,
         )

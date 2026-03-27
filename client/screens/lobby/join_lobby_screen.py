@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_join_lobby
 from client.ui.controls import Button, TextInput
 from client.screens.menu.menu_screen import MenuScreen
 
@@ -29,9 +28,7 @@ class JoinLobbyScreen(MenuScreen):
         )
 
     def _join_lobby(self) -> None:
-        request_join_lobby(
-            self.scene_manager.connection,
-            self.scene_manager.runtime_state,
+        self.scene_manager.lobby_service.join_lobby(
             self.name_input.text,
             self.code_input.text,
         )

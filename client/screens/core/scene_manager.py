@@ -8,6 +8,8 @@ from sys import platform
 from client.config import WINDOW_WIDTH, WINDOW_HEIGHT
 from client.sound.manager import AudioManager
 from client.network.client_connection import ClientConnection
+from client.network.services.game_service import GameService
+from client.network.services.lobby_service import LobbyService
 from client.network.state import ClientState
 from client.screens.core.base_screen import BaseScreen
 from client.screens.core.scene_types import SceneTypes
@@ -33,6 +35,8 @@ class SceneManager:
         self.audio = audio
         self.client_settings = ClientSettings()
         self.runtime_state = RuntimeState()
+        self.lobby_service = LobbyService(connection, self.runtime_state)
+        self.game_service = GameService(connection, self.runtime_state)
 
         self.current_scene: SceneTypes | None = None
         self.current_screen: BaseScreen | None = None

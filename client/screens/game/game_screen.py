@@ -6,12 +6,6 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import (
-    request_give_up,
-    request_leave_game,
-    request_move_player,
-    request_shift_tile,
-)
 from client.screens.core.base_screen import BaseScreen
 from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout
 from client.screens.game.views.player_panel_view import PlayerPanelView
@@ -52,7 +46,7 @@ class GameScreen(BaseScreen):
         self.dialog = ConfirmDialog(
             self.surface.get_rect(),
             "Give Up?",
-            "This ends your mocked run.",
+            "Give up and spectate the rest of the match?",
             self._give_up,
             self._close_dialog,
             confirm_label="Give Up",
@@ -62,11 +56,11 @@ class GameScreen(BaseScreen):
         self.dialog = None
 
     def _leave_to_menu(self) -> None:
-        request_leave_game(self.scene_manager.connection, self.scene_manager.runtime_state, in_game=True)
+        self.scene_manager.game_service.leave_game(in_game=True)
         self.dialog = None
 
     def _give_up(self) -> None:
-        request_give_up(self.scene_manager.connection, self.scene_manager.runtime_state)
+        self.scene_manager.game_service.give_up()
         self.dialog = None
 
     def handle_event(self, event: pg.event.Event) -> None:
@@ -142,18 +136,11 @@ class GameScreen(BaseScreen):
             case ("rotate", direction):
                 self._rotate_spare(direction)
             case ("shift", side, index):
-                if request_shift_tile(
-                    self.scene_manager.connection,
-                    self.scene_manager.runtime_state,
+                if self.scene_manager.game_service.shift_tile(
                     side,
                     index,
                     self.scene_manager.runtime_state.game.spare_rotation,
                 ):
                     self.scene_manager.runtime_state.game.spare_rotation = 0
             case ("move", x, y):
-                request_move_player(
-                    self.scene_manager.connection,
-                    self.scene_manager.runtime_state,
-                    x,
-                    y,
-                )
+                self.scene_manager.game_service.move_player(x, y)

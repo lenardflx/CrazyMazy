@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_leave_game, request_start_game
 from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.ui.controls import Button
 from client.ui.theme import TEXT_MUTED
@@ -29,10 +28,10 @@ class PostGameScreen(MenuScreen):
         )
 
     def _play_again(self) -> None:
-        request_start_game(self.scene_manager.connection, self.scene_manager.runtime_state)
+        self.scene_manager.game_service.start_game()
 
     def _leave_post_game(self) -> None:
-        request_leave_game(self.scene_manager.connection, self.scene_manager.runtime_state, in_game=False)
+        self.scene_manager.game_service.leave_game(in_game=False)
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         super().handle_content_event(event)

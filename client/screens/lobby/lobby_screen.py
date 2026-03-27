@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_leave_game, request_start_game
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
 from shared.models import GamePhase
 from client.ui.controls import Button
@@ -24,13 +23,13 @@ class LobbyScreen(MenuScreen):
         self.leave_button = Button(pg.Rect(self.content_rect.x + 182, self.content_rect.bottom - 54, 160, 44), "Leave Lobby", self._confirm_leave)
 
     def _start_game(self) -> None:
-        request_start_game(self.scene_manager.connection, self.scene_manager.runtime_state)
+        self.scene_manager.game_service.start_game()
 
     def _confirm_leave(self) -> None:
         self.show_confirm("Leave Lobby?", "Return to the main menu?", self._leave_lobby, confirm_label="Leave")
 
     def _leave_lobby(self) -> None:
-        request_leave_game(self.scene_manager.connection, self.scene_manager.runtime_state, in_game=False)
+        self.scene_manager.game_service.leave_game(in_game=False)
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         super().handle_content_event(event)
