@@ -47,7 +47,6 @@ class JoinLobbyScreen(MenuScreen):
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
         self.code_input.draw(self.surface, self.small_font, self.body_font, "Join Code")
         self.join_button.draw(self.surface, self.button_font)
-        error_message = self.scene_manager.runtime_state.join_lobby.error_message
-        if error_message:
-            error = self.small_font.render(error_message, True, (150, 58, 48))
+        if self.error_message:
+            error = self.small_font.render(self.error_message, True, (150, 58, 48))
             self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 330)))
