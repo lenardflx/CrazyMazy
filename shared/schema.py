@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import NotRequired, TypedDict
 
+from shared.protocol import ErrorCode
+
 
 class ErrorPayload(TypedDict):
-    code: str
-    message: str
+    code: ErrorCode
 
 
 class PositionPayload(TypedDict):
