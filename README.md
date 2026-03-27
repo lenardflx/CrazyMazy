@@ -1,16 +1,50 @@
 # CrazyMazy
 > Software Engineering, Group 1, Team Spirit
 
-## Run & Debug 
-To run the project with client and server locally you can use `make` if installed on your machine. Run
+The board game "Das Verrückte Labyrinth" as a multiplayer game built with Python and Pygame.
+
+## Requirements
+
+- Python 3.11+
+
+Install dependencies:
+```shell
+pip install -r requirements.txt
+```
+
+## Setup
+
+Copy the `.env.example` file to `.env` and adjust as needed
+
+## Run & Debug
+
+Start server and a single client together:
 ```shell
 make dev
 ```
-This will start a server and connect a single client app to it.
 
-If you want to test two clients connected to a server simultaneously, you can use 
+Start server with two clients simultaneously:
 ```shell
 make dev2
 ```
 
-## Deploy 
+For a custom number of clients, and also Windows users (since the Make command may crash in Windows), use:
+```shell
+./dev.sh -c <number>
+```
+
+## Testing
+
+```shell
+pytest
+```
+
+## Project Structure
+
+```
+├── client/      # Pygame GUI client (screens, UI, network, state)
+├── server/      # TCP socket server (handlers, game service, db)
+├── shared/      # Models, events, protocol, and game logic used by both
+├── tests/       # Pytest test suite
+└── assets/      # Game images and UI assets
+```
