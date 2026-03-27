@@ -33,18 +33,22 @@ class SettingsScreen(MenuScreen):
         self.content_area = pg.Rect(self.content_rect.x, self.content_rect.y + 64, self.content_rect.width, self.content_rect.height - 84)
         control_width = self.content_area.width
 
+        #Volume Sliders
         self.volume_sliders = [
             Slider(pg.Rect(0, 92, control_width, 12), "Master Volume", settings.master_volume),
             Slider(pg.Rect(0, 166, control_width, 12), "Music Volume", settings.music_volume),
             Slider(pg.Rect(0, 240, control_width, 12), "Effects Volume", settings.effects_volume),
         ]
+        #Die Checkbox für Fullscreen
         self.fullscreen_checkbox = Checkbox(pg.Rect(0, 320, 128, 32), "Fullscreen", settings.fullscreen)
+        #Der Button um Einstellungen zu übernehmen/speichern
         self.apply_button = Button(
                 pg.Rect(720, 500, 120, 46),
                 "Apply",
                 lambda: self._sync_settings(),
 )
 
+    #Synchronisiere die Einstellungen mit der JSON-Datei
     def _sync_settings(self) -> None:
         settings = self.scene_manager.client_settings
         settings.set_master_volume(self.volume_sliders[0].value)
@@ -52,6 +56,7 @@ class SettingsScreen(MenuScreen):
         settings.set_effects_volume(self.volume_sliders[2].value)
         settings.set_fullscreen(self.fullscreen_checkbox.value)
 
+    #Layout/Design
     def _apply_layout(self) -> None:
         left = self.content_area.x
         controls: list[Slider | Checkbox | Button] = [*self.volume_sliders, self.fullscreen_checkbox, self.apply_button]
@@ -59,6 +64,7 @@ class SettingsScreen(MenuScreen):
             control.rect.x = left
             control.rect.y = self.content_area.y + y
 
+    #Event Handler
     def handle_content_event(self, event: pg.event.Event) -> None:
         self._apply_layout()
         changed = False
@@ -82,6 +88,7 @@ class SettingsScreen(MenuScreen):
             if settings.fullscreen != prev_fullscreen:
                 self.scene_manager.apply_fullscreen(settings.fullscreen)
 
+    #Darstellung der Komponenten
     def draw_content(self, rect: pg.Rect) -> None:
         super().draw_content(rect)
         self._apply_layout()
@@ -92,6 +99,7 @@ class SettingsScreen(MenuScreen):
         self.fullscreen_checkbox.draw(self.surface, self.body_font)
         self.apply_button.draw(self.surface, self.button_font)
 
+    #Darstellung Header
     def _draw_section_header(self, title: str, y: int) -> None:
         header_y = self.content_area.y + y
         label = self.section_font.render(title, True, TEXT_PRIMARY)
