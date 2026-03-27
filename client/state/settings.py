@@ -10,6 +10,7 @@ from client.config import WINDOW_HEIGHT, WINDOW_WIDTH
 FULLSCREEN_FLAGS = HWSURFACE | DOUBLEBUF | NOFRAME
 RESIZABLE_FLAGS = HWSURFACE | DOUBLEBUF | RESIZABLE
 
+#FIXME: man kann die Attribute zu Klassenattributen machen, um die von außen zu ändern
 class ClientSettings:
     def __init__(self):
         self.master_volume: int = 100
