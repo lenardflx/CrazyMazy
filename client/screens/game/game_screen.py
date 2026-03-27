@@ -6,16 +6,20 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_give_up, request_leave_game, request_move_player, request_shift_tile
+from client.network.actions import (
+    request_give_up,
+    request_leave_game,
+    request_move_player,
+    request_shift_tile,
+)
 from client.screens.core.base_screen import BaseScreen
-from client.screens.game.game_layout import GameScreenLayout, create_game_screen_layout
+from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout
+from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
-from client.ui.game_board_view import draw_board, draw_spare_tile_panel
-from client.ui.player_rows_view import draw_player_rows
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, font
-from shared.models import GamePhase, TurnPhase
-from shared.state.game_state import SnapshotGameState, Tile
+from shared.models import GamePhase
+from shared.state.game_state import SnapshotGameState
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -25,6 +29,8 @@ class GameScreen(BaseScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface)
         self.scene_manager = scene_manager
+        self.board_view = BoardView()
+        self.player_panel_view = PlayerPanelView()
         self.title_font = font(28, bold=True)
         self.small_font = font(15)
         self.button_font = font(18, bold=True)
@@ -33,10 +39,24 @@ class GameScreen(BaseScreen):
         self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 120, 40), "Menu", self._confirm_quit)
 
     def _confirm_quit(self) -> None:
-        self.dialog = ConfirmDialog(self.surface.get_rect(), "Leave Match?", "Return to the main menu?", self._leave_to_menu, self._close_dialog, confirm_label="Leave")
+        self.dialog = ConfirmDialog(
+            self.surface.get_rect(),
+            "Leave Match?",
+            "Return to the main menu?",
+            self._leave_to_menu,
+            self._close_dialog,
+            confirm_label="Leave",
+        )
 
     def _confirm_give_up(self) -> None:
-        self.dialog = ConfirmDialog(self.surface.get_rect(), "Give Up?", "This ends your mocked run.", self._give_up, self._close_dialog, confirm_label="Give Up")
+        self.dialog = ConfirmDialog(
+            self.surface.get_rect(),
+            "Give Up?",
+            "This ends your mocked run.",
+            self._give_up,
+            self._close_dialog,
+            confirm_label="Give Up",
+        )
 
     def _close_dialog(self) -> None:
         self.dialog = None
@@ -62,32 +82,12 @@ class GameScreen(BaseScreen):
         if game_state is None or layout is None or event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
             return
 
-        if self._can_shift(game_state):
-            if layout.rotate_left_button.collidepoint(event.pos):
-                self._rotate_spare(-1)
-                return
-            if layout.rotate_right_button.collidepoint(event.pos):
-                self._rotate_spare(1)
-                return
-            for arrow in layout.board.arrows:
-                if not arrow.rect.collidepoint(event.pos):
-                    continue
-                if request_shift_tile(
-                    self.scene_manager.connection,
-                    self.scene_manager.runtime_state,
-                    arrow.side,
-                    arrow.index,
-                    self.scene_manager.runtime_state.game.spare_rotation,
-                ):
-                    self.scene_manager.runtime_state.game.spare_rotation = 0
-                return
-
-        if self._can_move(game_state):
-            for position, cell in layout.board.cells.items():
-                if cell.collidepoint(event.pos):
-                    if game_state.is_position_reachable(position):
-                        request_move_player(self.scene_manager.connection, self.scene_manager.runtime_state, position[0], position[1])
-                    return
+        click = self.board_view.resolve_click(
+            event.pos,
+            layout,
+            game_state,
+        )
+        self._handle_board_click(click)
 
     def update(self, dt: float) -> None:
         del dt
@@ -99,23 +99,22 @@ class GameScreen(BaseScreen):
         if game_state is None or layout is None:
             return
 
-        viewer_turn = self._viewer_turn(game_state)
-        shift_enabled = self._can_shift(game_state)
-        spare_tile = game_state.spare_tile
+        spare_tile = game_state.rotated_spare_tile(self.scene_manager.runtime_state.game.spare_rotation)
         if spare_tile is None:
             return
-        rotated_spare_tile = self._display_spare_tile(spare_tile)
-        draw_board(self.surface, layout.board, game_state, game_state.ordered_players, shift_enabled=shift_enabled)
-        draw_spare_tile_panel(
+        self.board_view.draw(
             self.surface,
-            layout.spare_panel,
-            rotated_spare_tile,
-            game_state.active_treasure_type,
-            rotation_enabled=shift_enabled,
+            layout,
+            game_state,
+            spare_tile,
         )
-        draw_player_rows(self.surface, layout.players_panel, game_state.ordered_players, active_player_id=game_state.current_player_id)
+        self.player_panel_view.draw(
+            self.surface,
+            layout.players_panel,
+            game_state,
+        )
 
-        status = self.title_font.render(self._turn_text(viewer_turn, game_state.turn.phase), True, TEXT_PRIMARY)
+        status = self.title_font.render(game_state.turn_prompt, True, TEXT_PRIMARY)
         self.surface.blit(status, (24, 28))
         self.give_up_button.draw(self.surface, self.button_font)
         self.menu_button.draw(self.surface, self.button_font)
@@ -127,32 +126,34 @@ class GameScreen(BaseScreen):
         if self.dialog is not None:
             self.dialog.draw(self.surface)
 
-    def _game_layout(self, game_state: SnapshotGameState | None) -> GameScreenLayout | None:
+    def _game_layout(self, game_state: SnapshotGameState | None) -> GameBoardLayout | None:
         if game_state is None or game_state.phase != GamePhase.GAME or game_state.spare_tile is None:
             return None
-        return create_game_screen_layout(self.surface.get_rect(), game_state.board_size)
-
-    def _viewer_turn(self, game_state: SnapshotGameState) -> bool:
-        return game_state.viewer_id == game_state.current_player_id
-
-    def _can_shift(self, game_state: SnapshotGameState) -> bool:
-        return self._viewer_turn(game_state) and game_state.turn.phase == TurnPhase.SHIFT
-
-    def _can_move(self, game_state: SnapshotGameState) -> bool:
-        return self._viewer_turn(game_state) and game_state.turn.phase == TurnPhase.MOVE
+        return self.board_view.layout(self.surface.get_rect(), game_state.board_size)
 
     def _rotate_spare(self, direction: int) -> None:
         game_state = self.scene_manager.runtime_state.game
         game_state.spare_rotation = (game_state.spare_rotation + direction) % 4
 
-    def _display_spare_tile(self, tile: Tile) -> Tile:
-        spare_rotation = self.scene_manager.runtime_state.game.spare_rotation
-        return type(tile)(tile.type, (tile.orientation.value + spare_rotation) % 4, tile.treasure)
-
-    # TODO: we probably also want to display a color or smth to make it easier to identify whose turn it is, or even a dialog/popup when the player's turn starts
-    def _turn_text(self, viewer_turn: bool, turn_phase: TurnPhase) -> str:
-        if viewer_turn and turn_phase == TurnPhase.SHIFT:
-            return "Your turn: insert a tile"
-        if viewer_turn and turn_phase == TurnPhase.MOVE:
-            return "Your turn: move"
-        return "Waiting for another player"
+    def _handle_board_click(self, click: BoardClick | None) -> None:
+        if click is None:
+            return
+        match click:
+            case ("rotate", direction):
+                self._rotate_spare(direction)
+            case ("shift", side, index):
+                if request_shift_tile(
+                    self.scene_manager.connection,
+                    self.scene_manager.runtime_state,
+                    side,
+                    index,
+                    self.scene_manager.runtime_state.game.spare_rotation,
+                ):
+                    self.scene_manager.runtime_state.game.spare_rotation = 0
+            case ("move", x, y):
+                request_move_player(
+                    self.scene_manager.connection,
+                    self.scene_manager.runtime_state,
+                    x,
+                    y,
+                )

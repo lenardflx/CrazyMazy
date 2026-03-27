@@ -55,6 +55,7 @@ class SettingsScreen(MenuScreen):
         settings.set_music_volume(self.volume_sliders[1].value)
         settings.set_effects_volume(self.volume_sliders[2].value)
         settings.set_fullscreen(self.fullscreen_checkbox.value)
+        self.scene_manager.apply_fullscreen(self.fullscreen_checkbox.value)
 
     #Layout/Design
     def _apply_layout(self) -> None:

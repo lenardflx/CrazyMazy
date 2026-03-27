@@ -6,7 +6,21 @@ from random import randint, shuffle
 from dataclasses import dataclass
 from uuid import UUID
 
-from shared.models import GameData, GamePhase, InsertionSide, PlayerColor, PlayerData, TileData, TileOrientation, TileType, TreasureData, TreasureType, TurnPhase
+from shared.models import (
+    GameData,
+    GamePhase,
+    InsertionSide,
+    PlayerColor,
+    PlayerData,
+    PlayerResult,
+    PlayerStatus,
+    TileData,
+    TileOrientation,
+    TileType,
+    TreasureData,
+    TreasureType,
+    TurnPhase,
+)
 from shared.schema import GameSnapshotPayload, PublicPlayerPayload, TilePayload, ViewerPayload
 from shared.state.errors import BoardError
 
@@ -580,10 +594,10 @@ class SnapshotPlayerState:
     join_order: int
     piece_color: PlayerColor
     position: Position | None
-    status: str
-    result: str
+    status: PlayerStatus
+    result: PlayerResult
     placement: int | None
-    collected_treasures: list[str]
+    collected_treasures: list[TreasureType]
     remaining_treasure_count: int
 
     @classmethod
@@ -596,12 +610,37 @@ class SnapshotPlayerState:
             join_order=payload["join_order"],
             piece_color=PlayerColor(payload["piece_color"]),
             position=position,
-            status=payload["status"],
-            result=payload["result"],
+            status=PlayerStatus(payload["status"]),
+            result=PlayerResult(payload["result"]),
             placement=payload["placement"],
-            collected_treasures=list(payload["collected_treasures"]),
+            collected_treasures=[TreasureType(treasure) for treasure in payload["collected_treasures"]],
             remaining_treasure_count=payload["remaining_treasure_count"],
         )
+
+    @property
+    def collected_treasure_count(self) -> int:
+        return len(self.collected_treasures)
+
+    @property
+    def is_departed(self) -> bool:
+        return self.status == PlayerStatus.DEPARTED
+
+    @property
+    def is_observer(self) -> bool:
+        return self.status == PlayerStatus.OBSERVER
+
+    @property
+    def is_inactive(self) -> bool:
+        return self.is_departed or self.is_observer
+
+    def sidebar_status(self, *, post_game: bool = False) -> str | None:
+        if self.is_departed:
+            return "Left"
+        if self.is_observer:
+            return "Spectator"
+        if post_game and self.placement is not None:
+            return "Finished"
+        return None
 
 
 @dataclass(slots=True)
@@ -610,7 +649,7 @@ class SnapshotViewerState:
     is_leader: bool
     is_current_player: bool
     active_treasure_type: TreasureType | None
-    collected_treasures: list[str]
+    collected_treasures: list[TreasureType]
     remaining_treasure_count: int
 
     @classmethod
@@ -621,7 +660,7 @@ class SnapshotViewerState:
             is_leader=payload["is_leader"],
             is_current_player=payload["is_current_player"],
             active_treasure_type=None if active_treasure_type is None else TreasureType(active_treasure_type),
-            collected_treasures=list(payload["collected_treasures"]),
+            collected_treasures=[TreasureType(treasure) for treasure in payload["collected_treasures"]],
             remaining_treasure_count=payload["remaining_treasure_count"],
         )
 
@@ -663,10 +702,36 @@ class SnapshotGameState:
         return None if self.viewer is None else self.viewer.active_treasure_type
 
     @property
+    def viewer_turn(self) -> bool:
+        return self.viewer_id == self.current_player_id
+
+    @property
+    def can_shift(self) -> bool:
+        return self.viewer_turn and self.turn.phase == TurnPhase.SHIFT
+
+    @property
+    def can_move(self) -> bool:
+        return self.viewer_turn and self.turn.phase == TurnPhase.MOVE
+
+    @property
+    def turn_prompt(self) -> str:
+        if self.can_shift:
+            return "Your turn: insert a tile"
+        if self.can_move:
+            return "Your turn: move"
+        return "Waiting for another player"
+
+    @property
     def spare_tile(self) -> Tile | None:
         if self.board is None:
             return None
         return self.board.spare
+
+    def rotated_spare_tile(self, rotation: int) -> Tile | None:
+        tile = self.spare_tile
+        if tile is None:
+            return None
+        return type(tile)(tile.type, (tile.orientation.value + rotation) % 4, tile.treasure)
 
     def tile_at(self, position: Position) -> Tile | None:
         if self.board is None:
@@ -675,6 +740,9 @@ class SnapshotGameState:
 
     def is_position_reachable(self, position: Position) -> bool:
         return position in self.reachable_positions
+
+    def home_color_at(self, position: Position) -> PlayerColor | None:
+        return home_color_for_position(self.board_size, position)
 
     @classmethod
     def from_snapshot(cls, snapshot: GameSnapshotPayload) -> "SnapshotGameState":

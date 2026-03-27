@@ -67,6 +67,7 @@ class SceneManager:
     #Vollbildmodus
     def apply_fullscreen(self, fullscreen: bool) -> None:
         if fullscreen:
+            # TODO: Fix this workaround so Windows also gets scaled
             if platform == "win32":
                 pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
             else:

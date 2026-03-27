@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.network.actions import request_leave_game, request_start_game
+from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.ui.controls import Button
-from client.ui.player_rows_view import draw_player_rows
 from client.ui.theme import TEXT_MUTED
 from client.screens.menu.menu_screen import MenuScreen
 from shared.models import GamePhase
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 class PostGameScreen(MenuScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Post Game")
+        self.player_panel_view = PlayerPanelView()
         self.menu_button = Button(pg.Rect(self.content_rect.x, self.content_rect.bottom - 54, 180, 44), "Main Menu", self._leave_post_game, variant="primary")
         self.play_again_button = Button(
             pg.Rect(self.content_rect.x + 202, self.content_rect.bottom - 54, 180, 44),
@@ -45,7 +46,12 @@ class PostGameScreen(MenuScreen):
             return
         subtitle = self.body_font.render("Placements", True, TEXT_MUTED)
         self.surface.blit(subtitle, (self.content_rect.x, self.content_rect.y + 54))
-        draw_player_rows(self.surface, pg.Rect(self.content_rect.x, self.content_rect.y + 92, self.content_rect.width, 360), game_state.ordered_players, active_player_id=None, post_game=True)
+        self.player_panel_view.draw(
+            self.surface,
+            pg.Rect(self.content_rect.x, self.content_rect.y + 92, self.content_rect.width, 360),
+            game_state,
+            post_game=True,
+        )
         self.menu_button.draw(self.surface, self.button_font)
         self.play_again_button.draw(self.surface, self.button_font)
         if self.scene_manager.runtime_state.global_error_message:
