@@ -46,22 +46,26 @@ class SceneManager:
             self.client_settings.effects_volume,
         )
 
+    #Scenenwechsel
     def go_to(self, scene: SceneTypes) -> None:
         if scene == self.current_scene:
             return
         self.current_scene = scene
         self.current_screen = create_screen(scene, self.surface, self)
 
+    #Event Handler
     def handle_event(self, event: pygame.event.Event) -> None:
         if self.current_screen is not None:
             self.current_screen.handle_event(event)
 
+    #Screen Update
     def tick(self, dt: float) -> None:
         if self.current_screen is not None:
             self.current_screen.update(dt)
             self.current_screen.draw()
         pygame.display.flip()
 
+    #Vollbildmodus
     def apply_fullscreen(self, fullscreen: bool) -> None:
         if fullscreen:
             if platform == "win32":

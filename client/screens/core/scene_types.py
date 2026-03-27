@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-
+#Eine Lookup-Liste aller Scenes
 class SceneTypes(Enum):
     MAIN_MENU = "Main Menu"
     SERVER_DOWN = "Server Down"
