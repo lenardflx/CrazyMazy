@@ -150,9 +150,7 @@ def _send_request(
     if not connection.is_connected:
         _set_error(runtime, error_target, disconnected_message)
         return False
-    if not connection.send_event(event):
-        _set_error(runtime, error_target, disconnected_message)
-        return False
+    connection.send_event(event)
     runtime.set_pending(pending, error_target)
     return True
 
