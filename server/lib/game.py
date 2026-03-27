@@ -12,15 +12,18 @@ JOIN_CODE_PATTERN = re.compile(r"^[A-Z0-9]{4}$")
 
 
 def normalize_join_code(code: str) -> str:
+    """Strip whitespace and uppercase a join code."""
     return code.strip().upper()
 
 
 def is_valid_join_code(code: str) -> bool:
+    """Return ``True`` if the code is exactly 4 uppercase alphanumeric characters."""
     normalized = normalize_join_code(code)
     return bool(JOIN_CODE_PATTERN.fullmatch(normalized))
 
 
 def can_join_game(game: GameData, players: Iterable[PlayerData]) -> bool:
+    """Return ``True`` if the game is in PREGAME phase and has room for another player."""
     if game.game_phase != GamePhase.PREGAME:
         return False
     if not is_valid_board_size(game.board_size):
