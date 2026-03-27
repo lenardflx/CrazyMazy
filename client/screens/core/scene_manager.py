@@ -17,7 +17,7 @@ from client.screens.core.screen_factory import create_screen
 from client.screens.core.transport_sync import TransportSync
 from client.state.runtime_state import RuntimeState
 from client.state.settings import ClientSettings
-from shared.state.game_state import SnapshotGameState
+from shared.game.snapshot import SnapshotGameState
 
 
 class SceneManager:

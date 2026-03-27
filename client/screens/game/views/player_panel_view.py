@@ -4,7 +4,7 @@ import pygame as pg
 
 from client.screens.game.views.board_view import player_color
 from client.ui.theme import ACTIVE_OUTLINE, DISABLED, PANEL, TEXT_MUTED, TEXT_PRIMARY, blend_color, font
-from shared.state.game_state import SnapshotGameState
+from shared.game.snapshot import SnapshotGameState
 
 
 class PlayerPanelView:

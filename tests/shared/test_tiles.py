@@ -1,5 +1,6 @@
 from shared.types.enums import InsertionSide, TileOrientation, TileType
-from shared.state.game_state import Board, Tile
+from shared.game.board import Board
+from shared.game.tile import Tile
 
 
 def test_tile_paths_for_corner_orientation() -> None:

@@ -35,7 +35,7 @@ from shared.types.payloads import (
     TurnPayload,
     ViewerPayload,
 )
-from shared.state.game_state import Board
+from shared.game.board import Board
 
 
 def _parse_position(payload: Any) -> PositionPayload | None:

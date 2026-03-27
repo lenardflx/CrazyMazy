@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from shared.lib.snapshot import parse_game_snapshot_payload
-from shared.state.game_state import SnapshotGameState
+from shared.game.snapshot import SnapshotGameState
 
 
 def make_snapshot_payload() -> dict[str, object]:

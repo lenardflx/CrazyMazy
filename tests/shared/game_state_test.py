@@ -1,4 +1,6 @@
-from shared.state.game_state import Board,TileType, Tile, TreasureType, TileOrientation
+from shared.game.board import Board
+from shared.game.tile import Tile
+from shared.types.enums import TileOrientation, TileType, TreasureType
 import unittest
 from random import randint
 

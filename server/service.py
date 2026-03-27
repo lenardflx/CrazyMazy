@@ -28,14 +28,9 @@ from shared.types.enums import (
     TurnPhase,
 )
 from shared.types.data import GameData, PlayerData, TileData, TreasureData, utcnow
-from shared.state.game_state import (
-    GameState,
-    Board,
-    assign_treasures,
-    is_valid_insertion_index,
-    opposite_side,
-    start_position_for_color,
-)
+from shared.game.board import Board, is_valid_insertion_index, opposite_side
+from shared.game.helper import assign_treasures, start_position_for_color
+from shared.game.state import GameState
 
 
 @dataclass(slots=True)

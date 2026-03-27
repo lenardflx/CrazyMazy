@@ -9,7 +9,8 @@ from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation
 from client.textures import TILE_IMAGES, TREASURE_IMAGES
 from client.ui.theme import DISABLED, MOVE_HIGHLIGHT, PANEL, PANEL_ALT, TEXT_PRIMARY, blend_color, font
 from shared.types.enums import InsertionSide, PlayerColor, TreasureType
-from shared.state.game_state import SnapshotGameState, SnapshotPlayerState, Tile
+from shared.game.tile import Tile
+from shared.game.snapshot import SnapshotGameState, SnapshotPlayerState
 
 
 PLAYER_COLOR_VALUES = {
