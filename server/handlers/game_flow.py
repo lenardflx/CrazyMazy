@@ -12,6 +12,7 @@ from server.network.models import OutgoingMessage, RequestContext
 from shared.game.state import GameState
 from shared.events import (
     ClientCreateLobbyEvent,
+    ClientGameAddNpcEvent,
     ClientGameEndTurnEvent,
     ClientGameGiveUpEvent,
     ClientGameLeaveEvent,
@@ -61,6 +62,11 @@ def handle_start_game(ctx: RequestContext, event: ClientGameStartEvent) -> list[
     return _handle_connection_game_update(ctx, lambda player_id: game_service.start_game(player_id))
 
 
+@dispatcher.handler(ClientGameAddNpcEvent)
+def handle_add_npc(ctx: RequestContext, event: ClientGameAddNpcEvent) -> list[OutgoingMessage]:
+    return _handle_connection_game_update(ctx, lambda player_id: game_service.add_npc(player_id, event.difficulty))
+
+
 @dispatcher.handler(ClientGameShiftTileEvent)
 def handle_shift_tile(ctx: RequestContext, event: ClientGameShiftTileEvent) -> list[OutgoingMessage]:
     return _handle_connection_game_update(
@@ -108,7 +114,9 @@ def _handle_connection_game_update(
         game_state = fn(state.player.id)
     except ValueError as exc:
         return error_response(ctx, map_value_error_code(str(exc)), str(exc))
-    return snapshot_response(game_state)
+    outgoing = snapshot_response(game_state)
+    game_service.schedule_npc_turns(game_state)
+    return outgoing
 
 
 def _handle_optional_connection_game_update(
@@ -124,7 +132,9 @@ def _handle_optional_connection_game_update(
         return error_response(ctx, map_value_error_code(str(exc)), str(exc))
     if game_state is None:
         return []
-    return snapshot_response(game_state)
+    outgoing = snapshot_response(game_state)
+    game_service.schedule_npc_turns(game_state)
+    return outgoing
 
 
 def _handle_departure_game_update(
@@ -142,4 +152,5 @@ def _handle_departure_game_update(
     outgoing = left_response(ctx, reason)
     if game_state is not None:
         outgoing.extend(snapshot_response(game_state))
+        game_service.schedule_npc_turns(game_state)
     return outgoing

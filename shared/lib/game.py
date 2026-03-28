@@ -13,8 +13,9 @@ from shared.lib.parse import (
     parse_optional_str,
     parse_str,
 )
-from shared.types.enums import GamePhase, InsertionSide, PlayerResult, TileType, TreasureType, TurnPhase
+from shared.types.enums import GamePhase, InsertionSide, NpcDifficulty, PlayerResult, TileType, TreasureType, TurnPhase
 from shared.types.payloads import (
+    ClientGameAddNpcPayload,
     ClientGameMovePlayerPayload,
     ClientGameShiftTilePayload,
     GamePlacementPayload,
@@ -100,6 +101,14 @@ def parse_client_game_move_player_payload(payload: Mapping[str, Any]) -> ClientG
     if x is None or y is None:
         return None
     return {"x": x, "y": y}
+
+
+def parse_client_game_add_npc_payload(payload: Mapping[str, Any]) -> ClientGameAddNpcPayload | None:
+    """Parse a client add-NPC request payload, or ``None`` if the difficulty is missing."""
+    difficulty = parse_enum(payload.get("difficulty"), NpcDifficulty)
+    if difficulty is None:
+        return None
+    return {"difficulty": difficulty}
 
 
 def parse_server_game_started_payload(payload: Mapping[str, Any]) -> ServerGameStartedPayload | None:

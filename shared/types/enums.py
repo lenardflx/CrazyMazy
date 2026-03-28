@@ -120,3 +120,20 @@ class InsertionSide(StrEnum):
     RIGHT = "RIGHT"
     BOTTOM = "BOTTOM"
     LEFT = "LEFT"
+
+
+class PlayerControllerKind(StrEnum):
+    """
+    Defines whether a player slot is controlled by a human or by the server.
+    """
+    HUMAN = "HUMAN"
+    NPC = "NPC"
+
+
+class NpcDifficulty(StrEnum):
+    """
+    Defines future difficulty presets for NPC-controlled players.
+    """
+    EASY = "EASY"
+    NORMAL = "NORMAL"
+    HARD = "HARD"

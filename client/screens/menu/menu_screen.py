@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.ui.controls import Button
-from client.ui.dialogs import ConfirmDialog
+from client.ui.dialogs import ChoiceDialog, ConfirmDialog
 from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
 from client.screens.core.base_screen import BaseScreen
 from client.screens.core.scene_types import SceneTypes
@@ -39,7 +39,7 @@ class MenuScreen(BaseScreen):
         self.title = title
         self.is_main_menu = is_main_menu
         self.message = message
-        self.dialog: ConfirmDialog | None = None
+        self.dialog: ConfirmDialog | ChoiceDialog | None = None
 
         self.title_font = pg.font.SysFont("verdana", 42, bold=True)
         self.section_font = pg.font.SysFont("verdana", 24, bold=True)
@@ -128,6 +128,34 @@ class MenuScreen(BaseScreen):
             handle_confirm,
             handle_cancel,
             confirm_label=confirm_label,
+        )
+
+    def show_choice(
+        self,
+        title: str,
+        message: str,
+        choices: list[tuple[str, Callable[[], None], str]],
+        *,
+        cancel_label: str = "Cancel",
+    ) -> None:
+        wrapped_choices: list[tuple[str, Callable[[], None], str]] = []
+        for label, on_select, variant in choices:
+            def handle_select(callback: Callable[[], None] = on_select) -> None:
+                self.dialog = None
+                callback()
+
+            wrapped_choices.append((label, handle_select, variant))
+
+        def handle_cancel() -> None:
+            self.dialog = None
+
+        self.dialog = ChoiceDialog(
+            self.surface.get_rect(),
+            title,
+            message,
+            wrapped_choices,
+            handle_cancel,
+            cancel_label=cancel_label,
         )
 
     def draw_content(self, rect: pg.Rect) -> None:

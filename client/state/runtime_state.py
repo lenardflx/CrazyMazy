@@ -11,6 +11,7 @@ class PendingRequest(StrEnum):
     CREATE_LOBBY = "CREATE_LOBBY"
     JOIN_LOBBY = "JOIN_LOBBY"
     START_GAME = "START_GAME"
+    ADD_NPC = "ADD_NPC"
     SHIFT_TILE = "SHIFT_TILE"
     MOVE_PLAYER = "MOVE_PLAYER"
     GIVE_UP = "GIVE_UP"

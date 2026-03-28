@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from typing import NotRequired, TypedDict
 
+from shared.types.enums import (
+    InsertionSide,
+    NpcDifficulty,
+    PlayerControllerKind,
+)
+
 
 class ErrorPayload(TypedDict):
     """Standard error payload returned by the server."""
@@ -36,6 +42,8 @@ class PublicPlayerPayload(TypedDict):
 
     id: str
     display_name: str
+    controller_kind: NotRequired[PlayerControllerKind]
+    npc_difficulty: NotRequired[NpcDifficulty]
     status: str
     result: str
     placement: int | None
@@ -127,6 +135,12 @@ class ClientGameMovePlayerPayload(TypedDict):
 
     x: int
     y: int
+
+
+class ClientGameAddNpcPayload(TypedDict):
+    """Client request payload for adding an NPC-controlled player to the lobby."""
+
+    difficulty: NpcDifficulty
 
 
 class ServerGameStartedPayload(TypedDict):

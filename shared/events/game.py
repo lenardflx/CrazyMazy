@@ -7,6 +7,7 @@ from typing import Any, Mapping, Self
 
 from shared.events.event import Event
 from shared.lib.game import (
+    parse_client_game_add_npc_payload,
     parse_client_game_move_player_payload,
     parse_client_game_shift_tile_payload,
     parse_server_game_finished_payload,
@@ -19,8 +20,10 @@ from shared.lib.game import (
 from shared.lib.parse import parse_int, parse_str
 from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
+from shared.types.enums import NpcDifficulty
 from shared.types.payloads import (
     ClientCreateLobbyPayload,
+    ClientGameAddNpcPayload,
     ClientJoinGamePayload,
     GameSnapshotPayload,
     ServerGameFinishedPayload,
@@ -115,6 +118,24 @@ class ClientGameStartEvent(Event):
         if msg["payload"]:
             return None
         return cls(message_id=msg["id"])
+
+
+@dataclass(frozen=True)
+class ClientGameAddNpcEvent(Event):
+    message_type = "client.game.add_npc"
+
+    difficulty: NpcDifficulty
+
+    def to_payload(self) -> Mapping[str, Any]:
+        payload: ClientGameAddNpcPayload = {"difficulty": self.difficulty}
+        return payload
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        payload = parse_client_game_add_npc_payload(msg["payload"])
+        if payload is None:
+            return None
+        return cls(message_id=msg["id"], difficulty=NpcDifficulty(payload["difficulty"]))
 
 
 @dataclass(frozen=True)

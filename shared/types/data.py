@@ -13,6 +13,8 @@ from shared.types.enums import (
     GameEndReason,
     GamePhase,
     InsertionSide,
+    NpcDifficulty,
+    PlayerControllerKind,
     PlayerColor,
     PlayerResult,
     PlayerSkin,
@@ -54,6 +56,8 @@ class PlayerData(SQLModel):
     # Player figure identity
     piece_color: PlayerColor = Field(index=True)
     skin: PlayerSkin = Field(default=PlayerSkin.DEFAULT)
+    controller_kind: PlayerControllerKind = Field(default=PlayerControllerKind.HUMAN, index=True)
+    npc_difficulty: Optional[NpcDifficulty] = Field(default=None)
 
     # Current game's position of the player
     position_x: Optional[int] = Field(default=None)

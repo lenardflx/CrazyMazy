@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from shared.types.enums import PlayerColor
+from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind
 from shared.types.data import GameData, PlayerData, TileData, TreasureData
 
 
@@ -75,10 +75,12 @@ class PlayerRepository(ABC):
     def create_player(
         self,
         display_name: str,
-        connection_id: str,
+        connection_id: str | None,
         game_id: UUID,
         join_order: int,
         piece_color: PlayerColor,
+        controller_kind: PlayerControllerKind = PlayerControllerKind.HUMAN,
+        npc_difficulty: NpcDifficulty | None = None,
     ) -> PlayerData: ...
 
     @abstractmethod

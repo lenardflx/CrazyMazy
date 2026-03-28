@@ -8,13 +8,21 @@ from shared.game.tile import Tile
 from shared.types.enums import (
     GamePhase,
     InsertionSide,
+    NpcDifficulty,
+    PlayerControllerKind,
     PlayerColor,
     PlayerResult,
     PlayerStatus,
     TreasureType,
     TurnPhase,
 )
-from shared.types.payloads import GameSnapshotPayload, LastShiftPayload, PublicPlayerPayload, TilePayload, ViewerPayload
+from shared.types.payloads import (
+    GameSnapshotPayload,
+    LastShiftPayload,
+    PublicPlayerPayload,
+    TilePayload,
+    ViewerPayload,
+)
 
 
 @dataclass(slots=True)
@@ -29,6 +37,8 @@ class SnapshotPlayerState:
     placement: int | None
     collected_treasures: list[TreasureType]
     remaining_treasure_count: int
+    controller: PlayerControllerKind = PlayerControllerKind.HUMAN
+    npc_difficulty: NpcDifficulty | None = None
 
     @classmethod
     def from_payload(cls, payload: PublicPlayerPayload) -> "SnapshotPlayerState":
@@ -38,6 +48,10 @@ class SnapshotPlayerState:
             id=payload["id"],
             display_name=payload["display_name"],
             join_order=payload["join_order"],
+            controller=PlayerControllerKind(payload.get("controller_kind", PlayerControllerKind.HUMAN)),
+            npc_difficulty=(
+                None if payload.get("npc_difficulty") is None else NpcDifficulty(payload["npc_difficulty"])
+            ),
             piece_color=PlayerColor(payload["piece_color"]),
             position=position,
             status=PlayerStatus(payload["status"]),
@@ -153,6 +167,10 @@ class SnapshotGameState:
         return next((player for player in self.players if player.id == self.viewer_id), None)
 
     @property
+    def viewer_is_leader(self) -> bool:
+        return self.viewer_id == (self.leader_player_id or "")
+
+    @property
     def current_player_id(self) -> str:
         return "" if self.turn.current_player_id is None else self.turn.current_player_id
 
@@ -168,6 +186,14 @@ class SnapshotGameState:
     def viewer_is_spectator(self) -> bool:
         viewer = self.viewer_player
         return viewer is not None and viewer.is_observer
+
+    @property
+    def can_add_npc(self) -> bool:
+        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and len(self.players) < 4
+
+    @property
+    def can_start(self) -> bool:
+        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and len(self.players) >= 2
 
     @property
     def can_shift(self) -> bool:

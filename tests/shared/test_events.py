@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from shared.events import (
+    ClientGameAddNpcEvent,
     ClientGameEndTurnEvent,
     ClientJoinGameEvent,
     ClientGameMovePlayerEvent,
@@ -18,6 +19,7 @@ from shared.events import (
     parse_event,
 )
 from shared.protocol import make_message
+from shared.types.enums import NpcDifficulty
 
 
 def make_snapshot_payload() -> dict[str, object]:
@@ -167,6 +169,18 @@ def test_parse_event_returns_game_start_event_for_empty_payload() -> None:
     event = parse_event(make_message(ClientGameStartEvent.message_type, {}))
 
     assert isinstance(event, ClientGameStartEvent)
+
+
+def test_parse_event_returns_add_npc_event_for_valid_message() -> None:
+    event = parse_event(
+        make_message(
+            ClientGameAddNpcEvent.message_type,
+            {"difficulty": NpcDifficulty.HARD},
+        )
+    )
+
+    assert isinstance(event, ClientGameAddNpcEvent)
+    assert event.difficulty == NpcDifficulty.HARD
 
 
 def test_parse_event_returns_shift_tile_event_for_valid_message() -> None:

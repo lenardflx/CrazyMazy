@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from threading import Lock, Thread
+from time import sleep
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
+from server.handlers._responses import snapshot_response
+from server.network.outgoing import flush_outgoing
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
 from server.lib.game import can_join_game, is_valid_board_size, normalize_join_code
 from server.lib.player import (
@@ -22,14 +26,17 @@ from shared.types.enums import (
     GameEndReason,
     GamePhase,
     InsertionSide,
+    NpcDifficulty,
     PlayerResult,
     PlayerStatus,
+    PlayerControllerKind,
     TreasureType,
     TurnPhase,
 )
 from shared.types.data import GameData, PlayerData, TileData, TreasureData, utcnow
 from shared.game.board import Board, is_valid_insertion_index, opposite_side
 from shared.game.helper import assign_treasures, start_position_for_color
+from shared.game.npc import Npc
 from shared.game.state import GameState
 
 
@@ -37,6 +44,9 @@ from shared.game.state import GameState
 class ConnectionState:
     game: GameData
     player: PlayerData
+
+
+_NPC_ACTION_DELAY_SECONDS = 0.45
 
 
 class GameService:
@@ -51,6 +61,8 @@ class GameService:
         self.player_repo = player_repo
         self.tile_repo = tile_repo
         self.treasure_repo = treasure_repo
+        self._running_npc_games: set[UUID] = set()
+        self._running_npc_games_lock = Lock()
 
     def create_lobby(
         self,
@@ -112,6 +124,35 @@ class GameService:
         game.revision += 1
         self.game_repo.update_game(game)
         return ConnectionState(game=game, player=player)
+
+    def add_npc(self, leader_player_id: UUID, difficulty: NpcDifficulty = NpcDifficulty.NORMAL) -> GameState:
+        leader = self.player_repo.find_by_id(leader_player_id)
+        if leader is None:
+            raise ValueError("Player not found")
+
+        game = self.game_repo.find_by_game_id(leader.game_id)
+        if game is None:
+            raise ValueError("Game not found")
+        if game.leader_player_id != leader.id:
+            raise ValueError("Only the leader can add NPCs")
+        if game.game_phase != GamePhase.PREGAME:
+            raise ValueError("NPCs can only be added in the lobby")
+
+        players = self.player_repo.list_by_game_id(game.id)
+        npc_name = Npc.generate_name({player.display_name for player in players})
+        self._create_player_for_game(
+            game=game,
+            display_name=npc_name,
+            connection_id=None,
+            controller_kind=PlayerControllerKind.NPC,
+            npc_difficulty=difficulty,
+        )
+        game.revision += 1
+        game = self.game_repo.update_game(game)
+        state = self.get_game_state(game.id)
+        if state is None:
+            raise ValueError("Game not found")
+        return state
 
     def find_game(self, game_id: UUID) -> GameData | None:
         """Look up a game by its ID.
@@ -473,7 +514,10 @@ class GameService:
         self,
         game: GameData,
         display_name: str,
-        connection_id: str,
+        connection_id: str | None,
+        *,
+        controller_kind: PlayerControllerKind = PlayerControllerKind.HUMAN,
+        npc_difficulty: NpcDifficulty | None = None,
     ) -> PlayerData:
         """Validate and create a new player for the given game."""
         players = self.player_repo.list_by_game_id(game.id)
@@ -493,6 +537,8 @@ class GameService:
             game_id=game.id,
             join_order=join_order,
             piece_color=piece_color,
+            controller_kind=controller_kind,
+            npc_difficulty=npc_difficulty,
         )
 
     def _finish_move(self, game: GameData, player: PlayerData) -> GameState:
@@ -608,6 +654,54 @@ class GameService:
         if player.position_x is None or player.position_y is None:
             return None
         return player.position_x, player.position_y
+
+    def schedule_npc_turns(self, state: GameState) -> None:
+        if not self._has_pending_npc_turn(state):
+            return
+
+        game_id = state.game.id
+        with self._running_npc_games_lock:
+            if game_id in self._running_npc_games:
+                return
+            self._running_npc_games.add(game_id)
+
+        Thread(target=self._run_npc_turns, args=(game_id,), daemon=True).start()
+
+    def _run_npc_turns(self, game_id: UUID) -> None:
+        try:
+            while True:
+                sleep(_NPC_ACTION_DELAY_SECONDS)
+                state = self.get_game_state(game_id)
+                if state is None or not self._has_pending_npc_turn(state):
+                    return
+
+                updated = self._perform_next_npc_action(state)
+                flush_outgoing(snapshot_response(updated))
+        finally:
+            with self._running_npc_games_lock:
+                self._running_npc_games.discard(game_id)
+
+    def _has_pending_npc_turn(self, state: GameState) -> bool:
+        return (
+            state.game.game_phase == GamePhase.GAME
+            and state.game.current_player_id is not None
+            and state.game.current_player_id in state.npcs
+        )
+
+    def _perform_next_npc_action(self, state: GameState) -> GameState:
+        game = state.game
+        npc = state.npcs[game.current_player_id]
+        turn = npc.choose_turn(
+            state,
+            blocked_side=game.blocked_insertion_side,
+            blocked_index=game.blocked_insertion_index,
+        )
+        updated = self.shift_tile(npc.player_id, turn.shift_side, turn.shift_index, turn.shift_rotation)
+        flush_outgoing(snapshot_response(updated))
+        sleep(_NPC_ACTION_DELAY_SECONDS)
+        if turn.move_to is None:
+            return self.end_turn(npc.player_id)
+        return self.move_player(npc.player_id, turn.move_to[0], turn.move_to[1])
 
 # TODO: is this clean? + probably should be in lib
 def _serialize_position_path(path: list[tuple[int, int]]) -> str:

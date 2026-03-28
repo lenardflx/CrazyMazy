@@ -17,6 +17,8 @@ from shared.lib.parse import (
 from shared.types.enums import (
     GamePhase,
     InsertionSide,
+    NpcDifficulty,
+    PlayerControllerKind,
     PlayerColor,
     PlayerResult,
     PlayerStatus,
@@ -124,6 +126,8 @@ def _parse_public_player_payload(payload: Any) -> PublicPlayerPayload | None:
 
     player_id = parse_str(payload.get("id"))
     display_name = parse_str(payload.get("display_name"))
+    controller_kind = parse_optional_enum(payload.get("controller_kind"), PlayerControllerKind)
+    npc_difficulty = parse_optional_enum(payload.get("npc_difficulty"), NpcDifficulty)
     status = parse_enum(payload.get("status"), PlayerStatus)
     result = parse_enum(payload.get("result"), PlayerResult)
     placement = parse_optional_int(payload.get("placement"))
@@ -141,6 +145,8 @@ def _parse_public_player_payload(payload: Any) -> PublicPlayerPayload | None:
     return {
         "id": player_id,
         "display_name": display_name,
+        "controller_kind": controller_kind if controller_kind is not None else PlayerControllerKind.HUMAN,
+        "npc_difficulty": npc_difficulty,
         "status": status,
         "result": result,
         "placement": placement,
@@ -373,6 +379,8 @@ def make_public_player_payload(player: PlayerData, treasures: list[TreasureData]
     return {
         "id": str(player.id),
         "display_name": player.display_name,
+        "controller_kind": player.controller_kind,
+        "npc_difficulty": player.npc_difficulty,
         "status": player.status,
         "result": player.result,
         "placement": player.placement,

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from shared.events import (
+    ClientGameAddNpcEvent,
     ClientGameGiveUpEvent,
     ClientGameLeaveEvent,
     ClientGameMovePlayerEvent,
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
 )
-from shared.types.enums import InsertionSide
+from shared.types.enums import InsertionSide, NpcDifficulty
 
 from client.network.services._service import RequestService
 from client.state.runtime_state import ErrorTarget, PendingRequest
@@ -19,6 +20,14 @@ class GameService(RequestService):
         return self._send_request(
             ClientGameStartEvent(),
             pending=PendingRequest.START_GAME,
+            error_target=ErrorTarget.GLOBAL,
+        )
+
+    def add_npc(self, difficulty: NpcDifficulty = NpcDifficulty.NORMAL) -> bool:
+        self._clear_errors(ErrorTarget.GLOBAL)
+        return self._send_request(
+            ClientGameAddNpcEvent(difficulty=difficulty),
+            pending=PendingRequest.ADD_NPC,
             error_target=ErrorTarget.GLOBAL,
         )
 
