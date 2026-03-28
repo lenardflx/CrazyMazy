@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import NotRequired, TypedDict
 
 from shared.types.enums import (
-    InsertionSide,
     NpcDifficulty,
     PlayerControllerKind,
 )
@@ -58,11 +57,7 @@ class ViewerPayload(TypedDict):
     """Viewer-specific player metadata included only for the current recipient."""
 
     player_id: str
-    is_leader: bool
-    is_current_player: bool
     active_treasure_type: str | None
-    collected_treasures: list[str]
-    remaining_treasure_count: int
 
 
 class TurnPayload(TypedDict):
@@ -141,70 +136,6 @@ class ClientGameAddNpcPayload(TypedDict):
     """Client request payload for adding an NPC-controlled player to the lobby."""
 
     difficulty: NpcDifficulty
-
-
-class ServerGameStartedPayload(TypedDict):
-    """Server event payload announcing transition from lobby to active game."""
-
-    game_id: str
-    revision: int
-    phase: str
-    current_player_id: str | None
-    turn_phase: str | None
-
-
-class ServerGameTileShiftedPayload(TypedDict):
-    """Server event payload for a completed tile shift."""
-
-    game_id: str
-    revision: int
-    insertion_side: str
-    insertion_index: int
-    tile: TilePayload
-    current_player_id: str | None
-    turn_phase: str | None
-    blocked_insertion_side: str | None
-    blocked_insertion_index: int | None
-
-
-class ServerGamePlayerMovedPayload(TypedDict):
-    """Server event payload for a completed player move."""
-
-    game_id: str
-    revision: int
-    player_id: str
-    position: PositionPayload
-    active_treasure_type: str | None
-    collected_treasure_type: str | None
-    remaining_treasure_count: int
-
-
-class ServerGameTurnChangedPayload(TypedDict):
-    """Server event payload for turn ownership or phase changes."""
-
-    game_id: str
-    revision: int
-    current_player_id: str | None
-    turn_phase: str | None
-    blocked_insertion_side: str | None
-    blocked_insertion_index: int | None
-
-
-class GamePlacementPayload(TypedDict):
-    """Placement entry for a finished game result list."""
-
-    player_id: str
-    result: str
-    placement: int | None
-
-
-class ServerGameFinishedPayload(TypedDict):
-    """Server event payload announcing final game results."""
-
-    game_id: str
-    revision: int
-    winner_player_id: str | None
-    placements: list[GamePlacementPayload]
 
 
 class ServerGameLeftPayload(TypedDict):

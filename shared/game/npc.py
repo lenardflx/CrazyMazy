@@ -87,7 +87,7 @@ class Npc:
             raise ValueError("NPC cannot choose a turn without a board")
         
         # for now its dumb. TODO: make it smart :D
-        insert_index = 3 if blocked_side is 1 else 1
+        insert_index = 3 if blocked_index != 3 else 1
 
         return NpcTurn(
             shift_side=InsertionSide.LEFT,

@@ -164,24 +164,14 @@ def _parse_viewer_payload(payload: Any) -> ViewerPayload | None:
         return None
 
     player_id = parse_str(payload.get("player_id"))
-    is_leader = parse_bool(payload.get("is_leader"))
-    is_current_player = parse_bool(payload.get("is_current_player"))
     active_treasure_type = parse_optional_enum(payload.get("active_treasure_type"), TreasureType)
-    collected_treasures = _parse_treasure_list(payload.get("collected_treasures"))
-    remaining_treasure_count = parse_int(payload.get("remaining_treasure_count"))
 
     if player_id is None:
-        return None
-    if is_leader is None or is_current_player is None or collected_treasures is None or remaining_treasure_count is None:
         return None
 
     return {
         "player_id": player_id,
-        "is_leader": is_leader,
-        "is_current_player": is_current_player,
         "active_treasure_type": active_treasure_type,
-        "collected_treasures": collected_treasures,
-        "remaining_treasure_count": remaining_treasure_count,
     }
 
 
@@ -333,7 +323,7 @@ def make_game_snapshot_payload(
         "tiles": [make_tile_payload(tile) for tile in tiles],
         "reachable_positions": [{"x": x, "y": y} for x, y in reachable_positions],
         "players": [make_public_player_payload(player, treasures_by_player.get(player.id, [])) for player in players],
-        "viewer": make_viewer_payload(game, viewer_player, treasures_by_player.get(viewer_player.id, []) if viewer_player is not None else []),
+        "viewer": make_viewer_payload(viewer_player, treasures_by_player.get(viewer_player.id, []) if viewer_player is not None else []),
     }
     if game.last_shift_side is not None and game.last_shift_index is not None and game.last_shift_rotation is not None:
         snapshot["last_shift"] = {
@@ -392,12 +382,11 @@ def make_public_player_payload(player: PlayerData, treasures: list[TreasureData]
     }
 
 
-def make_viewer_payload(game: GameData, player: PlayerData | None, treasures: list[TreasureData]) -> ViewerPayload | None:
+def make_viewer_payload(player: PlayerData | None, treasures: list[TreasureData]) -> ViewerPayload | None:
     """Build the viewer payload for the local player, including private treasure info."""
     if player is None:
         return None
     ordered = sorted(treasures, key=lambda current: current.order_index)
-    collected = [treasure.treasure_type.value for treasure in ordered if treasure.collected]
     active_treasure_type = (
         next((treasure.treasure_type.value for treasure in ordered if not treasure.collected), None)
         if player.status == PlayerStatus.ACTIVE
@@ -405,11 +394,7 @@ def make_viewer_payload(game: GameData, player: PlayerData | None, treasures: li
     )
     return {
         "player_id": str(player.id),
-        "is_leader": game.leader_player_id == player.id,
-        "is_current_player": player.status == PlayerStatus.ACTIVE and game.current_player_id == player.id,
         "active_treasure_type": active_treasure_type,
-        "collected_treasures": collected,
-        "remaining_treasure_count": sum(1 for treasure in ordered if not treasure.collected),
     }
 
 

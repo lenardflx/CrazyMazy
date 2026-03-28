@@ -91,22 +91,14 @@ class SnapshotPlayerState:
 @dataclass(slots=True)
 class SnapshotViewerState:
     player_id: str
-    is_leader: bool
-    is_current_player: bool
     active_treasure_type: TreasureType | None
-    collected_treasures: list[TreasureType]
-    remaining_treasure_count: int
 
     @classmethod
     def from_payload(cls, payload: ViewerPayload) -> "SnapshotViewerState":
         active_treasure_type = payload["active_treasure_type"]
         return cls(
             player_id=payload["player_id"],
-            is_leader=payload["is_leader"],
-            is_current_player=payload["is_current_player"],
             active_treasure_type=None if active_treasure_type is None else TreasureType(active_treasure_type),
-            collected_treasures=[TreasureType(treasure) for treasure in payload["collected_treasures"]],
-            remaining_treasure_count=payload["remaining_treasure_count"],
         )
 
 
