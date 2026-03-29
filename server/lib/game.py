@@ -6,7 +6,8 @@ import re
 from typing import Iterable
 
 from shared.lib.lobby import MAX_JOINABLE_PLAYERS, VALID_BOARD_SIZES, is_valid_board_size
-from shared.models import GameData, GamePhase, PlayerData
+from shared.types.enums import GamePhase
+from shared.types.data import GameData, PlayerData
 from server.lib.player import active_players
 JOIN_CODE_PATTERN = re.compile(r"^[A-Z0-9]{4}$")
 

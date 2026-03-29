@@ -1,8 +1,9 @@
-# Author: Tamay Engin, Lukas Saur-Brosch
+# Author: Lukas Saur-Brosch, Tamay Engin
 
 from server.db.sql_repo import TileRepositorySQL
 from server.db.engine import create_engine_for_environment
-from shared.models import TileData, TileType
+from shared.types.enums import TileType
+from shared.types.data import TileData
 from uuid import uuid4
 
 def create_tile_data():

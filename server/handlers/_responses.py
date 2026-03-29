@@ -5,10 +5,10 @@ from __future__ import annotations
 
 from server.network.connections import get_connection
 from server.network.models import OutgoingMessage, RequestContext
-from server.service import GameState
 from shared.events import ServerGameLeftEvent, ServerGameSnapshotEvent, ServerResponseErrorEvent
 from shared.lib.snapshot import make_game_snapshot_payload
 from shared.protocol import ErrorCode
+from shared.game.state import GameState
 
 
 def error_response(ctx: RequestContext, code: ErrorCode) -> list[OutgoingMessage]:

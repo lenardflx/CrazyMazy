@@ -1,9 +1,10 @@
-# Author: Lenard Felix, Raphael Eiden
+# Author: Lenard Felix
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from shared.types.payloads import ErrorPayload, GameSnapshotPayload, ServerGameLeftPayload
 from shared.protocol import ErrorCode
 from shared.schema import GameSnapshotPayload, ServerGameLeftPayload
 

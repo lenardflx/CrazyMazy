@@ -62,6 +62,10 @@ def make_snapshot_message_bytes() -> bytes:
                             "treasure_type": None,
                         },
                     ],
+                    "reachable_positions": [
+                        {"x": 1, "y": 2},
+                        {"x": 1, "y": 3},
+                    ],
                     "players": [
                         {
                             "id": "550e8400-e29b-41d4-a716-446655440001",

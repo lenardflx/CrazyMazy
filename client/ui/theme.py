@@ -21,6 +21,7 @@ DISABLED: Color = (156, 142, 129)
 GRAYED: Color = (173, 173, 173)
 ACTIVE_OUTLINE: Color = (223, 161, 67)
 MOVE_HIGHLIGHT: Color = (104, 177, 113)
+ERROR: Color = (150, 58, 48)
 
 
 def mix(a: int, b: int, amount: float) -> int:

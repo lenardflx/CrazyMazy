@@ -9,7 +9,7 @@ from server.db.memory_repo import (
     TreasureRepositoryInMemory,
 )
 from server.service import GameService
-from shared.models import GameEndReason, GamePhase, PlayerResult, PlayerStatus
+from shared.types.enums import GameEndReason, GamePhase, PlayerResult, PlayerStatus, TurnPhase
 
 
 def make_service() -> GameService:
@@ -56,7 +56,7 @@ def test_join_game_assigns_next_slot_automatically() -> None:
     assert joined.game.id == created.game.id
     assert joined.player.display_name == "Bob"
     assert joined.player.join_order == 1
-    assert joined.player.piece_color.value == "BLUE"
+    assert joined.player.piece_color.value == "YELLOW"
 
 
 def test_join_game_rejects_taken_display_name() -> None:
@@ -155,7 +155,7 @@ def test_leave_game_moves_active_game_to_postgame_when_everyone_has_left() -> No
     assert service.find_game(created.game.id) is not None
 
 
-def test_give_up_marks_player_forfeited_and_ends_active_game() -> None:
+def test_give_up_turns_player_into_observer_and_ends_two_player_game() -> None:
     service = make_service()
     created = service.create_lobby(7, "Ada", "conn_1")
     joined = service.join_game(created.game.code, "Bob", "conn_2")
@@ -166,8 +166,107 @@ def test_give_up_marks_player_forfeited_and_ends_active_game() -> None:
     state = service.give_up(joined.player.id)
 
     assert state is not None
-    forfeiting_player = next(player for player in state.players if player.id == joined.player.id)
-    assert forfeiting_player.result == PlayerResult.FORFEITED
-    assert forfeiting_player.status == PlayerStatus.DEPARTED
+    observer = next(player for player in state.players if player.id == joined.player.id)
+    assert observer.status == PlayerStatus.OBSERVER
+    assert observer.connection_id == joined.player.connection_id
     assert state.game.game_phase == GamePhase.POSTGAME
     assert state.game.end_reason == GameEndReason.PLAYERS_LEFT
+
+
+def test_give_up_turns_player_into_observer_and_passes_turn_when_other_players_remain() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    third = service.join_game(created.game.code, "Cara", "conn_3")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = joined.player.id
+    service.game_repo.update_game(created.game)
+
+    state = service.give_up(joined.player.id)
+
+    assert state is not None
+    observer = next(player for player in state.players if player.id == joined.player.id)
+    assert observer.status == PlayerStatus.OBSERVER
+    assert observer.connection_id == joined.player.connection_id
+    assert state.game.game_phase == GamePhase.GAME
+    assert state.game.end_reason is None
+    assert state.game.current_player_id == third.player.id
+
+
+def test_move_player_stores_last_move_path_and_collected_treasure() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    service.join_game(created.game.code, "Bob", "conn_2")
+    started = service.start_game(created.player.id)
+    current_player = next(player for player in started.players if player.id == started.game.current_player_id)
+    assert current_player.position_x is not None
+    assert current_player.position_y is not None
+
+    game = service.find_game(started.game.id)
+    assert game is not None
+    game.turn_phase = TurnPhase.MOVE
+    service.game_repo.update_game(game)
+
+    active_treasure = service.treasure_repo.list_by_player_id(current_player.id)[0]
+    tile = next(
+        tile
+        for tile in service.tile_repo.list_by_game_id(started.game.id)
+        if tile.column == current_player.position_x and tile.row == current_player.position_y
+    )
+    tile.treasure_type = active_treasure.treasure_type
+    service.tile_repo.update_tile(tile)
+
+    state = service.move_player(current_player.id, current_player.position_x, current_player.position_y)
+
+    assert state.game.last_move_player_id == current_player.id
+    assert state.game.last_move_path == f"{current_player.position_x},{current_player.position_y}"
+    assert state.game.last_move_collected_treasure_type == active_treasure.treasure_type
+
+
+def test_move_player_win_assigns_postgame_placements_to_other_players() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    started = service.start_game(created.player.id)
+
+    game = service.find_game(started.game.id)
+    assert game is not None
+    game.current_player_id = created.player.id
+    game.turn_phase = TurnPhase.MOVE
+    service.game_repo.update_game(game)
+
+    for treasure in service.treasure_repo.list_by_player_id(created.player.id):
+        treasure.collected = True
+        service.treasure_repo.update_treasure(treasure)
+
+    winner = service.player_repo.find_by_id(created.player.id)
+    assert winner is not None
+    assert winner.position_x is not None
+    assert winner.position_y is not None
+
+    state = service.move_player(winner.id, winner.position_x, winner.position_y)
+
+    assert state.game.game_phase == GamePhase.POSTGAME
+    players = {player.id: player for player in state.players}
+    assert players[created.player.id].placement == 1
+    assert players[created.player.id].result == PlayerResult.WON
+    assert players[joined.player.id].placement == 2
+
+
+def test_give_up_ending_game_assigns_postgame_placements_to_all_remaining_players() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = joined.player.id
+    service.game_repo.update_game(created.game)
+
+    state = service.give_up(joined.player.id)
+
+    assert state is not None
+    assert state.game.game_phase == GamePhase.POSTGAME
+    players = {player.id: player for player in state.players}
+    assert players[created.player.id].placement == 1
+    assert players[created.player.id].result == PlayerResult.WON
+    assert players[joined.player.id].placement == 2
+    assert players[joined.player.id].result == PlayerResult.FORFEITED

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from shared.lib.parse import parse_str
-from shared.schema import ErrorPayload
+from shared.types.payloads import ErrorPayload
 
 
 def parse_error_payload(payload: Mapping[str, Any]) -> ErrorPayload | None:

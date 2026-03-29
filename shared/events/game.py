@@ -7,28 +7,21 @@ from typing import Any, Mapping, Self
 
 from shared.events.event import Event
 from shared.lib.game import (
+    parse_client_game_add_npc_payload,
     parse_client_game_move_player_payload,
     parse_client_game_shift_tile_payload,
-    parse_server_game_finished_payload,
     parse_server_game_left_payload,
-    parse_server_game_player_moved_payload,
-    parse_server_game_started_payload,
-    parse_server_game_tile_shifted_payload,
-    parse_server_game_turn_changed_payload,
 )
 from shared.lib.parse import parse_int, parse_str
 from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
-from shared.schema import (
+from shared.types.enums import NpcDifficulty
+from shared.types.payloads import (
     ClientCreateLobbyPayload,
+    ClientGameAddNpcPayload,
     ClientJoinGamePayload,
     GameSnapshotPayload,
-    ServerGameFinishedPayload,
     ServerGameLeftPayload,
-    ServerGamePlayerMovedPayload,
-    ServerGameStartedPayload,
-    ServerGameTileShiftedPayload,
-    ServerGameTurnChangedPayload,
 )
 
 @dataclass(frozen=True)
@@ -122,6 +115,24 @@ class ClientGameStartEvent(Event):
 
 
 @dataclass(frozen=True)
+class ClientGameAddNpcEvent(Event):
+    message_type = "client.game.add_npc"
+
+    difficulty: NpcDifficulty
+
+    def to_payload(self) -> Mapping[str, Any]:
+        payload: ClientGameAddNpcPayload = {"difficulty": self.difficulty}
+        return payload
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        payload = parse_client_game_add_npc_payload(msg["payload"])
+        if payload is None:
+            return None
+        return cls(message_id=msg["id"], difficulty=NpcDifficulty(payload["difficulty"]))
+
+
+@dataclass(frozen=True)
 class ClientGameShiftTileEvent(Event):
     message_type = "client.game.shift_tile"
 
@@ -202,91 +213,6 @@ class ClientGameGiveUpEvent(Event):
         if msg["payload"]:
             return None
         return cls(message_id=msg["id"])
-
-
-@dataclass(frozen=True)
-class ServerGameStartedEvent(Event):
-    message_type = "server.game.started"
-
-    payload: ServerGameStartedPayload
-
-    def to_payload(self) -> Mapping[str, Any]:
-        return self.payload
-
-    @classmethod
-    def from_message(cls, msg: Message) -> Self | None:
-        payload = parse_server_game_started_payload(msg["payload"])
-        if payload is None:
-            return None
-        return cls(message_id=msg["id"], payload=payload)
-
-
-@dataclass(frozen=True)
-class ServerGameTileShiftedEvent(Event):
-    message_type = "server.game.tile_shifted"
-
-    payload: ServerGameTileShiftedPayload
-
-    def to_payload(self) -> Mapping[str, Any]:
-        return self.payload
-
-    @classmethod
-    def from_message(cls, msg: Message) -> Self | None:
-        payload = parse_server_game_tile_shifted_payload(msg["payload"])
-        if payload is None:
-            return None
-        return cls(message_id=msg["id"], payload=payload)
-
-
-@dataclass(frozen=True)
-class ServerGamePlayerMovedEvent(Event):
-    message_type = "server.game.player_moved"
-
-    payload: ServerGamePlayerMovedPayload
-
-    def to_payload(self) -> Mapping[str, Any]:
-        return self.payload
-
-    @classmethod
-    def from_message(cls, msg: Message) -> Self | None:
-        payload = parse_server_game_player_moved_payload(msg["payload"])
-        if payload is None:
-            return None
-        return cls(message_id=msg["id"], payload=payload)
-
-
-@dataclass(frozen=True)
-class ServerGameTurnChangedEvent(Event):
-    message_type = "server.game.turn_changed"
-
-    payload: ServerGameTurnChangedPayload
-
-    def to_payload(self) -> Mapping[str, Any]:
-        return self.payload
-
-    @classmethod
-    def from_message(cls, msg: Message) -> Self | None:
-        payload = parse_server_game_turn_changed_payload(msg["payload"])
-        if payload is None:
-            return None
-        return cls(message_id=msg["id"], payload=payload)
-
-
-@dataclass(frozen=True)
-class ServerGameFinishedEvent(Event):
-    message_type = "server.game.finished"
-
-    payload: ServerGameFinishedPayload
-
-    def to_payload(self) -> Mapping[str, Any]:
-        return self.payload
-
-    @classmethod
-    def from_message(cls, msg: Message) -> Self | None:
-        payload = parse_server_game_finished_payload(msg["payload"])
-        if payload is None:
-            return None
-        return cls(message_id=msg["id"], payload=payload)
 
 
 @dataclass(frozen=True)
