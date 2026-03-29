@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 
 
 class CreateLobbyScreen(MenuScreen):
+    """
+    Screen for creating a new game lobby. Allows the player to enter their name and choose a board size.
+    Submitting the form sends a create-lobby request to the server via LobbyService.
+    """
+
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Create Lobby")
         form = self.scene_manager.runtime_state.create_lobby
@@ -40,23 +45,29 @@ class CreateLobbyScreen(MenuScreen):
         )
 
     def _set_board_size(self, size: int) -> None:
+        """Update the selected board size in the runtime state and highlight the corresponding button."""
         self.scene_manager.runtime_state.create_lobby.board_size = size
         for button in self.size_buttons:
             button.variant = "primary" if button.label == str(size) else "secondary"
 
     def _set_board_size_action(self, size: int) -> Callable[[], None]:
+        """Return a closure that sets the board size to the given value when called.
+        This is needed because Python closures capture by reference, so we need to bind the size value here.
+        """
         def handle_click() -> None:
             self._set_board_size(size)
 
         return handle_click
 
     def _create_lobby(self) -> None:
+        """Submit the form and request the server to create a new lobby with the entered name and selected board size."""
         self.scene_manager.lobby_service.create_lobby(
             self.name_input.text,
             self.scene_manager.runtime_state.create_lobby.board_size,
         )
 
     def handle_content_event(self, event: pg.event.Event) -> None:
+        """Handle input events for the form controls."""
         super().handle_content_event(event)
         self.name_input.handle_event(event)
         for button in self.size_buttons:
@@ -64,6 +75,7 @@ class CreateLobbyScreen(MenuScreen):
         self.create_button.handle_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
+        """Draw the form controls and any error messages."""
         super().draw_content(rect)
         caption = self.body_font.render("Board Size", True, TEXT_PRIMARY)
         self.surface.blit(caption, caption.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 172)))

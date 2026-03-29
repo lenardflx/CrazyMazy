@@ -9,7 +9,11 @@ from shared.types.payloads import ErrorPayload, GameSnapshotPayload, ServerGameL
 
 @dataclass(slots=True)
 class ClientState:
-    """Mutable client-side state projected from server responses."""
+    """
+    Mutable client-side state projected from server responses.
+    This state is used as state context for the client to compare
+    incoming errors and snapshots with the current state of the client connection.
+    """
 
     last_error: ErrorPayload | None = None
     game_snapshot: GameSnapshotPayload | None = None

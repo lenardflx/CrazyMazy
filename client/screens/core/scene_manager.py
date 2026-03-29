@@ -21,7 +21,9 @@ from shared.game.snapshot import SnapshotGameState
 
 
 class SceneManager:
-    """Coordinates the active screen, client state, and network sync."""
+    """
+    The SceneManager is responsible for managing the current screen and handling scene transitions.
+    """
 
     def __init__(
         self,
@@ -30,6 +32,7 @@ class SceneManager:
         surface: pygame.Surface,
         audio: AudioManager,
     ) -> None:
+        # The SceneManager holds references to the connection, surface and audio manager, which it passes to the screens it creates.
         self.connection = connection
         self.surface = surface
         self.audio = audio
@@ -38,37 +41,39 @@ class SceneManager:
         self.lobby_service = LobbyService(connection, self.runtime_state)
         self.game_service = GameService(connection, self.runtime_state)
 
+        # The current scene and screen. NOTE: Can probably be simplified to a single attribute
         self.current_scene: SceneTypes | None = None
         self.current_screen: BaseScreen | None = None
 
+        # The transport sync is responsible for syncing the transport state with the runtime state and determining if a scene change is necessary.
         self._transport_sync = TransportSync(transport_state, self.runtime_state)
 
+        # Apply the initial audio settings
         self.audio.apply_settings(
             self.client_settings.master_volume,
             self.client_settings.music_volume,
             self.client_settings.effects_volume,
         )
 
-    #Scenenwechsel
     def go_to(self, scene: SceneTypes) -> None:
+        """Switch to a new scene and create the corresponding screen."""
         if scene == self.current_scene:
             return
         self.current_scene = scene
         self.current_screen = create_screen(scene, self.surface, self)
 
-    #Event Handler
     def handle_event(self, event: pygame.event.Event) -> None:
+        """Pass a pygame event to the current screen for handling."""
         if self.current_screen is not None:
             self.current_screen.handle_event(event)
 
-    #Screen Update
     def tick(self, dt: float) -> None:
+        """Update the current screen and draw it to the surface."""
         if self.current_screen is not None:
             self.current_screen.update(dt)
             self.current_screen.draw()
         pygame.display.flip()
 
-    #Vollbildmodus
     def apply_fullscreen(self, fullscreen: bool) -> None:
         if fullscreen:
             # TODO: Fix this workaround so Windows also gets scaled
@@ -80,10 +85,19 @@ class SceneManager:
             pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     def sync_transport(self) -> None:
+        """Check if the transport layer has a new scene to switch to, and if so, switch to it.
+        The transport layer holds the game state, so if a game transitions from e.g. lobby to in-game, 
+        the transport layer will trigger a scene change that we have to react to here.
+        """
+
         target = self._transport_sync.sync()
         if target is not None:
             self.go_to(target)
 
     @property
     def game_state(self) -> SnapshotGameState | None:
+        """
+        Since the transport sync is supposed to be private, we expose the game state through a property here for screens that need it.
+        """
+        
         return self._transport_sync.game_state

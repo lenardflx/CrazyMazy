@@ -1,5 +1,10 @@
 # Author: Lenard Felix, Christopher Ionescu
 
+"""
+This is the main entry point of the client application.
+It initializes the Pygame window, connects to the server, and holds the main game loop.
+"""
+
 import pygame
 
 import client.network.handlers # Unused import, but needed for the handlers to load

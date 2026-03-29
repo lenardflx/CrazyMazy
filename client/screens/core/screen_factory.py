@@ -21,8 +21,11 @@ from client.screens.menu.settings_screen import SettingsScreen
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
-#Erzeuge Screen
 def create_screen(scene: SceneTypes, surface: pygame.Surface, manager: SceneManager) -> BaseScreen:
+    """
+    The factory is responsible for creating screens based on the current scene type.
+    This is used in the SceneManager to create the appropriate screen when switching scenes.
+    """
     match scene:
         case SceneTypes.MAIN_MENU:
             return MainMenuScreen(surface, manager)

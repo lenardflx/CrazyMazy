@@ -1,5 +1,11 @@
 # Author: Lenard Felix
 
+"""
+Manages the TCP connection to the game server.
+Handles connecting, disconnecting, sending typed events, and polling for incoming messages.
+Received messages are parsed and dispatched via the event dispatcher.
+"""
+
 from __future__ import annotations
 
 import socket
