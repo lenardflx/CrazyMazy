@@ -8,8 +8,7 @@ from client.sound.manager import AudioManager
 from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
-from client.screens.core.scene_manager import SceneManager
-from client.screens.core.scene_types import SceneTypes
+from client.screens.core.scene_manager import SceneManager, SceneTypes
 
 
 def main() -> None:
@@ -52,6 +51,7 @@ def main() -> None:
 
         # Handle Pygame events
         events = pygame.event.get()
+
         for event in events:
             if event.type == pygame.QUIT:
                 running = False

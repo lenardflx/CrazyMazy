@@ -31,9 +31,7 @@ from shared.types.enums import (
     PlayerStatus,
     PlayerControllerKind,
     TreasureType,
-    TreasureData,
     TurnPhase,
-    utcnow,
 )
 
 from shared.protocol import ErrorCode
@@ -325,7 +323,7 @@ class GameService:
         _, game = self._require_current_player(player_id, TurnPhase.SHIFT)
         if not is_valid_insertion_index(game.board_size, index):
             raise ValueError(f"Invalid insertion index: {index}")
-        
+
         # Prevent re-inserting from the side that would immediately reverse the previous shift.
         # TODO: the client should disable that button
         if game.blocked_insertion_side == side and game.blocked_insertion_index == index:
@@ -335,23 +333,8 @@ class GameService:
         if state is None:
             return ErrorCode.GAME_NOT_FOUND
 
-        for tile in state.tiles:
-            self.tile_repo.update_tile(tile)
-
-        # Mutate tile positions and orientations in-place, then persist all updated tiles.
-        # staged for removal after the state management
-        # update, testing required
-        # shift_tiles(
-        #     tiles,
-        #     board_size=game.board_size,
-        #     side=side,
-        #     index=index,
-        #     rotation=rotation,
-        # )
-
-        for tile in tiles:
-            raise ValueError("Game not found")
         state.board.shift_tile(side, index, rotation)
+
         for tile in state.tiles:
             self.tile_repo.update_tile(tile)
 

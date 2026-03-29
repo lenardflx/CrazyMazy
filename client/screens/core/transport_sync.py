@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from client.network.state import ClientState
 from client.screens.core.scene_types import SceneTypes
-from client.state.display_state import ClientDisplayState
-from client.state.runtime_state import RuntimeState
 from shared.protocol import ErrorCode
 from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation, RuntimeState
 from shared.types.enums import GamePhase

@@ -6,8 +6,6 @@ from dataclasses import dataclass
 
 from shared.types.payloads import ErrorPayload, GameSnapshotPayload, ServerGameLeftPayload
 from shared.protocol import ErrorCode
-from shared.schema import GameSnapshotPayload, ServerGameLeftPayload
-
 
 @dataclass(slots=True)
 class ClientState:

@@ -22,7 +22,6 @@ from shared.events import (
     ClientJoinGameEvent,
 )
 from shared.types.enums import InsertionSide
-from shared.models import InsertionSide
 from shared.protocol import ErrorCode
 
 
