@@ -10,7 +10,7 @@ from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.ui.controls import Button
 from client.ui.theme import TEXT_MUTED
 from client.screens.menu.menu_screen import MenuScreen
-from shared.types.enums import GamePhase
+from shared.types.enums import GamePhase, PlayerResult
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -39,15 +39,15 @@ class PostGameScreen(MenuScreen):
         self.play_again_button.handle_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
-        super().draw_content(rect)
         game_state = self.scene_manager.game_state
         if game_state is None or game_state.phase != GamePhase.POSTGAME:
+            super().draw_content(rect)
             return
-        subtitle = self.body_font.render("Placements", True, TEXT_MUTED)
-        self.surface.blit(subtitle, (self.content_rect.x, self.content_rect.y + 54))
+        self.title = self._result_title()
+        super().draw_content(rect)
         self.player_panel_view.draw(
             self.surface,
-            pg.Rect(self.content_rect.x, self.content_rect.y + 92, self.content_rect.width, 360),
+            pg.Rect(self.content_rect.x, self.content_rect.y + 72, self.content_rect.width, 380),
             game_state,
             post_game=True,
         )
@@ -56,3 +56,16 @@ class PostGameScreen(MenuScreen):
         if self.scene_manager.runtime_state.global_error_message:
             error = self.small_font.render(self.scene_manager.runtime_state.global_error_message, True, (150, 58, 48))
             self.surface.blit(error, (self.content_rect.x, self.content_rect.bottom - 88))
+
+    def _result_title(self) -> str:
+        game_state = self.scene_manager.game_state
+        if game_state is None:
+            return "Game Over"
+        viewer = game_state.viewer_player
+        if viewer is None:
+            return "Game Over"
+        if viewer.result == PlayerResult.WON:
+            return "You Win"
+        if viewer.placement is not None:
+            return f"You Placed {viewer.placement}"
+        return "Game Over"

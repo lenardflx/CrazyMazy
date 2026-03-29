@@ -26,7 +26,7 @@ class Npc:
     player_id: UUID
     difficulty: NpcDifficulty = NpcDifficulty.NORMAL
 
-    # A Name is generated from a combination of a prefix and suffix
+    # A Name is generated from a combination of a prefix and suffix TODO: other names, they are AI generated slop
     _NAME_PREFIXES: ClassVar[tuple[str, ...]] = (
         "Amber",
         "Brass",

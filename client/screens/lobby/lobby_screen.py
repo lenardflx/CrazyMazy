@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from shared.types.enums import GamePhase, NpcDifficulty, PlayerControllerKind
+from client.screens.game.views.player_panel_view import PlayerPanelView
+from shared.types.enums import GamePhase, NpcDifficulty
 from client.ui.controls import Button
-from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
+from client.ui.theme import TEXT_MUTED, TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
 
 if TYPE_CHECKING:
@@ -18,9 +19,10 @@ if TYPE_CHECKING:
 class LobbyScreen(MenuScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Lobby")
+        self.player_panel_view = PlayerPanelView()
         button_y = self.content_rect.bottom - 54
-        self.add_npc_button = Button(pg.Rect(self.content_rect.x, button_y, 140, 44), "Add NPC", self._add_npc)
-        self.start_button = Button(pg.Rect(self.content_rect.x + 160, button_y, 160, 44), "Start Game", self._start_game, variant="primary")
+        self.start_button = Button(pg.Rect(self.content_rect.x, button_y, 160, 44), "Start Game", self._start_game, variant="primary")
+        self.add_npc_button = Button(pg.Rect(self.content_rect.x + 180, button_y, 140, 44), "Add NPC", self._add_npc)
         self.leave_button = Button(pg.Rect(self.content_rect.x + 340, button_y, 160, 44), "Leave Lobby", self._confirm_leave)
 
     def _add_npc(self) -> None:
@@ -61,24 +63,11 @@ class LobbyScreen(MenuScreen):
         self.surface.blit(code, (self.content_rect.x, self.content_rect.y + 62))
         size = self.body_font.render(f"Board Size: {game_state.board_size}", True, TEXT_MUTED)
         self.surface.blit(size, (self.content_rect.x, self.content_rect.y + 98))
-
-        for index, player in enumerate(game_state.ordered_players):
-            row = pg.Rect(self.content_rect.x, self.content_rect.y + 146 + index * 58, self.content_rect.width, 46)
-            fill = PANEL
-            pg.draw.rect(self.surface, fill, row, border_radius=12)
-            tags: list[str] = []
-            if player.id == game_state.viewer_id:
-                tags.append("You")
-            if player.controller == PlayerControllerKind.NPC:
-                tags.append("NPC" if player.npc_difficulty is None else f"{player.npc_difficulty.title()} NPC")
-            if player.id == (game_state.leader_player_id or ""):
-                tags.append("Leader")
-            marker = " • ".join(tags)
-            label = self.body_font.render(player.display_name, True, TEXT_PRIMARY)
-            status = self.small_font.render(marker, True, TEXT_MUTED) if marker else None
-            self.surface.blit(label, (row.x + 16, row.y + 12))
-            if status is not None:
-                self.surface.blit(status, status.get_rect(midright=(row.right - 16, row.y + 23)))
+        self.player_panel_view.draw(
+            self.surface,
+            pg.Rect(self.content_rect.x, self.content_rect.y + 146, self.content_rect.width, 288),
+            game_state,
+        )
 
         self.add_npc_button.draw(self.surface, self.button_font)
         self.start_button.draw(self.surface, self.button_font)

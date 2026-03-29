@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, cast
+from typing import Literal
 
 import pygame as pg
 
 from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation
-from client.textures import TILE_IMAGES, TREASURE_IMAGES
+from client.textures import PLAYER_IMAGES, TILE_IMAGES, TREASURE_IMAGES
 from client.ui.theme import DISABLED, MOVE_HIGHLIGHT, PANEL, PANEL_ALT, TEXT_PRIMARY, blend_color, font
-from shared.types.enums import InsertionSide, PlayerColor, TreasureType
+from shared.types.enums import InsertionSide, PlayerColor, PlayerSkin, TreasureType
 from shared.game.tile import Tile
-from shared.game.snapshot import SnapshotGameState, SnapshotPlayerState
+from shared.game.snapshot import SnapshotGameState
 
 
 PLAYER_COLOR_VALUES = {
@@ -161,14 +161,13 @@ class BoardView:
             if player.position is None:
                 continue
             if move_animation is not None and player.id == move_animation.player_id:
-                animated_center = self._moving_player_center(layout, move_animation)
-                pg.draw.circle(surface, player_color(player), animated_center, max(8, layout.cell_size // 7))
+                self._draw_player_pin(surface, player.piece_color, self._moving_player_center(layout, move_animation))
                 # TODO: When the walking animation reaches the destination and
                 # `move_animation.collected_treasure_type` is set, trigger the client-side
                 # treasure pickup effect from here so token movement and treasure feedback stay synced.
                 continue
             player_rect = self._animated_rect(layout.cells[player.position], player.position, layout.cell_size, shift_animation)
-            pg.draw.circle(surface, player_color(player), player_rect.center, max(8, layout.cell_size // 7))
+            self._draw_player_pin(surface, player.piece_color, player_rect.center)
 
         for arrow in layout.arrows:
             self._draw_arrow(surface, arrow, enabled=game_state.can_shift and shift_animation is None and move_animation is None)
@@ -312,9 +311,9 @@ class BoardView:
             round(start[1] + (end[1] - start[1]) * segment_progress),
         )
 
-
-def player_color(player: SnapshotPlayerState) -> tuple[int, int, int]:
-    return PLAYER_COLOR_VALUES[cast(PlayerColor, player.piece_color)]
+    def _draw_player_pin(self, surface: pg.Surface, piece_color: PlayerColor, center: tuple[int, int]) -> None:
+        pin = PLAYER_IMAGES[PlayerSkin.DEFAULT][piece_color]
+        surface.blit(pin, pin.get_rect(center=center))
 
 
 def _tile_surface(tile: Tile) -> pg.Surface:

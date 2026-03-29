@@ -405,6 +405,8 @@ class GameService:
             player.placement = 1
             player.finished_at = utcnow()
             self.player_repo.update_player(player)
+            players = self.player_repo.list_by_game_id(game.id)
+            self._finalize_postgame_players(players, winner_id=player.id)
             game.game_phase = GamePhase.POSTGAME
             game.end_reason = GameEndReason.COMPLETED
             game.current_player_id = None
@@ -455,7 +457,9 @@ class GameService:
                 winner.placement = 1
                 winner.finished_at = utcnow()
                 self.player_repo.update_player(winner)
-            # TODO: Assign placements/results for every player
+                self._finalize_postgame_players(players, winner_id=winner.id)
+            else:
+                self._finalize_postgame_players(players)
             game.revision += 1
             game = self.game_repo.update_game(game)
             state = self.get_game_state(game.id)
@@ -619,6 +623,28 @@ class GameService:
             return False
         home_x, home_y = start_position_for_color(game.board_size, player.piece_color)
         return player.position_x == home_x and player.position_y == home_y
+
+    def _finalize_postgame_players(self, players: list[PlayerData], winner_id: UUID | None = None) -> None:
+        finished_at_fallback = utcnow()
+        placement = 2 if winner_id is not None else 1
+
+        ranked_players = sorted(
+            (player for player in players if player.status != PlayerStatus.DEPARTED and player.id != winner_id),
+            key=lambda player: (
+                player.status == PlayerStatus.OBSERVER,
+                player.finished_at or finished_at_fallback,
+                player.join_order,
+            ),
+        )
+
+        for player in ranked_players:
+            player.placement = placement
+            if player.status == PlayerStatus.OBSERVER:
+                player.result = PlayerResult.FORFEITED
+            if player.finished_at is None:
+                player.finished_at = utcnow()
+            self.player_repo.update_player(player)
+            placement += 1
 
     def _active_treasure(self, player_id: UUID) -> TreasureData | None:
         """Return the player's next uncollected treasure, or ``None`` if all are collected."""

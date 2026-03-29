@@ -196,7 +196,7 @@ class Board:
         if not self.can_reach(start, destination):
             return None
         # TODO: Replace this placeholder with the real path reconstruction algorithm.
-        return [destination]
+        return [start, destination]
 
     def pathfind(self, position: Position, visited: list[Position] | None = None) -> list[Position]:
         """
@@ -252,7 +252,7 @@ class Board:
 
                 # --- Fixed T‑pieces on edges (even coordinates only) ---
                 elif i == 0 and j % 2 == 0 and 0 < j < self.width - 1:
-                    self.tiles[(j, i)] = Tile(TileType.T, TileOrientation.EAST, treasure_stack[counter])
+                    self.tiles[(j, i)] = Tile(TileType.T, TileOrientation.SOUTH, treasure_stack[counter])
                     counter += 1
                 elif i == self.width - 1 and j % 2 == 0 and 0 < j < self.width - 1:
                     self.tiles[(j, i)] = Tile(TileType.T, TileOrientation.NORTH, treasure_stack[counter])
