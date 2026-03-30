@@ -21,7 +21,7 @@ BACKGROUND_COLOR = (76, 96, 122)
 ButtonTarget = SceneTypes | Callable[[], None]
 ButtonSpec = tuple[str, ButtonTarget, str]
 
-
+#Oberklasse Menu Screens
 class MenuScreen(BaseScreen):
     """
     Base class for all menu-style screens (main menu, lobby, settings, etc.).

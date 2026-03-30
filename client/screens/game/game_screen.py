@@ -18,7 +18,7 @@ from shared.game.snapshot import SnapshotGameState
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
-
+#Die eigentliche Spielansicht
 class GameScreen(BaseScreen):
     """
     The GameScreen is responsible for displaying the game board and player panels, and handling user interactions during the game.
