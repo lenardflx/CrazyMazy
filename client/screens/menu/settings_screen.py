@@ -52,8 +52,8 @@ class SettingsScreen(MenuScreen):
                 lambda: self._sync_settings(),
 )
         #FIXME: Language Buttons umgehen akzeptanz der Einstellung von apply_settings() -> schickt direkt an app_data, vielleicht ändern?
-        self.english_language_button = Button(pg.Rect(0, 300, 120, 46), "english", lambda: self.scene_manager.client_settings.set_language(0))
-        self.german_language_button = Button(pg.Rect(250, 300, 120, 46), "german", lambda: self.scene_manager.client_settings.set_language(1))
+        self.english_language_button = Button(pg.Rect(100, 700, 120, 46), "english", lambda: self.scene_manager.client_settings.set_language(0))
+        self.german_language_button = Button(pg.Rect(300, 700, 120, 46), "german", lambda: self.scene_manager.client_settings.set_language(1))
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
