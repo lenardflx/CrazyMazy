@@ -9,12 +9,11 @@ from shared.types.enums import (
     PlayerControllerKind,
 )
 
+from shared.protocol import ErrorCode
+
 
 class ErrorPayload(TypedDict):
-    """Standard error payload returned by the server."""
-
-    code: str
-    message: str
+    code: ErrorCode
 
 
 class PositionPayload(TypedDict):

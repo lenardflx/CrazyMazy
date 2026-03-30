@@ -6,6 +6,7 @@ import pygame
 
 from sys import platform
 from client.config import WINDOW_WIDTH, WINDOW_HEIGHT
+from client.lang import language_service
 from client.sound.manager import AudioManager
 from client.network.client_connection import ClientConnection
 from client.network.services.game_service import GameService
@@ -85,12 +86,9 @@ class SceneManager:
             pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     def sync_transport(self) -> None:
-        """Check if the transport layer has a new scene to switch to, and if so, switch to it.
-        The transport layer holds the game state, so if a game transitions from e.g. lobby to in-game, 
-        the transport layer will trigger a scene change that we have to react to here.
-        """
-
-        target = self._transport_sync.sync()
+        target, error = self._transport_sync.sync()
+        if error is not None:
+            self.current_screen.error_message = language_service.get_message(error)
         if target is not None:
             self.go_to(target)
 

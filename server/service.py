@@ -33,6 +33,8 @@ from shared.types.enums import (
     TreasureType,
     TurnPhase,
 )
+
+from shared.protocol import ErrorCode
 from shared.types.data import GameData, PlayerData, TileData, TreasureData, utcnow
 from shared.game.board import Board, is_valid_insertion_index, opposite_side
 from shared.game.helper import assign_treasures, start_position_for_color
@@ -69,7 +71,7 @@ class GameService:
         board_size: int,
         leader_display_name: str,
         connection_id: str,
-    ) -> ConnectionState:
+    ) -> ConnectionState | ErrorCode:
         """Create a new game lobby and register the creating player as leader.
 
         :param board_size: Side length of the square board.
@@ -79,7 +81,7 @@ class GameService:
         :raises ValueError: If the board size is invalid or the display name is taken/invalid.
         """
         if not is_valid_board_size(board_size):
-            raise ValueError(f"Invalid board size: {board_size}")
+            return ErrorCode.INVALID_BOARD_SIZE
 
         game = self.game_repo.create_game(board_size)
         leader = self._create_player_for_game(
@@ -99,7 +101,7 @@ class GameService:
         join_code: str,
         display_name: str,
         connection_id: str,
-    ) -> ConnectionState:
+    ) -> ConnectionState | ErrorCode:
         """Join an existing lobby by join code.
 
         :param join_code: The lobby's join code (case-insensitive).
@@ -110,11 +112,11 @@ class GameService:
         """
         game = self.find_game_by_code(join_code)
         if game is None:
-            raise ValueError(f"Game is not joinable: {join_code!r}")
+            return ErrorCode.GAME_NOT_FOUND
 
         players = self.player_repo.list_by_game_id(game.id)
         if not can_join_game(game, players):
-            raise ValueError(f"Game is not joinable: {join_code!r}")
+            return ErrorCode.GAME_NOT_JOINABLE
 
         player = self._create_player_for_game(
             game=game,
@@ -236,7 +238,7 @@ class GameService:
         players = self._mark_player_observer(player)
         return self._after_player_inactivation(game, player, players)
 
-    def start_game(self, player_id: UUID) -> GameState:
+    def start_game(self, player_id: UUID) -> GameState | ErrorCode:
         """Start (or restart) the game; only the lobby leader may call this.
 
         Clears any previous runtime data, generates a new board, assigns treasures,
@@ -249,20 +251,20 @@ class GameService:
         """
         player = self.player_repo.find_by_id(player_id)
         if player is None:
-            raise ValueError("Player not found")
+            return ErrorCode.PLAYER_NOT_FOUND
 
         game = self.game_repo.find_by_game_id(player.game_id)
         if game is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         if game.leader_player_id != player.id:
-            raise ValueError("Only the leader can start the game")
+            return ErrorCode.PLAYER_INSUFFICIENT_PERMISSION
         if game.game_phase not in (GamePhase.PREGAME, GamePhase.POSTGAME):
-            raise ValueError("Game cannot be started right now")
+            return ErrorCode.GAME_NOT_STARTABLE
 
         players = self.player_repo.list_by_game_id(game.id)
         active = sorted(active_players(players), key=lambda current: current.join_order)
         if len(active) < MIN_STARTABLE_PLAYERS:
-            raise ValueError("Not enough players to start the game")
+            return ErrorCode.PLAYER_COUNT_INSUFFICIENT
 
         # Wipe leftover tiles and treasures from a previous round before generating new ones.
         self._clear_game_runtime(game.id, players)
@@ -303,10 +305,10 @@ class GameService:
         game = self.game_repo.update_game(game)
         state = self.get_game_state(game.id)
         if state is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         return state
 
-    def shift_tile(self, player_id: UUID, side: InsertionSide, index: int, rotation: int) -> GameState:
+    def shift_tile(self, player_id: UUID, side: InsertionSide, index: int, rotation: int) -> GameState | ErrorCode:
         """Push the spare tile into the board and shift the row or column.
         If a player is currently on that row or column, they will be carried along with the shift,
         or pushed off and readded on the opposite side if they would fall off the board.
@@ -321,16 +323,18 @@ class GameService:
         _, game = self._require_current_player(player_id, TurnPhase.SHIFT)
         if not is_valid_insertion_index(game.board_size, index):
             raise ValueError(f"Invalid insertion index: {index}")
-        
+
         # Prevent re-inserting from the side that would immediately reverse the previous shift.
         # TODO: the client should disable that button
         if game.blocked_insertion_side == side and game.blocked_insertion_index == index:
-            raise ValueError("That insertion is blocked")
+            return ErrorCode.TILE_INSERTION_BLOCKED
 
         state = self.get_game_state(game.id)
         if state is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
+
         state.board.shift_tile(side, index, rotation)
+
         for tile in state.tiles:
             self.tile_repo.update_tile(tile)
 
@@ -360,10 +364,10 @@ class GameService:
         game = self.game_repo.update_game(game)
         updated = self.get_game_state(game.id)
         if updated is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         return updated
 
-    def move_player(self, player_id: UUID, x: int, y: int) -> GameState:
+    def move_player(self, player_id: UUID, x: int, y: int) -> GameState | ErrorCode:
         """Move the current player to a reachable position and collect any treasure there.
 
         Ends the game if the player has won; otherwise advances to the next player's turn.
@@ -378,15 +382,15 @@ class GameService:
         player, game = self._require_current_player(player_id, TurnPhase.MOVE)
         state = self.get_game_state(game.id)
         if state is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
 
         start = self._player_position(player)
         if start is None:
-            raise ValueError("Player has no position")
+            return ErrorCode.PLAYER_HAS_NO_POSITION
         destination = (x, y)
         path = state.board.path_to(start, destination)
         if path is None:
-            raise ValueError("Target position is not reachable")
+            return ErrorCode.TARGET_POSITION_UNREACHABLE
 
         player.position_x = x
         player.position_y = y
@@ -416,7 +420,7 @@ class GameService:
         game = self.game_repo.update_game(game)
         updated = self.get_game_state(game.id)
         if updated is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         if updated.game.game_phase == GamePhase.POSTGAME:
             return updated
         return self._finish_move(updated.game, player)
@@ -522,18 +526,20 @@ class GameService:
         *,
         controller_kind: PlayerControllerKind = PlayerControllerKind.HUMAN,
         npc_difficulty: NpcDifficulty | None = None,
-    ) -> PlayerData:
+    ) -> PlayerData | ErrorCode:
         """Validate and create a new player for the given game."""
         players = self.player_repo.list_by_game_id(game.id)
         if not is_valid_display_name(display_name):
-            raise ValueError(f"Invalid display name: {display_name!r}")
+            return ErrorCode.DISPLAY_NAME_ILLEGAL
         if is_display_name_taken(players, display_name):
-            raise ValueError(f"Display name already taken: {display_name!r}")
+            return ErrorCode.DISPLAY_NAME_TAKEN
 
         join_order = next_join_order(players)
         piece_color = next_available_color(players)
         if piece_color is None:
-            raise ValueError("No player color available")
+            # Actually, the error is "no player color available"
+            # but this can only happen when the game is full.
+            return ErrorCode.GAME_FULL
 
         return self.player_repo.create_player(
             display_name=normalize_display_name(display_name),
@@ -545,7 +551,7 @@ class GameService:
             npc_difficulty=npc_difficulty,
         )
 
-    def _finish_move(self, game: GameData, player: PlayerData) -> GameState:
+    def _finish_move(self, game: GameData, player: PlayerData) -> GameState | ErrorCode:
         """Advance to the next player's SHIFT phase."""
         next_player = self._next_active_player(active_players(self.player_repo.list_by_game_id(game.id)), player.id)
         game.current_player_id = next_player.id
@@ -559,23 +565,23 @@ class GameService:
         game = self.game_repo.update_game(game)
         state = self.get_game_state(game.id)
         if state is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         return state
 
-    def _require_current_player(self, player_id: UUID, phase: TurnPhase) -> tuple[PlayerData, GameData]:
+    def _require_current_player(self, player_id: UUID, phase: TurnPhase) -> tuple[PlayerData, GameData] | ErrorCode:
         """Fetch and validate that it is the player's turn in the expected phase."""
         player = self.player_repo.find_by_id(player_id)
         if player is None:
-            raise ValueError("Player not found")
+            return ErrorCode.PLAYER_NOT_FOUND
         game = self.game_repo.find_by_game_id(player.game_id)
         if game is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         if game.game_phase != GamePhase.GAME:
-            raise ValueError("Game is not active")
+            return ErrorCode.GAME_INACTIVE
         if game.current_player_id != player.id:
-            raise ValueError("It is not your turn")
+            return ErrorCode.PLAYER_NO_TURN
         if game.turn_phase != phase:
-            raise ValueError(f"Expected turn phase: {phase.value}")
+            return ErrorCode.UNEXPECTED_TURN_PHASE
         return player, game
 
     def _clear_game_runtime(self, game_id: UUID, players: list[PlayerData]) -> None:

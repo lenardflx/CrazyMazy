@@ -6,9 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Self
 
 from shared.events.event import Event
-from shared.lib.error import parse_error_payload
-from shared.protocol import Message
-from shared.types.payloads import ErrorPayload
+from shared.protocol import Message, ErrorCode
 
 
 @dataclass(frozen=True)
@@ -17,22 +15,23 @@ class ServerResponseErrorEvent(Event):
 
     message_type = "response.error"
 
-    code: str
-    message: str
+    error_code: ErrorCode
 
     def to_payload(self) -> Mapping[str, Any]:
         return {
-            "code": self.code,
-            "message": self.message,
+            "error_code": self.error_code,
         }
 
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
-        payload: ErrorPayload | None = parse_error_payload(msg["payload"])
+        payload = msg["payload"]
         if payload is None:
+            return None
+        try:
+            code: ErrorCode = ErrorCode(payload["error_code"])
+        except KeyError:
             return None
         return cls(
             message_id=msg["id"],
-            code=payload["code"],
-            message=payload["message"],
+            error_code=code,
         )

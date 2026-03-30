@@ -2,23 +2,100 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any, Mapping, NotRequired, TypedDict, cast
 
 from shared.utils.ids import new_message_id
 
 
-class ErrorCode:
-    """
-
-    """
+class ErrorCode(StrEnum):
     INVALID_MESSAGE = "INVALID_MESSAGE"
     INVALID_PAYLOAD = "INVALID_PAYLOAD"
 
+    DISPLAY_NAME_TAKEN = "DISPLAY_NAME_TAKEN"
+    DISPLAY_NAME_TOO_SHORT = "DISPLAY_NAME_TOO_SHORT"
+    DISPLAY_NAME_TOO_LONG = "DISPLAY_NAME_TOO_LONG"
+    DISPLAY_NAME_ILLEGAL = "DISPLAY_NAME_ILLEGAL"
+
+    INVALID_BOARD_SIZE = "INVALID_BOARD_SIZE"
+    """
+    The board size (board width) is invalid, as it is either 
+    too big/small or an even number. 
+    """
+
+    INVALID_INSERTION_INDEX = "INVALID_INSERTION_INDEX"
+    """
+    A tile cannot be inserted at this position because 
+    the tile at this index is a fixed tile. 
+    """
+
+    TILE_INSERTION_BLOCKED = "TILE_INSERTION_BLOCKED"
+    """
+    When a player inserts a tile, the next player cannot undo their 
+    move by simply inserting the tile back into the same position, so 
+    the insertion is blocked at that specific index.
+    """
+
     GAME_NOT_FOUND = "GAME_NOT_FOUND"
     GAME_FULL = "GAME_FULL"
-    INVALID_BOARD_SIZE = "INVALID_BOARD_SIZE"
-    DISPLAY_NAME_TAKEN = "DISPLAY_NAME_TAKEN"
     GAME_NOT_JOINABLE = "GAME_NOT_JOINABLE"
+
+    GAME_INACTIVE = "GAME_INACTIVE"
+    """
+    The game is expected to be in the game phase, but currently 
+    is in another phase such as PRE- or POSTGAME. 
+    """
+
+    GAME_NOT_STARTABLE = "GAME_NOT_STARTABLE"
+    """
+    The game cannot be started right now, for example due to an 
+    incorrect game phase (e.g. `POST_GAME`)
+    """
+
+    PLAYER_COUNT_INSUFFICIENT = "PLAYER_COUNT_INSUFFICIENT"
+    """
+    There are not enough players to perform an action, such as 
+    the minimum player count is not fulfilled when attempting to start the game.
+    """
+
+    PLAYER_INSUFFICIENT_PERMISSION = "PLAYER_INSUFFICIENT_PERMISSION"
+    """
+    When a player lacks permission to perform an action, such 
+    as attempting to start a game despite not being the leader. 
+    """
+
+    PLAYER_HAS_NO_POSITION = "PLAYER_HAS_NO_POSITION"
+    """
+    When a player wants to move and there is no start position 
+    known to validate that move, this error is thrown. 
+    """
+
+    PLAYER_NO_TURN = "PLAYER_NO_TURN"
+    """
+    The player has sent any move packet (shift or move) but its
+    actually not their turn.
+    """
+
+    UNEXPECTED_TURN_PHASE = "UNEXPECTED_TURN_PHASE"
+    """
+    Each turn consists of two actions:
+    1) Insert and shift a tile 
+    2) Move to another tile 
+    If the player sends a move packet, although they should actually 
+    insert a tile (or the other way round) this error is thrown.
+    """
+
+    TARGET_POSITION_UNREACHABLE = "TARGET_POSITION_UNREACHABLE"
+    """
+    When a player wants to move from one tile to another, but there is no valid 
+    path between these tiles, the server refuses the move with this error. 
+    """
+
+    PLAYER_NOT_FOUND = "PLAYER_NOT_FOUND"
+    """
+    When a player is not found, i.e. there is no player with a 
+    given id or the connection does not exist.
+    """
 
 
 class Message(TypedDict):

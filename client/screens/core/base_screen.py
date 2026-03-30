@@ -11,6 +11,7 @@ class BaseScreen(ABC):
     """
     def __init__(self, surface: pygame.Surface) -> None:
         self.surface = surface
+        self.error_message: str | None = None
 
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> None:

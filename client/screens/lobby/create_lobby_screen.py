@@ -83,7 +83,6 @@ class CreateLobbyScreen(MenuScreen):
         for button in self.size_buttons:
             button.draw(self.surface, self.button_font)
         self.create_button.draw(self.surface, self.button_font)
-        error_message = self.scene_manager.runtime_state.create_lobby.error_message
-        if error_message:
-            error = self.small_font.render(error_message, True, (150, 58, 48))
+        if self.error_message:
+            error = self.small_font.render(self.error_message, True, (150, 58, 48))
             self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 346)))

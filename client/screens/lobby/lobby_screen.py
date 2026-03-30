@@ -85,6 +85,6 @@ class LobbyScreen(MenuScreen):
         self.add_npc_button.draw(self.surface, self.button_font)
         self.start_button.draw(self.surface, self.button_font)
         self.leave_button.draw(self.surface, self.button_font)
-        if self.scene_manager.runtime_state.global_error_message:
-            error = self.small_font.render(self.scene_manager.runtime_state.global_error_message, True, (150, 58, 48))
+        if self.error_message:
+            error = self.small_font.render(self.error_message, True, (150, 58, 48))
             self.surface.blit(error, (self.content_rect.x, self.content_rect.bottom - 88))

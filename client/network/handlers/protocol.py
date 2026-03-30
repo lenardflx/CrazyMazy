@@ -1,4 +1,10 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
+"""
+This file handles all incoming events from the server.
+The handler methods update the global `ClientState`, which can then be
+used by the MainLoop and Screen-Manager to update the actually displayed
+content.
+"""
 
 """
 Protocol event handlers for incoming server messages.
@@ -15,11 +21,7 @@ from shared.events import ServerGameLeftEvent, ServerGameSnapshotEvent, ServerRe
 
 @dispatcher.handler(ServerResponseErrorEvent)
 def handle_response_error(state: ClientState, event: ServerResponseErrorEvent) -> None:
-    """Store the latest server error and bump the version so TransportSync picks it up."""
-    state.last_error = {
-        "code": event.code,
-        "message": event.message,
-    }
+    state.last_error = event.error_code
     state.error_version += 1
 
 
