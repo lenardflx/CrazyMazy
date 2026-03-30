@@ -25,24 +25,17 @@ class ClientSettings:
         self.effects_volume: int = 100
 
         self.fullscreen: bool = False
-
-        # initialize last known user's setting
-        self.read_JSON()
         
 
     #fullscreen wird umgangen mittels pygame.display.get_desktop_sizes()[0] -> als neue WindowDimensionen
     #und die flags sind dann HWSURFACE | DOUBLEBUF | NOFRAME bzw 1073741857
-<<<<<<< HEAD
-=======
-
-    #Setze die Master Lautstärke
->>>>>>> 4b074e3ae40cc9c715040c9102b73829ba5fbe21
     def set_master_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.master_volume = val_volume
         self.write_JSON()
         self.master_volume = val_volume
+
 
     #Setze die Musik-Lautstärke
     def set_music_volume(self, val_volume:int)->None:
@@ -52,16 +45,14 @@ class ClientSettings:
         self.write_JSON()
         self.music_volume = val_volume
 
+
     #Setze die Effekt-Lautstärke
     def set_effects_volume(self, val_volume:int)->None:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.effects_volume = val_volume
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 4b074e3ae40cc9c715040c9102b73829ba5fbe21
     #Setze den Fullscreen Status
     def set_fullscreen(self, val_fullscreen:bool)->None:
         self.fullscreen = val_fullscreen
@@ -75,23 +66,26 @@ class ClientSettings:
 
         self.write_JSON()
 
+
     #Returnt die Master Lautstärke
     def get_master_volume(self)->int:
         return self.master_volume
     
+
     #Returnt die Musik Lautstärke
     def get_music_volume(self)->int:
         return self.music_volume
+
 
     #Returnt die Effekt Lautstärke
     def get_effects_volume(self)->int:
         return self.effects_volume
 
+
     #Returnt den Fullscreen Status
     def get_fullscreen(self)->bool:
         return self.fullscreen
 
-<<<<<<< HEAD
 
     def get_flags(self)->int:
         if self.fullscreen:
@@ -100,9 +94,6 @@ class ClientSettings:
             return 1073741841
   
 
-=======
-    #Speichert die Einstellungen lokal in einer JSON
->>>>>>> 4b074e3ae40cc9c715040c9102b73829ba5fbe21
     def write_JSON(self)->None:
         setting_values = {
             "master_volume": self.get_master_volume(),
@@ -116,6 +107,7 @@ class ClientSettings:
         }
         with open(BASE_DIR / "data/settings_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
+
 
     #Liest die lokalen Einstellungen aus der JSON
     def read_JSON(self)->None:
