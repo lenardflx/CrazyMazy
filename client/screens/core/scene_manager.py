@@ -40,7 +40,7 @@ class SceneManager:
         self.client_settings = ClientSettings()
         self.runtime_state = RuntimeState()
         self.lobby_service = LobbyService(connection, self.runtime_state)
-        self.game_service = GameService(connection, self.runtime_state)
+        self.game_service = GameService(connection)
 
         # The current scene and screen. NOTE: Can probably be simplified to a single attribute
         self.current_scene: SceneTypes | None = None
