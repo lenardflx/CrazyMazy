@@ -16,7 +16,7 @@ import random
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind
+from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind, GamePhase
 from shared.types.data import GameData, PlayerData, TileData, TreasureData
 
 
@@ -33,6 +33,9 @@ class GameRepositoryInMemory(GameRepository):
         if game_id is None:
             return None
         return self._games.get(game_id)
+
+    def find_active_games(self) -> list[GameData]:
+        return [x for x in self._games.values() if x.game_phase == GamePhase.GAME]
 
     def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
         game = GameData(
