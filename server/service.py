@@ -488,8 +488,6 @@ class GameService:
             next_player = self._next_active_player(remaining_players, player.id)
             game.current_player_id = next_player.id
             game.turn_phase = TurnPhase.SHIFT
-            game.blocked_insertion_side = None
-            game.blocked_insertion_index = None
             game.last_shift_side = None
             game.last_shift_index = None
             game.last_shift_rotation = None
@@ -565,8 +563,6 @@ class GameService:
         next_player = self._next_active_player(active_players(self.player_repo.list_by_game_id(game.id)), player.id)
         game.current_player_id = next_player.id
         game.turn_phase = TurnPhase.SHIFT
-        game.blocked_insertion_side = None
-        game.blocked_insertion_index = None
         game.last_shift_side = None
         game.last_shift_index = None
         game.last_shift_rotation = None
