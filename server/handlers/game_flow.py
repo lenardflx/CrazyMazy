@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from uuid import UUID
 
-from server.db import game_service
+from server.db.runtime import game_service
 from server.handlers._responses import error_response, left_response, snapshot_response
 from server.network.dispatch import dispatcher
 from server.network.models import OutgoingMessage, RequestContext

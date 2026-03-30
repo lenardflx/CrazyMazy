@@ -20,7 +20,7 @@ class SQLRepository:
     session: Session
 
     def __init__(self, engine) -> None:
-        # Ensure table metadata is materialized for fresh test databases.
+        """Ensure table metadata is materialized for fresh test databases."""
         SQLModel.metadata.create_all(engine)
         self.session = Session(engine)
 
@@ -38,11 +38,13 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         super().__init__(engine)
 
     def find_by_game_id(self, game_id: UUID) -> GameData | None:
+        """Returns the instance of the table Game that has a specific game_id."""
         return self.read(
             lambda session: self.session.get(GameTable, game_id)
         )
 
     def find_by_join_code(self, join_code: str) -> GameData | None:
+        """Returns the instance of the table Game that has a specific join_code."""
         return self.read(
             lambda session: self.session.exec(
                 select(GameTable).where(GameTable.code == join_code)
@@ -50,6 +52,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         )
 
     def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
+        """Creates an instance of the table Game and returns it."""
         def op(session: Session) -> GameData:
             game = GameTable(
                 code="0000",
@@ -64,6 +67,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         return self.write(op)
 
     def update_game(self, new_game: GameData) -> GameData:
+        """Updates an instance of the table Game and returns it."""
         def op(session: Session) -> GameData:
             db_game = self.session.merge(GameTable.model_validate(new_game))
             self.session.flush()
@@ -73,6 +77,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         return self.write(op)
 
     def delete_game(self, game_id: UUID) -> None:
+        """Deletes an instance of the table Game."""
         def op(session: Session) -> None:
             game = self.session.get(GameTable, game_id)
             if game:
@@ -95,6 +100,7 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
         controller_kind: PlayerControllerKind = PlayerControllerKind.HUMAN,
         npc_difficulty: NpcDifficulty | None = None,
     ) -> PlayerData:
+        """Creates an instance of the table Game and returns it."""
         def op(session: Session) -> PlayerData:
             player = PlayerTable(
                 display_name=display_name,
@@ -113,9 +119,11 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
         return self.write(op)
 
     def find_by_id(self, player_id: UUID) -> PlayerData | None:
+        """Returns the instance of the table Player that has a specific player_id."""
         return self.read(lambda session: self.session.get(PlayerTable, player_id))
 
     def find_by_connection_id(self, connection_id: str) -> PlayerData | None:
+        """Returns the instance of the table Player that has a specific connection_id."""
         return self.read(
             lambda session: self.session.exec(
                 select(PlayerTable).where(PlayerTable.connection_id == connection_id)
@@ -123,6 +131,7 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
         )
 
     def list_by_game_id(self, game_id: UUID) -> list[PlayerData]:
+        """Returns all instances of the table Player that have a specific game_id"""
         return self.read(
             lambda session: list(
                 self.session.exec(
@@ -132,6 +141,7 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
         )
 
     def update_player(self, player: PlayerData) -> PlayerData:
+        """Updates an instance of the table Player and returns it."""
         def op(session: Session) -> PlayerData:
             db_player = self.session.merge(PlayerTable.model_validate(player))
             self.session.flush()
@@ -146,6 +156,7 @@ class TileRepositorySQL(SQLRepository, TileRepository):
         super().__init__(engine)
 
     def create_tile(self, tile: TileData) -> TileData:
+        """Creates an instance of the table Tile and returns it."""
         def op(session: Session) -> TileData:
             db_tile = TileTable.model_validate(tile)
             self.session.add(db_tile)
@@ -156,9 +167,11 @@ class TileRepositorySQL(SQLRepository, TileRepository):
         return self.write(op)
 
     def find_by_id(self, tile_id: UUID) -> TileData | None:
+        """Returns the instance of the table Tile that has a specific tile_id."""
         return self.read(lambda session: self.session.get(TileTable, tile_id))
 
     def list_by_game_id(self, game_id: UUID) -> list[TileData]:
+        """Returns all instances of the table Tile that have a specific game_id"""
         return self.read(
             lambda session: list(
                 self.session.exec(select(TileTable).where(TileTable.game_id == game_id)).all()
@@ -166,6 +179,7 @@ class TileRepositorySQL(SQLRepository, TileRepository):
         )
 
     def update_tile(self, tile: TileData) -> TileData:
+        """Updates an instance of the table Tile and returns it."""
         def op(session: Session) -> TileData:
             db_tile = self.session.merge(TileTable.model_validate(tile))
             self.session.flush()
@@ -175,6 +189,7 @@ class TileRepositorySQL(SQLRepository, TileRepository):
         return self.write(op)
 
     def delete_tile(self, tile_id: UUID) -> None:
+        """Deletes an instance of the table Tile."""
         def op(session: Session) -> None:
             tile = self.session.get(TileTable, tile_id)
             if tile:
@@ -188,6 +203,7 @@ class TreasureRepositorySQL(SQLRepository, TreasureRepository):
         super().__init__(engine)
 
     def create_treasure(self, treasure: TreasureData) -> TreasureData:
+        """Creates an instance of the table Treasure and returns it."""
         def op(session: Session) -> TreasureData:
             db_treasure = TreasureTable.model_validate(treasure)
             self.session.add(db_treasure)
@@ -198,9 +214,11 @@ class TreasureRepositorySQL(SQLRepository, TreasureRepository):
         return self.write(op)
 
     def find_by_id(self, treasure_id: UUID) -> TreasureData | None:
+        """Returns the instance of the table Treasure that has a specific treasure_id."""
         return self.read(lambda session: self.session.get(TreasureTable, treasure_id))
 
     def list_by_player_id(self, player_id: UUID) -> list[TreasureData]:
+        """Returns all instances of the table Treasure that have a specific player_id"""
         return self.read(
             lambda session: list(
                 self.session.exec(
@@ -210,6 +228,7 @@ class TreasureRepositorySQL(SQLRepository, TreasureRepository):
         )
 
     def update_treasure(self, treasure: TreasureData) -> TreasureData:
+        """Updates an instance of the table Treasure and returns it."""
         def op(session: Session) -> TreasureData:
             db_treasure = self.session.merge(TreasureTable.model_validate(treasure))
             self.session.flush()
@@ -219,6 +238,7 @@ class TreasureRepositorySQL(SQLRepository, TreasureRepository):
         return self.write(op)
 
     def delete_treasure(self, treasure_id: UUID) -> None:
+        """Deletes an instance of the table Treasure."""
         def op(session: Session) -> None:
             treasure = self.session.get(TreasureTable, treasure_id)
             if treasure:

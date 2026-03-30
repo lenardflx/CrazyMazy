@@ -435,3 +435,49 @@ class Board:
             entity = TileData(game_id=game_id)
             self._tile_entities[id(tile)] = entity
         return entity
+
+    def is_border(self, position: tuple[int, int]) -> bool:
+        # returns if a position is at the border of the board
+        return 0 in position or self.width in position
+
+    def insertion_shift_coordinates(self, position : tuple[int, int]) -> list[tuple[int,int]]:
+        '''
+        returns a list with the coordinates of all tiles that move after an insertion
+        '''
+
+        x,y = position
+        moved_tiles = []
+
+        # Must be on the border
+        if (x != 0 and y != 0) and (x != self.width - 1 and y != self.width - 1):
+            return []
+
+        # Must be inside valid coordinate range
+        if x < 0 or x >= self.width or y < 0 or y >= self.width:
+            return []
+
+        # Even/even positions are fixed tiles
+        if x % 2 == 0 and y % 2 == 0:
+            return []
+
+        # --- Horizontal insertion from the left ---
+        if x == 0:
+            for i in range(self.width):
+                moved_tiles += [(i,y)]
+
+        # --- Horizontal insertion from the right ---
+        if x == self.width - 1:
+            for i in range(self.width - 1, -1, -1):
+                moved_tiles += [(i, y)]
+
+        # --- Vertical insertion from the top ---
+        if y == 0:
+            for i in range(self.width):
+                moved_tiles += [(x, i)]
+
+        # --- Vertical insertion from the bottom ---
+        if y == self.width - 1:
+            for i in range(self.width - 1, -1, -1):
+                moved_tiles += [(x, i)]
+
+        return moved_tiles

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
+from client.lang import language_service
 from shared.lib.lobby import VALID_BOARD_SIZES
 from client.ui.controls import Button, TextInput
 from client.ui.theme import TEXT_PRIMARY
@@ -63,13 +64,16 @@ class CreateLobbyScreen(MenuScreen):
 
     def _create_lobby(self) -> None:
         """Submit the form and request the server to create a new lobby with the entered name and selected board size."""
-        self.scene_manager.lobby_service.create_lobby(
+        error = self.scene_manager.lobby_service.create_lobby(
             self.name_input.text,
             self.scene_manager.runtime_state.create_lobby.board_size,
         )
         self.scene_manager.client_settings.set_name(self.name_input.text)
         self.scene_manager.client_settings.write_JSON()
         
+        if error:
+            self.error_message = language_service.get_message(error)
+
     def handle_content_event(self, event: pg.event.Event) -> None:
         """Handle input events for the form controls."""
         super().handle_content_event(event)
