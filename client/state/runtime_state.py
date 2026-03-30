@@ -19,14 +19,6 @@ class PendingRequest(StrEnum):
     LEAVE_GAME = "LEAVE_GAME"
 
 
-# TODO: I dont like this error handling at all... any ideas?
-class ErrorTarget(StrEnum):
-    CREATE_LOBBY = "CREATE_LOBBY"
-    JOIN_LOBBY = "JOIN_LOBBY"
-    GLOBAL = "GLOBAL"
-    GAME = "GAME"
-
-
 @dataclass(slots=True)
 class CreateLobbyFormState:
     """Persists form inputs and validation errors for the create-lobby screen across re-renders."""
@@ -113,32 +105,8 @@ class GameRuntimeState:
 class RuntimeState:
     """
     Top-level mutable client state that lives for the entire session.
-    Aggregates form state, in-game state, error messages, and the currently pending server request.
+    Aggregates form state and in-game state
     """
     create_lobby: CreateLobbyFormState = field(default_factory=CreateLobbyFormState)
     join_lobby: JoinLobbyFormState = field(default_factory=JoinLobbyFormState)
     game: GameRuntimeState = field(default_factory=GameRuntimeState)
-    global_error_message: str | None = None
-    pending_request: PendingRequest | None = None
-    pending_error_target: ErrorTarget | None = None
-
-    def clear_errors(self) -> None:
-        """Clear all error messages across all sub-states."""
-        self.create_lobby.error_message = None
-        self.join_lobby.error_message = None
-        self.game.error_message = None
-        self.global_error_message = None
-
-    def clear_pending(self) -> None:
-        """Clear the pending request tracking, typically called when a server response arrives."""
-        self.pending_request = None
-        self.pending_error_target = None
-
-    def set_pending(self, request: PendingRequest, target: ErrorTarget) -> None:
-        """Record that a request has been sent and we are waiting for a response.
-
-        :param request: The type of request that is in flight.
-        :param target: Where to route the error if the server responds with a failure.
-        """
-        self.pending_request = request
-        self.pending_error_target = target

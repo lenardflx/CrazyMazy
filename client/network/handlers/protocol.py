@@ -1,12 +1,11 @@
 # Author: Lenard Felix, Raphael Eiden
+from __future__ import annotations
 """
 This file handles all incoming events from the server.
 The handler methods update the global `ClientState`, which can then be
 used by the MainLoop and Screen-Manager to update the actually displayed
 content.
 """
-
-from __future__ import annotations
 
 """
 Protocol event handlers for incoming server messages.
