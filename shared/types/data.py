@@ -4,93 +4,30 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from enum import StrEnum
 from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
 
+from shared.types.enums import (
+    GameEndReason,
+    GamePhase,
+    InsertionSide,
+    NpcDifficulty,
+    PlayerControllerKind,
+    PlayerColor,
+    PlayerResult,
+    PlayerSkin,
+    PlayerStatus,
+    TileType,
+    TreasureType,
+    TurnPhase,
+)
 
+# TODO: Lib
 def utcnow() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(timezone.utc)
-
-class PlayerStatus(StrEnum):
-    ACTIVE = "ACTIVE"
-    OBSERVER = "OBSERVER"
-    DEPARTED = "DEPARTED"
-
-
-class PlayerResult(StrEnum):
-    NONE = "NONE"
-    WON = "WON"
-    FORFEITED = "FORFEITED"
-
-
-class PlayerColor(StrEnum):
-    RED = "RED"
-    BLUE = "BLUE"
-    GREEN = "GREEN"
-    YELLOW = "YELLOW"
-
-
-class PlayerSkin(StrEnum):
-    DEFAULT = "DEFAULT"
-
-
-class TileType(StrEnum):
-    STRAIGHT = "STRAIGHT"
-    CORNER = "CORNER"
-    T = "T"
-
-
-class TreasureType(StrEnum):
-    SKULL = "SKULL"
-    SWORD = "SWORD"
-    GOLDBAG = "GOLDBAG"
-    KEYS = "KEYS"
-    EMERALD = "EMERALD"
-    ARMOR = "ARMOR"
-    BOOK = "BOOK"
-    CROWN = "CROWN"
-    CHEST = "CHEST"
-    CANDLE = "CANDLE"
-    MAP = "MAP"
-    RING = "RING"
-    DRAGON = "DRAGON"
-    GHOST = "GHOST"
-    BAT = "BAT"
-    GOBLIN = "GOBLIN"
-    PRINCESS = "PRINCESS"
-    GENIE = "GENIE"
-    BUG = "BUG"
-    OWL = "OWL"
-    LIZARD = "LIZARD"
-    SPIDER = "SPIDER"
-    FLY = "FLY"
-    RAT = "RAT"
-
-
-class GamePhase(StrEnum):
-    PREGAME = "PREGAME"
-    GAME = "GAME"
-    POSTGAME = "POSTGAME"
-
-
-class GameEndReason(StrEnum):
-    PLAYERS_LEFT = "PLAYERS_LEFT"
-    COMPLETED = "COMPLETED"
-
-
-class TurnPhase(StrEnum):
-    SHIFT = "SHIFT" # move tile
-    MOVE = "MOVE" # move player position
-
-
-class InsertionSide(StrEnum):
-    TOP = "TOP"
-    RIGHT = "RIGHT"
-    BOTTOM = "BOTTOM"
-    LEFT = "LEFT"
 
 
 class PlayerData(SQLModel):
@@ -119,6 +56,8 @@ class PlayerData(SQLModel):
     # Player figure identity
     piece_color: PlayerColor = Field(index=True)
     skin: PlayerSkin = Field(default=PlayerSkin.DEFAULT)
+    controller_kind: PlayerControllerKind = Field(default=PlayerControllerKind.HUMAN, index=True)
+    npc_difficulty: Optional[NpcDifficulty] = Field(default=None)
 
     # Current game's position of the player
     position_x: Optional[int] = Field(default=None)
@@ -203,6 +142,16 @@ class GameData(SQLModel):
     # Reverse insertion rule (no push back of last player's move)
     blocked_insertion_side: Optional[InsertionSide] = Field(default=None)
     blocked_insertion_index: Optional[int] = Field(default=None)
+
+    # Last executed shift, used by clients for board-slide animation.
+    last_shift_side: Optional[InsertionSide] = Field(default=None)
+    last_shift_index: Optional[int] = Field(default=None)
+    last_shift_rotation: Optional[int] = Field(default=None)
+
+    # Last executed move, used by clients for walking and treasure animations.
+    last_move_player_id: Optional[UUID] = Field(default=None, foreign_key="player.id", index=True)
+    last_move_path: Optional[str] = Field(default=None)
+    last_move_collected_treasure_type: Optional[TreasureType] = Field(default=None)
 
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)

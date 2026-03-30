@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from client.state.runtime_state import ErrorTarget, RuntimeState
 from shared.protocol import ErrorCode
-from shared.schema import ErrorPayload
+from shared.types.payloads import ErrorPayload
 
 
 def apply_server_error(runtime: RuntimeState, error: ErrorPayload) -> None:

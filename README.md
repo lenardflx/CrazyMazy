@@ -7,6 +7,12 @@ The board game "Das Verrückte Labyrinth" as a multiplayer game built with Pytho
 
 - Python 3.11+
 
+Setup a virtual Environment:
+```shell
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
 Install dependencies:
 ```shell
 pip install -r requirements.txt
@@ -45,6 +51,11 @@ pytest
 ├── client/      # Pygame GUI client (screens, UI, network, state)
 ├── server/      # TCP socket server (handlers, game service, db)
 ├── shared/      # Models, events, protocol, and game logic used by both
+├── docs/        # Architecture and gameplay documentation
 ├── tests/       # Pytest test suite
 └── assets/      # Game images and UI assets
 ```
+
+## Documentation
+
+Start with [docs/README.md](./docs/README.md).

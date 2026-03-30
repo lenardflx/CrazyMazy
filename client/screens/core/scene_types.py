@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from enum import Enum
 
-#Eine Lookup-Liste aller Scenes
 class SceneTypes(Enum):
+    """Enum of all available scene types. The SceneManager uses these to determine which screen to create."""
     MAIN_MENU = "Main Menu"
     SERVER_DOWN = "Server Down"
     SETTINGS = "Settings"

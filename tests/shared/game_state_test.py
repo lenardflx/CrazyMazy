@@ -1,4 +1,6 @@
-from shared.state.game_state import Board,TileType, Tile, TreasureType, TileOrientation
+from shared.game.board import Board
+from shared.game.tile import Tile
+from shared.types.enums import TileOrientation, TileType, TreasureType
 import unittest
 from random import randint
 
@@ -13,10 +15,10 @@ class TestCreateBoard(unittest.TestCase):
     def test_corners(self):
         # tests if corner have the correct type and colour
         board = self._randomBoard()
-        self.assertTrue(board.tiles[(0,0)].type == TileType.CORNER and board.tiles[(0,0)].treasure == TreasureType.YELLOW) # top left
-        self.assertTrue(board.tiles[(board.width-1, 0)].type == TileType.CORNER and board.tiles[(board.width-1, 0)].treasure == TreasureType.BLUE) #top right
-        self.assertTrue(board.tiles[(0, board.width-1)].type == TileType.CORNER and board.tiles[(0, board.width-1)].treasure == TreasureType.RED) # bottom left
-        self.assertTrue(board.tiles[(board.width-1, board.width-1)].type == TileType.CORNER and board.tiles[(board.width-1, board.width-1)].treasure == TreasureType.GREEN) # bottom right
+        self.assertTrue(board.tiles[(0,0)].type == TileType.CORNER and board.tiles[(0,0)].orientation == TileOrientation.EAST) # top left
+        self.assertTrue(board.tiles[(board.width-1, 0)].type == TileType.CORNER and board.tiles[(board.width-1, 0)].orientation == TileOrientation.SOUTH) #top right
+        self.assertTrue(board.tiles[(0, board.width-1)].type == TileType.CORNER and board.tiles[(0, board.width-1)].orientation == TileOrientation.NORTH) # bottom left
+        self.assertTrue(board.tiles[(board.width-1, board.width-1)].type == TileType.CORNER and board.tiles[(board.width-1, board.width-1)].orientation == TileOrientation.WEST) # bottom right
 
 
     def test_fixed_tiles_number(self):
@@ -51,7 +53,7 @@ class TestCreateBoard(unittest.TestCase):
         if board.spare.treasure is not None:
             counter += 1
             self.assertTrue(board.spare.treasure not in treasures)
-        self.assertEqual(counter, 28)
+        self.assertEqual(counter, 24)
 
     def test_insertion(self):
         board = self._randomBoard()
@@ -108,7 +110,7 @@ class TestCreateBoard(unittest.TestCase):
             board.change_tile(4, i, Tile(TileType.STRAIGHT, TileOrientation.NORTH))
             coordinates.append((4, i))
         # t-piece in the middle
-        board.change_tile(4,3, Tile(TileType.T_PIECE, TileOrientation.SOUTH))
+        board.change_tile(4,3, Tile(TileType.T, TileOrientation.SOUTH))
         path = board.pathfind((4,3))
         path.sort()
         coordinates.sort()
