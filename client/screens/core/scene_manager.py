@@ -17,7 +17,7 @@ from client.screens.core.scene_types import SceneTypes
 from client.screens.core.screen_factory import create_screen
 from client.screens.core.transport_sync import TransportSync
 from client.state.runtime_state import RuntimeState
-from client.state.settings import AppData
+from client.state.app_data import ClientData
 from shared.game.snapshot import SnapshotGameState
 
 
@@ -37,10 +37,10 @@ class SceneManager:
         self.connection = connection
         self.surface = surface
         self.audio = audio
-        self.client_settings = AppData()
+        self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
         self.lobby_service = LobbyService(connection, self.runtime_state)
-        self.game_service = GameService(connection, self.runtime_state)
+        self.game_service = GameService(connection)
 
         # The current scene and screen. NOTE: Can probably be simplified to a single attribute
         self.current_scene: SceneTypes | None = None

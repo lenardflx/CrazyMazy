@@ -11,6 +11,9 @@ class BaseScreen(ABC):
     """
     def __init__(self, surface: pygame.Surface) -> None:
         self.surface = surface
+
+        # text field reserved for an error message. Can be rendered
+        # optionally in the `draw` method.
         self.error_message: str | None = None
 
     @abstractmethod
