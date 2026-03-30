@@ -17,7 +17,7 @@ from client.screens.core.scene_types import SceneTypes
 from client.screens.core.screen_factory import create_screen
 from client.screens.core.transport_sync import TransportSync
 from client.state.runtime_state import RuntimeState
-from client.state.appdata import ClientData
+from client.state.app_data import ClientData
 from shared.game.snapshot import SnapshotGameState
 
 

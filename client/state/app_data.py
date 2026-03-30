@@ -6,7 +6,7 @@ from shared.paths import BASE_DIR
 
 class ClientData:
     """
-    Persists user preferences (volumes, fullscreen) to a JSON file and reloads them on startup.
+    Persists user preferences (volumes, fullscreen etc.) to a JSON file and reloads them on startup.
     All setters validate their input and immediately write to disk so settings survive restarts.
     """
 
