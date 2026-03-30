@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from client.state.display_state import ClientDisplayState, TileView
     from client.screens.core.scene_manager import SceneManager
 
-
+#Die eigentliche Spielansicht
 class GameScreen(BaseScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface)

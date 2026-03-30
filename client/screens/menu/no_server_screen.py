@@ -4,7 +4,7 @@ from __future__ import annotations
 import pygame
 from client.screens.core.base_screen import BaseScreen
 
-
+#Dieser Screen wird angezeigt, wenn keine Verbindung zum Server aufgebaut werden kann
 class NoServerScreen(BaseScreen):
     def __init__(self, surface: pygame.Surface) -> None:
         super().__init__(surface)

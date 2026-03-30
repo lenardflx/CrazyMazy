@@ -13,7 +13,7 @@ from client.screens.core.scene_types import SceneTypes
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
-
+#Hauptmenü
 class MainMenuScreen(MenuScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(
