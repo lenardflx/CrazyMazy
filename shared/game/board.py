@@ -439,3 +439,31 @@ class Board:
     def is_border(self, position: tuple[int, int]) -> bool:
         # returns if a position is at the border of the board
         return 0 in position or self.width in position
+
+    def insertion_shift_coordinates(self, position : tuple[int, int]) -> list[tuple[int,int]]:
+        '''
+        returns a list with the coordinates of all tiles that move after an insertion
+        '''
+
+        x,y = position
+        moved_tiles = []
+
+        # --- Horizontal insertion from the left ---
+        if x == 0:
+            for i in range(self.width):
+                moved_tiles += [(i,y)]
+
+        # --- Horizontal insertion from the right ---
+        if x == self.width - 1:
+            for i in range(self.width - 1, -1, -1):
+                moved_tiles += [(i, y)]
+
+        # --- Vertical insertion from the top ---
+        if y == 0:
+            for i in range(self.width):
+                moved_tiles += [(x, i)]
+
+        # --- Vertical insertion from the bottom ---
+        if y == self.width - 1:
+            for i in range(self.width - 1, -1, -1):
+                moved_tiles += [(x, i)]
