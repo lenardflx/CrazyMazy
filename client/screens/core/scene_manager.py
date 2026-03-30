@@ -67,6 +67,7 @@ class SceneManager:
         if scene == self.current_scene:
             return
         self.current_scene = scene
+        self._sync_scene_music(scene)
         self.current_screen = create_screen(scene, self.surface, self)
 
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -97,6 +98,13 @@ class SceneManager:
             self.current_screen.error_message = language_service.get_message(error)
         if target is not None:
             self.go_to(target)
+
+    def _sync_scene_music(self, scene: SceneTypes) -> None:
+        # TODO: add ingame music here
+        if scene == SceneTypes.GAME:
+            self.audio.stop_music()
+            return
+        self.audio.play_music("lobby")
 
     @property
     def game_state(self) -> SnapshotGameState | None:
