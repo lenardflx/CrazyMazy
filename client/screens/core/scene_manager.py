@@ -79,7 +79,8 @@ class SceneManager:
         if fullscreen:
             # TODO: Fix this workaround so Windows also gets scaled
             if platform == "win32":
-                pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                win_width, win_height = pygame.display.get_desktop_sizes()[0]
+                pygame.display.set_mode((win_width, win_height), pygame.NOFRAME)
             else:
                 pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
         else:
