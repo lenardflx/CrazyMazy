@@ -53,7 +53,7 @@ class SettingsScreen(MenuScreen):
 )
 
     def _sync_settings(self) -> None:
-        """Read all control values, write them to ClientSettings, and apply audio and fullscreen changes."""
+        """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
         settings = self.scene_manager.client_settings
         settings.set_master_volume(self.volume_sliders[0].value)
         settings.set_music_volume(self.volume_sliders[1].value)

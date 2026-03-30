@@ -4,9 +4,7 @@ import json
 
 from shared.paths import BASE_DIR
 
-# TODO: maybe make this into AppData class and add other states there like last display name, and tutorial completion status?
-
-class ClientSettings:
+class ClientData:
     """
     Persists user preferences (volumes, fullscreen) to a JSON file and reloads them on startup.
     All setters validate their input and immediately write to disk so settings survive restarts.
