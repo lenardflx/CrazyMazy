@@ -4,11 +4,22 @@ import json
 
 from shared.paths import BASE_DIR
 
+#Singleton
 class ClientData:
     """
     Persists user preferences (volumes, fullscreen etc.) to a JSON file and reloads them on startup.
     All setters validate their input and immediately write to disk so settings survive restarts.
     """
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            print('Creating the object')
+            cls._instance = super(ClientData, cls).__new__(cls)
+            # Put any initialization here for instancing.
+        return cls._instance
+
 
     def __init__(self):
         self.master_volume: int = 100

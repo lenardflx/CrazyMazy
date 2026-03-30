@@ -9,7 +9,7 @@ class DisplayMessage(StrEnum):
 
 
 class LanguageService:
-    # todo: depends on client settings and message repo
+    # TODO: depends on client settings and message repo
     def __init__(self) -> None:
         self.error_messages: Dict[ErrorCode, str] = {
             ErrorCode.GAME_NOT_FOUND: "This game does not exist",

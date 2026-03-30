@@ -14,6 +14,8 @@ from client.screens.menu.menu_screen import MenuScreen
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
+PLACEHOLDER_NAME = "Enter your Name"
+
 
 class CreateLobbyScreen(MenuScreen):
     """
@@ -25,7 +27,8 @@ class CreateLobbyScreen(MenuScreen):
         super().__init__(surface, scene_manager, title="Create Lobby")
         form = self.scene_manager.runtime_state.create_lobby
         center_x = self.content_rect.centerx
-        self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name, placeholder="Your name")
+        self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name,
+                                    placeholder=PLACEHOLDER_NAME if scene_manager.client_settings.get_name() == "" else scene_manager.client_settings.get_name())
         sizes = tuple(sorted(VALID_BOARD_SIZES))
         self.size_buttons = []
         for index, size in enumerate(sizes):
