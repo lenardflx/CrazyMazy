@@ -78,6 +78,8 @@ class GameService:
         :param leader_display_name: Display name for the lobby leader.
         :param connection_id: WebSocket connection ID of the leader.
         :return: Connection state containing the new game and leader player.
+                    `INVALID_BOARD_SIZE` when the configured width of the board is out of range or even.
+                    ``
         :raises ValueError: If the board size is invalid or the display name is taken/invalid.
         """
         if not is_valid_board_size(board_size):
@@ -89,6 +91,10 @@ class GameService:
             display_name=leader_display_name, # TODO: add constraints to display names (no symbols, length limit, etc.)
             connection_id=connection_id,
         )
+
+        if isinstance(leader, ErrorCode):
+            print("error with player")
+            return leader
 
         # Assign the newly created player as leader before persisting.
         game.leader_player_id = leader.id
@@ -108,7 +114,8 @@ class GameService:
         :param display_name: Display name for the joining player.
         :param connection_id: WebSocket connection ID of the joining player.
         :return: Connection state containing the game and the new player.
-        :raises ValueError: If the game is not found, not joinable, or the display name is taken/invalid.
+                    `GAME_NOT_FOUND` error when the game does not exist.
+                    `GAME_NOT_JOINABLE` when the game is not in lobby state.
         """
         game = self.find_game_by_code(join_code)
         if game is None:
@@ -123,22 +130,28 @@ class GameService:
             display_name=display_name,
             connection_id=connection_id,
         )
+
+        print("player: " + player)
+        if isinstance(player, ErrorCode):
+            print("error player")
+            return player
+
         game.revision += 1
         self.game_repo.update_game(game)
         return ConnectionState(game=game, player=player)
 
-    def add_npc(self, leader_player_id: UUID, difficulty: NpcDifficulty = NpcDifficulty.NORMAL) -> GameState:
+    def add_npc(self, leader_player_id: UUID, difficulty: NpcDifficulty = NpcDifficulty.NORMAL) -> GameState | ErrorCode:
         leader = self.player_repo.find_by_id(leader_player_id)
         if leader is None:
-            raise ValueError("Player not found")
+            return ErrorCode.PLAYER_NOT_FOUND
 
         game = self.game_repo.find_by_game_id(leader.game_id)
         if game is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         if game.leader_player_id != leader.id:
-            raise ValueError("Only the leader can add NPCs")
+            return ErrorCode.PLAYER_INSUFFICIENT_PERMISSION
         if game.game_phase != GamePhase.PREGAME:
-            raise ValueError("NPCs can only be added in the lobby")
+            return ErrorCode.ADD_NPC_ONLY_IN_LOBBY
 
         players = self.player_repo.list_by_game_id(game.id)
         npc_name = Npc.generate_name({player.display_name for player in players})
@@ -153,7 +166,7 @@ class GameService:
         game = self.game_repo.update_game(game)
         state = self.get_game_state(game.id)
         if state is None:
-            raise ValueError("Game not found")
+            return ErrorCode.GAME_NOT_FOUND
         return state
 
     def find_game(self, game_id: UUID) -> GameData | None:
@@ -246,8 +259,6 @@ class GameService:
 
         :param player_id: UUID of the player requesting the start (must be the leader).
         :return: The initial game state for the new round.
-        :raises ValueError: If the player/game is not found, the caller is not the leader,
-            the game phase is wrong, or there are not enough players.
         """
         player = self.player_repo.find_by_id(player_id)
         if player is None:
