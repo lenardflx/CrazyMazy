@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
+from client.textures import UI_IMAGES
 from client.ui.controls import Button
 from client.ui.dialogs import ChoiceDialog, ConfirmDialog
 from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
@@ -45,6 +46,7 @@ class MenuScreen(BaseScreen):
         self.is_main_menu = is_main_menu
         self.message = message
         self.dialog: ConfirmDialog | ChoiceDialog | None = None
+        self.background_image: pg.Surface | None = UI_IMAGES["TITLE_BACKGROUND"]
 
         self.title_font = pg.font.SysFont("verdana", 42, bold=True)
         self.section_font = pg.font.SysFont("verdana", 24, bold=True)
@@ -100,8 +102,7 @@ class MenuScreen(BaseScreen):
 
     def draw(self) -> None:
         """Draw the menu background, card panel, back button, content, and any active dialog."""
-        self.surface.fill(BACKGROUND_COLOR)
-        # TODO: replace the flat fill with the final menu background image.
+        self._draw_background()
 
         if self.back_button is not None:
             self.back_button.draw(self.surface, self.button_font)
@@ -117,6 +118,13 @@ class MenuScreen(BaseScreen):
 
         if self.dialog is not None:
             self.dialog.draw(self.surface)
+
+    def _draw_background(self) -> None:
+        if self.background_image is None:
+            self.surface.fill(BACKGROUND_COLOR)
+            return
+        scaled = pg.transform.scale(self.background_image, self.surface.get_size())
+        self.surface.blit(scaled, (0, 0))
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         for button in self.buttons:

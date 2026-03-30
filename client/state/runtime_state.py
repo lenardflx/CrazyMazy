@@ -93,11 +93,37 @@ class PlayerMoveAnimation:
 
 
 @dataclass(slots=True)
+class TreasureCollectAnimation:
+    """Client-side animation state for a newly collected treasure card in the player sidebar."""
+
+    player_id: str
+    treasure_type: TreasureType
+    progress: float = 0.0
+    duration: float = 0.45
+
+    @property
+    def is_finished(self) -> bool:
+        return self.progress >= 1.0
+
+    @property
+    def eased_progress(self) -> float:
+        clamped = min(max(self.progress, 0.0), 1.0)
+        return 1.0 - (1.0 - clamped) * (1.0 - clamped)
+
+    def advance(self, dt: float) -> None:
+        if self.duration <= 0:
+            self.progress = 1.0
+            return
+        self.progress = min(1.0, self.progress + (dt / self.duration))
+
+
+@dataclass(slots=True)
 class GameRuntimeState:
     """Holds mutable in-game client state that is not derived from the server snapshot."""
     spare_rotation: int = 0  # The current local rotation of the spare tile (0–3)
     shift_animation: BoardShiftAnimation | None = None
     move_animation: PlayerMoveAnimation | None = None
+    treasure_collect_animation: TreasureCollectAnimation | None = None
 
 
 @dataclass(slots=True)

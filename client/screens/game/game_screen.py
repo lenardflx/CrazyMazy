@@ -9,7 +9,7 @@ import pygame as pg
 from client.screens.core.base_screen import BaseScreen
 from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout
 from client.screens.game.views.player_panel_view import PlayerPanelView
-from client.state.runtime_state import GameRuntimeState
+from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, font
@@ -134,7 +134,20 @@ class GameScreen(BaseScreen):
         if move_animation is not None:
             move_animation.advance(dt)
             if move_animation.is_finished:
+                if move_animation.collected_treasure_type is not None:
+                    # TODO: play treasure collect SFX when the card flip animation starts.
+                    runtime_game.treasure_collect_animation = TreasureCollectAnimation(
+                        player_id=move_animation.player_id,
+                        treasure_type=move_animation.collected_treasure_type,
+                    )
                 runtime_game.move_animation = None
+
+        # Treasure collect animation
+        treasure_animation = runtime_game.treasure_collect_animation
+        if treasure_animation is not None:
+            treasure_animation.advance(dt)
+            if treasure_animation.is_finished:
+                runtime_game.treasure_collect_animation = None
 
     def draw(self) -> None:
         """Draw the game screen."""
@@ -167,6 +180,12 @@ class GameScreen(BaseScreen):
             self.surface,
             layout.players_panel,
             game_state,
+            treasure_animation=runtime.treasure_collect_animation,
+            pending_collect=(
+                None
+                if runtime.move_animation is None or runtime.move_animation.collected_treasure_type is None
+                else (runtime.move_animation.player_id, runtime.move_animation.collected_treasure_type)
+            ),
         )
 
         # Render a status text about the current turn.
