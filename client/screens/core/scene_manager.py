@@ -45,6 +45,7 @@ class SceneManager:
         self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
         self.tutorial_session: TutorialSession | None = None
+        self.prompt_tutorial_on_main_menu = not self.client_settings.get_tutorial()
         self.lobby_service = LobbyService(connection, self.runtime_state)
         self.game_service = GameService(connection)
 

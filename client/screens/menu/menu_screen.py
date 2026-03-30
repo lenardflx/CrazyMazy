@@ -130,7 +130,7 @@ class MenuScreen(BaseScreen):
         for button in self.buttons:
             button.handle_event(event)
 
-    def show_confirm(self, title: str, message: str, on_confirm: Callable[[], None], *, confirm_label: str = "Confirm") -> None:
+    def show_confirm(self, title: str, message: str, on_confirm: Callable[[], None], *, confirm_label: str = "Confirm", cancel_label: str = "Cancel") -> None:
         """Open a ConfirmDialog. The dialog auto-closes on either button press before calling the callback."""
         def handle_confirm() -> None:
             self.dialog = None
@@ -146,6 +146,7 @@ class MenuScreen(BaseScreen):
             handle_confirm,
             handle_cancel,
             confirm_label=confirm_label,
+            cancel_label=cancel_label,
         )
 
     def show_choice(

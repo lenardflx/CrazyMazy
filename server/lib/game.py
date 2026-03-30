@@ -29,6 +29,12 @@ def can_join_game(game: GameData, players: Iterable[PlayerData]) -> bool:
         return False
     if not is_valid_board_size(game.board_size):
         return False
-    if len(active_players(players)) >= MAX_JOINABLE_PLAYERS:
+    if not is_valid_player_limit(game.player_limit):
+        return False
+    if len(active_players(players)) >= game.player_limit:
         return False
     return True
+
+
+def is_valid_player_limit(player_limit: int) -> bool:
+    return 2 <= player_limit <= MAX_JOINABLE_PLAYERS

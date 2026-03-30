@@ -13,7 +13,7 @@ class LanguageService:
     def __init__(self) -> None:
         self.error_messages: Dict[ErrorCode, str] = {
             ErrorCode.GAME_NOT_FOUND: "This game does not exist",
-
+            ErrorCode.NO_PUBLIC_LOBBY: "No public lobby available right now",
         }
 
         self.general_messages: Dict[DisplayMessage, str] = {

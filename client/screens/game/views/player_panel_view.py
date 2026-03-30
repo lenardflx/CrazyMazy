@@ -40,9 +40,12 @@ class PlayerPanelView:
             return
 
         is_lobby = game_state.phase == GamePhase.PREGAME
-        gap = 12
-        # Calculate a row height that fits all players into the available rect without overflowing, clamped to a readable range.
-        row_height = min(68, max(48, (rect.height - gap * max(0, len(players) - 1)) // len(players)))
+        gap = 10
+        preferred_row_height = 58
+        min_row_height = 48
+        max_fit_height = (rect.height - gap * max(0, len(players) - 1)) // len(players)
+        # Keep row sizing stable across 2-4 players and only shrink when the panel would overflow.
+        row_height = max(min_row_height, min(preferred_row_height, max_fit_height))
         y = rect.y
 
         for player in players:

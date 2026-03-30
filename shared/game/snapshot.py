@@ -139,6 +139,8 @@ class SnapshotGameState:
     phase: GamePhase
     revision: int
     board_size: int
+    is_public: bool
+    player_limit: int
     leader_player_id: str | None
     turn: SnapshotTurnState
     board: Board | None
@@ -183,11 +185,15 @@ class SnapshotGameState:
 
     @property
     def can_add_npc(self) -> bool:
-        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and len(self.players) < 4
+        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and self.active_player_count < self.player_limit
 
     @property
     def can_start(self) -> bool:
-        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and len(self.players) >= 2
+        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and self.active_player_count >= 2
+
+    @property
+    def active_player_count(self) -> int:
+        return sum(1 for player in self.players if not player.is_inactive)
 
     @property
     def can_shift(self) -> bool:
@@ -243,6 +249,8 @@ class SnapshotGameState:
             phase=phase,
             revision=snapshot["revision"],
             board_size=snapshot["board_size"],
+            is_public=snapshot["is_public"],
+            player_limit=snapshot["player_limit"],
             leader_player_id=snapshot["leader_player_id"],
             turn=SnapshotTurnState(
                 current_player_id=snapshot["turn"]["current_player_id"],

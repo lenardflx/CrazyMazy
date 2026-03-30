@@ -33,7 +33,17 @@ class GameRepository(ABC):
     def find_by_join_code(self, join_code: str) -> GameData | None: ...
 
     @abstractmethod
-    def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
+    def list_public_games(self) -> list[GameData]: ...
+
+    @abstractmethod
+    def create_game(
+        self,
+        board_size: int,
+        leader_player_id: UUID | None = None,
+        *,
+        is_public: bool = False,
+        player_limit: int = 4,
+    ) -> GameData:
         """
         Create a new game entity.
 

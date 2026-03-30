@@ -24,6 +24,8 @@ class CreateLobbyFormState:
     """Persists form inputs and validation errors for the create-lobby screen across re-renders."""
     player_name: str = ""
     board_size: int = min(VALID_BOARD_SIZES)
+    is_public: bool = False
+    player_limit: int = 4
     error_message: str | None = None
 
 
@@ -32,6 +34,7 @@ class JoinLobbyFormState:
     """Persists form inputs and validation errors for the join-lobby screen across re-renders."""
     player_name: str = ""
     join_code: str = ""
+    join_public: bool = False
     error_message: str | None = None
 
 

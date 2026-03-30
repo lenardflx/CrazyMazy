@@ -92,6 +92,8 @@ class GameSnapshotPayload(TypedDict):
     phase: str
     revision: int
     board_size: int
+    is_public: bool
+    player_limit: int
     leader_player_id: str | None
     turn: TurnPayload
     tiles: list[TilePayload]
@@ -107,13 +109,16 @@ class ClientCreateLobbyPayload(TypedDict):
 
     board_size: int
     player_name: str
+    is_public: bool
+    player_limit: int
 
 
 class ClientJoinGamePayload(TypedDict):
     """Client request payload for joining an existing game."""
 
-    join_code: str
+    join_code: str | None
     player_name: str
+    join_public: bool
 
 
 class ClientGameShiftTilePayload(TypedDict):
