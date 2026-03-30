@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.ui.controls import Button
-from client.ui.dialogs import ConfirmDialog
+from client.ui.dialogs import ChoiceDialog, ConfirmDialog
 from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
 from client.screens.core.base_screen import BaseScreen
 from client.screens.core.scene_types import SceneTypes
@@ -23,7 +23,12 @@ ButtonSpec = tuple[str, ButtonTarget, str]
 
 #Oberklasse Menu Screens
 class MenuScreen(BaseScreen):
-    """Base class for all menu screens"""
+    """
+    Base class for all menu-style screens (main menu, lobby, settings, etc.).
+    Handles the shared card layout, back button, optional inline buttons, and modal dialogs.
+    Subclasses override handle_content_event and draw_content to add their own UI.
+    """
+
     def __init__(
         self,
         surface: pg.Surface,
@@ -39,7 +44,7 @@ class MenuScreen(BaseScreen):
         self.title = title
         self.is_main_menu = is_main_menu
         self.message = message
-        self.dialog: ConfirmDialog | None = None
+        self.dialog: ConfirmDialog | ChoiceDialog | None = None
 
         self.title_font = pg.font.SysFont("verdana", 42, bold=True)
         self.section_font = pg.font.SysFont("verdana", 24, bold=True)
@@ -62,6 +67,7 @@ class MenuScreen(BaseScreen):
             self._build_buttons(buttons)
 
     def _build_buttons(self, specs: list[ButtonSpec]) -> None:
+        """Create Button instances from the given specs and lay them out vertically."""
         button_width = 320
         button_height = 56
         gap = 74
@@ -78,7 +84,9 @@ class MenuScreen(BaseScreen):
             self.buttons.append(Button(rect, label, action, variant=variant))
 
     def handle_event(self, event: pg.event.Event) -> None:
+        """Route events to the dialog if one is open, otherwise to the back button and content."""
         if self.dialog is not None:
+            # If a dialog is open, intercept all events so the screen behind it stays non-interactive.
             self.dialog.handle_event(event)
             return
 
@@ -91,6 +99,7 @@ class MenuScreen(BaseScreen):
         del dt
 
     def draw(self) -> None:
+        """Draw the menu background, card panel, back button, content, and any active dialog."""
         self.surface.fill(BACKGROUND_COLOR)
         # TODO: replace the flat fill with the final menu background image.
 
@@ -114,6 +123,7 @@ class MenuScreen(BaseScreen):
             button.handle_event(event)
 
     def show_confirm(self, title: str, message: str, on_confirm: Callable[[], None], *, confirm_label: str = "Confirm") -> None:
+        """Open a ConfirmDialog. The dialog auto-closes on either button press before calling the callback."""
         def handle_confirm() -> None:
             self.dialog = None
             on_confirm()
@@ -130,7 +140,37 @@ class MenuScreen(BaseScreen):
             confirm_label=confirm_label,
         )
 
+    def show_choice(
+        self,
+        title: str,
+        message: str,
+        choices: list[tuple[str, Callable[[], None], str]],
+        *,
+        cancel_label: str = "Cancel",
+    ) -> None:
+        """Open a ChoiceDialog. Each choice auto-closes the dialog before firing its callback."""
+        wrapped_choices: list[tuple[str, Callable[[], None], str]] = []
+        for label, on_select, variant in choices:
+            def handle_select(callback: Callable[[], None] = on_select) -> None:
+                self.dialog = None
+                callback()
+
+            wrapped_choices.append((label, handle_select, variant))
+
+        def handle_cancel() -> None:
+            self.dialog = None
+
+        self.dialog = ChoiceDialog(
+            self.surface.get_rect(),
+            title,
+            message,
+            wrapped_choices,
+            handle_cancel,
+            cancel_label=cancel_label,
+        )
+
     def draw_content(self, rect: pg.Rect) -> None:
+        """Draw the screen title, optional message, and any configured nav buttons. Subclasses call super() then add their own elements."""
         if self.is_main_menu:
             title = self.title_font.render(self.title, True, TEXT_PRIMARY)
             self.surface.blit(title, title.get_rect(center=(rect.centerx, 130)))

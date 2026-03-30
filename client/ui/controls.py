@@ -1,5 +1,10 @@
 # Author: Lenard Felix
- 
+
+"""
+This file holds the UI control classes used in the client, such as Button, TextInput, Checkbox and Slider.
+Each control has a handle_event method that processes relevant pygame events and updates the control's state accordingly
+"""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -20,6 +25,12 @@ from client.ui.theme import (
 
 
 class Button:
+    """
+    A button with a label and an on_click callback.
+    The button supports two variants: "primary" and "secondary", which differ in their coloring.
+    The button can also be disabled, which changes its appearance and prevents interaction.
+    """
+
     def __init__(
         self,
         rect: pg.Rect,
@@ -67,6 +78,13 @@ class Button:
 
 
 class TextInput:
+    """
+    A text input field with a label and placeholder text.
+    The field can be active (focused) or inactive, which changes its appearance and whether it processes keyboard input.
+    The field also has a maximum length for the input text.
+    When active, the field shows a blinking cursor. This cursor needs to be updated each frame by calling the update method with the delta time in milliseconds, which advances the cursor blink timer.
+    """ # TODO. the update is never called yet. should be :D
+
     def __init__(self, rect: pg.Rect, text: str = "", *, placeholder: str = "", max_length: int = 24) -> None:
         self.rect = rect
         self.text = text
@@ -137,6 +155,12 @@ class TextInput:
             pg.draw.line(surface, TEXT_MUTED, (cursor_x, cursor_top), (cursor_x, cursor_bottom), 1)
 
 class Checkbox:
+    """
+    A checkbox with a label and a boolean value.
+    The checkbox can be toggled by clicking on it, which changes its value and appearance.
+    The label is rendered to the right of the checkbox.
+    """
+
     def __init__(self, rect: pg.Rect, label: str, value: bool) -> None:
         self.rect = rect
         self.label = label
@@ -160,6 +184,13 @@ class Checkbox:
 
 
 class Slider:
+    """
+    A horizontal slider with a label, a percentage value and a range defined by minimum and maximum.
+    The slider can be dragged by clicking and holding the mouse button on it, which updates the value according to the horizontal mouse position relative to the slider's rectangle.
+    The label is rendered above the slider, and the current value is rendered to the right of the slider.
+    The value is represented as a percentage, and the slider's fill corresponds to the percentage of the value within the defined range.
+    """
+    
     def __init__(self, rect: pg.Rect, label: str, value: int, *, minimum: int = 0, maximum: int = 100) -> None:
         self.rect = rect
         self.label = label

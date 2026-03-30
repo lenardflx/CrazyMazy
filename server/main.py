@@ -7,15 +7,11 @@ import server.handlers
 from server.config import HOST, PORT
 from server.network.connections import register_connection, unregister_connection
 from server.network.dispatch import dispatcher
-from server.network.models import OutgoingMessage, RequestContext
+from server.network.models import RequestContext
+from server.network.outgoing import flush_outgoing
 from shared.events import parse_event
-from shared.network import recv_line, send_msg
+from shared.network import recv_line
 from shared.utils.ids import new_connection_id
-
-
-def flush_outgoing(messages: list[OutgoingMessage]) -> None:
-    for outgoing in messages:
-        send_msg(outgoing.conn, outgoing.msg)
 
 
 def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:

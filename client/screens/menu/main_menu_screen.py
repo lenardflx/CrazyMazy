@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 #Hauptmenü
 class MainMenuScreen(MenuScreen):
+    """The main menu screen. Entry point after connecting to the server. Provides navigation to all top-level scenes."""
+
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(
             surface,
@@ -29,10 +31,10 @@ class MainMenuScreen(MenuScreen):
                 ("Quit", self._quit, "secondary"),
             ],
         )
-    #Bestätige, dass du das Spiel verlassen willst
     def _quit(self) -> None:
+        """Open a confirmation dialog before quitting the application."""
         self.show_confirm("Quit Game?", "Close the client now?", self._post_quit, confirm_label="Quit")
 
-    #Packe das Quit Event in die Event Pipeline
     def _post_quit(self) -> None:
+        """Post a QUIT event into the Pygame event queue, which the main loop handles to exit cleanly."""
         pg.event.post(pg.event.Event(pg.QUIT))

@@ -16,7 +16,8 @@ import random
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
+from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind
+from shared.types.data import GameData, PlayerData, TileData, TreasureData
 
 
 class GameRepositoryInMemory(GameRepository):
@@ -57,6 +58,7 @@ class GameRepositoryInMemory(GameRepository):
         return new_game
 
     def _new_code(self) -> str:
+        # TODO: move in lib and make it use alpabetic + numeric characters to increase the number 4char
         while True:
             code = f"{random.randint(0, 9999):04d}"
             if code not in self._game_ids_by_code:
@@ -70,10 +72,12 @@ class PlayerRepositoryInMemory(PlayerRepository):
     def create_player(
         self,
         display_name: str,
-        connection_id: str,
+        connection_id: str | None,
         game_id: UUID,
         join_order: int,
         piece_color: PlayerColor,
+        controller_kind: PlayerControllerKind = PlayerControllerKind.HUMAN,
+        npc_difficulty: NpcDifficulty | None = None,
     ) -> PlayerData:
         player = PlayerData(
             game_id=game_id,
@@ -81,6 +85,8 @@ class PlayerRepositoryInMemory(PlayerRepository):
             display_name=display_name,
             join_order=join_order,
             piece_color=piece_color,
+            controller_kind=controller_kind,
+            npc_difficulty=npc_difficulty,
         )
         self._players[player.id] = player
         return player

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.network.actions import request_join_lobby
 from client.ui.controls import Button, TextInput
 from client.screens.menu.menu_screen import MenuScreen
 
@@ -15,6 +14,11 @@ if TYPE_CHECKING:
 
 
 class JoinLobbyScreen(MenuScreen):
+    """
+    Screen for joining an existing lobby. Allows the player to enter their name and a lobby join code.
+    Submitting the form sends a join-lobby request to the server via LobbyService.
+    """
+
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Join Lobby")
         form = self.scene_manager.runtime_state.join_lobby
@@ -29,25 +33,25 @@ class JoinLobbyScreen(MenuScreen):
         )
 
     def _join_lobby(self) -> None:
-        request_join_lobby(
-            self.scene_manager.connection,
-            self.scene_manager.runtime_state,
+        """Submit the form and request the server to join the lobby matching the entered join code."""
+        self.scene_manager.lobby_service.join_lobby(
             self.name_input.text,
             self.code_input.text,
         )
 
     def handle_content_event(self, event: pg.event.Event) -> None:
+        """Handle input events for the form controls."""
         super().handle_content_event(event)
         self.name_input.handle_event(event)
         self.code_input.handle_event(event)
         self.join_button.handle_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
+        """Draw the form controls and any error messages."""
         super().draw_content(rect)
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
         self.code_input.draw(self.surface, self.small_font, self.body_font, "Join Code")
         self.join_button.draw(self.surface, self.button_font)
-        error_message = self.scene_manager.runtime_state.join_lobby.error_message
-        if error_message:
-            error = self.small_font.render(error_message, True, (150, 58, 48))
+        if self.error_message:
+            error = self.small_font.render(self.error_message, True, (150, 58, 48))
             self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 330)))

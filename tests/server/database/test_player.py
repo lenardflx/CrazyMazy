@@ -2,7 +2,7 @@
 
 from server.db.sql_repo import PlayerRepositorySQL
 from server.db.engine import create_engine_for_environment
-from shared.models import PlayerColor
+from shared.types.enums import PlayerColor
 from uuid import uuid4
 
 def test_create_player():

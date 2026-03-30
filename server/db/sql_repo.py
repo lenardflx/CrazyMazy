@@ -9,7 +9,8 @@ from uuid import UUID
 from sqlmodel import SQLModel, Session, select
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from shared.models import GameData, PlayerColor, PlayerData, TileData, TreasureData
+from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind
+from shared.types.data import GameData, PlayerData, TileData, TreasureData
 from shared.table_models import GameTable, PlayerTable, TileTable, TreasureTable
 
 ResultT = TypeVar("ResultT")
@@ -87,10 +88,12 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
     def create_player(
         self,
         display_name: str,
-        connection_id: str,
+        connection_id: str | None,
         game_id: UUID,
         join_order: int,
         piece_color: PlayerColor,
+        controller_kind: PlayerControllerKind = PlayerControllerKind.HUMAN,
+        npc_difficulty: NpcDifficulty | None = None,
     ) -> PlayerData:
         def op(session: Session) -> PlayerData:
             player = PlayerTable(
@@ -99,6 +102,8 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
                 game_id=game_id,
                 join_order=join_order,
                 piece_color=piece_color,
+                controller_kind=controller_kind,
+                npc_difficulty=npc_difficulty,
             )
             self.session.add(player)
             self.session.flush()
