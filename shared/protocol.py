@@ -9,6 +9,7 @@ from shared.utils.ids import new_message_id
 
 
 class ErrorCode(StrEnum):
+    CONNECTION_ERROR = "CONNECTION_ERROR"
     INVALID_MESSAGE = "INVALID_MESSAGE"
     INVALID_PAYLOAD = "INVALID_PAYLOAD"
 

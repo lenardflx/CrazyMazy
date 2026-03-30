@@ -18,7 +18,7 @@ class LobbyService:
         self._connection = connection
         self._runtime = runtime
 
-    def create_lobby(self, player_name: str, board_size: int) -> bool:
+    def create_lobby(self, player_name: str, board_size: int) -> ErrorCode | None:
         """Validate the form and request the server to create a new lobby.
 
         :param player_name: The display name the player wants to use.
@@ -28,13 +28,16 @@ class LobbyService:
         self._runtime.create_lobby.player_name = name
 
         # Client-side validation before sending to the server
-        # TODO: check if name exists and send error if field not filled.
+        if not name:
+            return ErrorCode.DISPLAY_NAME_NOT_ENTERED
 
-        return self._connection.send_event(
+        sent = self._connection.send_event(
             ClientCreateLobbyEvent(board_size=board_size, player_name=name)
         )
 
-    def join_lobby(self, player_name: str, join_code: str) -> bool:
+        return None if sent else ErrorCode.CONNECTION_ERROR
+
+    def join_lobby(self, player_name: str, join_code: str) -> ErrorCode | None:
         """Validate the form and request the server to join an existing lobby.
 
         :param player_name: The display name the player wants to use.
@@ -44,7 +47,6 @@ class LobbyService:
         code = join_code.strip().upper()
         self._runtime.join_lobby.player_name = name
         self._runtime.join_lobby.join_code = code
-        #self._clear_errors(ErrorTarget.JOIN_LOBBY, ErrorTarget.GLOBAL) todo
 
         # Client-side validation before sending to the server
         if not name:
@@ -52,6 +54,8 @@ class LobbyService:
         if not code:
             return ErrorCode.JOIN_CODE_NOT_ENTERED
 
-        return self._connection.send_event(
+        sent = self._connection.send_event(
             ClientJoinGameEvent(join_code=code, player_name=name)
         )
+
+        return None if sent else ErrorCode.CONNECTION_ERROR
