@@ -7,6 +7,8 @@ used by the MainLoop and Screen-Manager to update the actually displayed
 content.
 """
 
+from __future__ import annotations
+
 """
 Protocol event handlers for incoming server messages.
 Each handler is registered with the dispatcher and is called when the corresponding event type arrives.

@@ -13,7 +13,7 @@ from client.screens.core.scene_types import SceneTypes
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
-
+#Hauptmenü
 class MainMenuScreen(MenuScreen):
     """The main menu screen. Entry point after connecting to the server. Provides navigation to all top-level scenes."""
 

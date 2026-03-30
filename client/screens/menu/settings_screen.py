@@ -40,9 +40,9 @@ class SettingsScreen(MenuScreen):
 
         # Volume sliders for master, music, and effects channels
         self.volume_sliders = [
-            Slider(pg.Rect(0, 92, control_width, 12), "Master Volume", settings.master_volume),
-            Slider(pg.Rect(0, 166, control_width, 12), "Music Volume", settings.music_volume),
-            Slider(pg.Rect(0, 240, control_width, 12), "Effects Volume", settings.effects_volume),
+            Slider(pg.Rect(0, 92, control_width, 12), "Master Volume", settings.get_master_volume()),
+            Slider(pg.Rect(0, 166, control_width, 12), "Music Volume", settings.get_music_volume()),
+            Slider(pg.Rect(0, 240, control_width, 12), "Effects Volume", settings.get_effects_volume()),
         ]
         self.fullscreen_checkbox = Checkbox(pg.Rect(0, 320, 128, 32), "Fullscreen", settings.fullscreen)
         # Apply button to explicitly save settings (live changes also auto-save, this makes the intention explicit)
