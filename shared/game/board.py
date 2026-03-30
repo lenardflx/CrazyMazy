@@ -448,6 +448,18 @@ class Board:
         x,y = position
         moved_tiles = []
 
+        # Must be on the border
+        if (x != 0 and y != 0) and (x != self.width - 1 and y != self.width - 1):
+            return []
+
+        # Must be inside valid coordinate range
+        if x < 0 or x >= self.width or y < 0 or y >= self.width:
+            return []
+
+        # Even/even positions are fixed tiles
+        if x % 2 == 0 and y % 2 == 0:
+            return []
+
         # --- Horizontal insertion from the left ---
         if x == 0:
             for i in range(self.width):
@@ -467,3 +479,5 @@ class Board:
         if y == self.width - 1:
             for i in range(self.width - 1, -1, -1):
                 moved_tiles += [(x, i)]
+
+        return moved_tiles
