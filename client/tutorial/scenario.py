@@ -66,12 +66,19 @@ def default_tutorial_steps() -> list[TutorialStep]:
     """Return the default ordered sequence of guided tutorial steps."""
     return [
         TutorialTextStep(
-            "Welcome! Each turn you shift a row or column, then move your piece. "
-            "Collect all your treasures in order, then return to your starting corner to win."
+            "Welcome! This tutorial will teach you the basics of the game."
         ),
         TutorialTextStep(
-            "Your player panel shows your treasure stack. The top card is your current target. "
-            "Once you collect it the next one becomes active. You must collect all of them before heading home."
+            "Each turn, you have to insert the spare tile into the board to shift a row or column and move your player"
+        ),
+        TutorialTextStep(
+            "Your goal is to collect all your treasures and return to your starting corner."    
+        ),
+        TutorialTextStep(
+            "On the right, you can see the spare tile that will be inserted on your turn. You can rotate it before inserting. "
+        ),
+        TutorialTextStep(
+            "Next to the spare tile, you can see your current target treasure. Collect it to move on to the next one."
         ),
 
         # Cycle 1 — shift somewhere, stay put to show moving is optional
@@ -105,8 +112,7 @@ def default_tutorial_steps() -> list[TutorialStep]:
         ),
 
         TutorialFreeplayStep(
-            "Well done! The match continues in freeplay. "
-            "Collect all your remaining treasures, then return to your starting corner to win.",
+            "Well done! Now try to collect all your remaining treasures, and return to your starting corner to win the game.",
             button_label="Start",
         ),
     ]
