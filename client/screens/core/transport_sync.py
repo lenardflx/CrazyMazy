@@ -71,8 +71,6 @@ class TransportSync:
 
     def _reset_runtime(self) -> None:
         self._runtime.game.spare_rotation = 0
-        self._runtime.clear_pending()
-        self._runtime.clear_errors()
 
     def _start_animations(self, game_state: SnapshotGameState) -> None:
         """
