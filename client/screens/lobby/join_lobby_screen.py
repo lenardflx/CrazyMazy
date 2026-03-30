@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
+from client.lang import language_service
 from client.ui.controls import Button, TextInput
 from client.screens.menu.menu_screen import MenuScreen
 
@@ -36,10 +37,12 @@ class JoinLobbyScreen(MenuScreen):
 
     def _join_lobby(self) -> None:
         """Submit the form and request the server to join the lobby matching the entered join code."""
-        self.scene_manager.lobby_service.join_lobby(
+        error = self.scene_manager.lobby_service.join_lobby(
             self.name_input.text,
             self.code_input.text,
         )
+        if error:
+            self.error_message = language_service.get_message(error)
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         """Handle input events for the form controls."""

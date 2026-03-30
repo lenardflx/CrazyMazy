@@ -137,7 +137,7 @@ class TextInput:
 
         content = self.text if self.text else self.placeholder
         color = TEXT_PRIMARY if self.text else TEXT_MUTED
-        text_surf = value_font.render(content, True, color)
+        text_surf = value_font.render(str(content), True, color)
         text_x = self.rect.x + 14
         text_y = self.rect.y + 10
         surface.blit(text_surf, (text_x, text_y))

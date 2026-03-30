@@ -9,7 +9,7 @@ from server.db.memory_repo import (
     TreasureRepositoryInMemory,
 )
 from server.service import GameService
-from shared.types.enums import GameEndReason, GamePhase, PlayerResult, PlayerStatus, TurnPhase
+from shared.types.enums import GameEndReason, GamePhase, InsertionSide, PlayerResult, PlayerStatus, TurnPhase
 
 
 def make_service() -> GameService:
@@ -251,6 +251,49 @@ def test_move_player_win_assigns_postgame_placements_to_other_players() -> None:
     assert players[created.player.id].placement == 1
     assert players[created.player.id].result == PlayerResult.WON
     assert players[joined.player.id].placement == 2
+
+
+def test_end_turn_preserves_blocked_insertion_for_next_player() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    started = service.start_game(created.player.id)
+
+    game = service.find_game(started.game.id)
+    assert game is not None
+    game.current_player_id = created.player.id
+    game.turn_phase = TurnPhase.MOVE
+    game.blocked_insertion_side = InsertionSide.LEFT
+    game.blocked_insertion_index = 3
+    service.game_repo.update_game(game)
+
+    state = service.end_turn(created.player.id)
+
+    assert state.game.current_player_id == joined.player.id
+    assert state.game.turn_phase == TurnPhase.SHIFT
+    assert state.game.blocked_insertion_side == InsertionSide.LEFT
+    assert state.game.blocked_insertion_index == 3
+
+
+def test_give_up_preserves_blocked_insertion_when_turn_passes() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    third = service.join_game(created.game.code, "Cara", "conn_3")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = joined.player.id
+    created.game.turn_phase = TurnPhase.MOVE
+    created.game.blocked_insertion_side = InsertionSide.TOP
+    created.game.blocked_insertion_index = 1
+    service.game_repo.update_game(created.game)
+
+    state = service.give_up(joined.player.id)
+
+    assert state is not None
+    assert state.game.current_player_id == third.player.id
+    assert state.game.turn_phase == TurnPhase.SHIFT
+    assert state.game.blocked_insertion_side == InsertionSide.TOP
+    assert state.game.blocked_insertion_index == 1
 
 
 def test_give_up_ending_game_assigns_postgame_placements_to_all_remaining_players() -> None:

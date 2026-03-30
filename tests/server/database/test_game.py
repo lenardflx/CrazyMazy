@@ -4,28 +4,16 @@ from server.db.sql_repo import GameRepositorySQL
 from server.db.engine import create_engine_for_environment
 from uuid import uuid4
 
-def test_find_game_by_id():
+def test_create_game_and_find_game_by_id():
+    """Create an instance of the table Game and raise an AssertionError if the row is not found"""
     game_repository_sql = GameRepositorySQL(create_engine_for_environment("test"))
     game = game_repository_sql.create_game(7, uuid4())
     result = game_repository_sql.find_by_game_id(game.id)
     assert result is not None
     assert game.id == result.id
 
-def test_create_game():
-    game_repository_sql = GameRepositorySQL(create_engine_for_environment("test"))
-    game = game_repository_sql.create_game(5, uuid4())
-    result = game_repository_sql.find_by_game_id(game.id)
-    assert result is not None
-    assert game.id == result.id
-
-def test_delete_game():
-    game_repository_sql = GameRepositorySQL(create_engine_for_environment("test"))
-    game = game_repository_sql.create_game(9, uuid4())
-    game_repository_sql.delete_game(game.id)
-    result = game_repository_sql.find_by_game_id(game.id)
-    assert result is None
-
 def test_update_game():
+    """Create and update an instance of the table Game and raise an AssertionError if the row was not updated in the table"""
     game_repository_sql = GameRepositorySQL(create_engine_for_environment("test"))
     game = game_repository_sql.create_game(11, uuid4())
     game.board_size = 13
@@ -34,7 +22,16 @@ def test_update_game():
     assert result is not None
     assert result.board_size == 13
 
+def test_delete_game():
+    """Create and delete an instance of the table Game and raise an AssertionError if the row is found in the table"""
+    game_repository_sql = GameRepositorySQL(create_engine_for_environment("test"))
+    game = game_repository_sql.create_game(9, uuid4())
+    game_repository_sql.delete_game(game.id)
+    result = game_repository_sql.find_by_game_id(game.id)
+    assert result is None
+
 def test_find_by_join_code():
+    """Create an instance of the table Game and raise an AssertionError if the row is not found using join code"""
     game_repository_sql = GameRepositorySQL(create_engine_for_environment("test"))
     game = game_repository_sql.create_game(7, uuid4())
     result = game_repository_sql.find_by_join_code(game.code)

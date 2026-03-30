@@ -106,6 +106,8 @@ class SnapshotViewerState:
 class SnapshotTurnState:
     current_player_id: str | None
     phase: TurnPhase | None
+    blocked_insertion_side: InsertionSide | None = None
+    blocked_insertion_index: int | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -195,6 +197,9 @@ class SnapshotGameState:
     def can_move(self) -> bool:
         return self.viewer_turn and self.turn.phase == TurnPhase.MOVE
 
+    def is_insertion_blocked(self, side: InsertionSide, index: int) -> bool:
+        return self.turn.blocked_insertion_side == side and self.turn.blocked_insertion_index == index
+
     @property
     def turn_prompt(self) -> str:
         if self.viewer_is_spectator:
@@ -242,6 +247,12 @@ class SnapshotGameState:
             turn=SnapshotTurnState(
                 current_player_id=snapshot["turn"]["current_player_id"],
                 phase=None if turn_phase is None else TurnPhase(turn_phase),
+                blocked_insertion_side=(
+                    None
+                    if snapshot["turn"]["blocked_insertion_side"] is None
+                    else InsertionSide(snapshot["turn"]["blocked_insertion_side"])
+                ),
+                blocked_insertion_index=snapshot["turn"]["blocked_insertion_index"],
             ),
             board=_board_from_snapshot(snapshot["board_size"], snapshot["tiles"], phase),
             players=[SnapshotPlayerState.from_payload(player) for player in snapshot["players"]],

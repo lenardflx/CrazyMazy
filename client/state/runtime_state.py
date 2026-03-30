@@ -96,7 +96,6 @@ class PlayerMoveAnimation:
 class GameRuntimeState:
     """Holds mutable in-game client state that is not derived from the server snapshot."""
     spare_rotation: int = 0  # The current local rotation of the spare tile (0–3)
-    error_message: str | None = None
     shift_animation: BoardShiftAnimation | None = None
     move_animation: PlayerMoveAnimation | None = None
 
