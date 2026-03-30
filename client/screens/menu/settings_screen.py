@@ -43,7 +43,6 @@ class SettingsScreen(MenuScreen):
             Slider(pg.Rect(0, 92, control_width, 12), "Master Volume", settings.get_master_volume()),
             Slider(pg.Rect(0, 166, control_width, 12), "Music Volume", settings.get_music_volume()),
             Slider(pg.Rect(0, 240, control_width, 12), "Effects Volume", settings.get_effects_volume()),
-            Slider(pg.Rect(0, 300, control_width, 12), "Language", settings.get_language(), minimum=0, maximum=1)
         ]
         self.fullscreen_checkbox = Checkbox(pg.Rect(0, 320, 128, 32), "Fullscreen", settings.fullscreen)
         # Apply button to explicitly save settings (live changes also auto-save, this makes the intention explicit)
@@ -52,6 +51,9 @@ class SettingsScreen(MenuScreen):
                 "Apply",
                 lambda: self._sync_settings(),
 )
+        #FIXME: Language Buttons umgehen akzeptanz der Einstellung von apply_settings() -> schickt direkt an app_data, vielleicht ändern?
+        self.english_language_button = Button(pg.Rect(0, 300, 120, 46), "english", lambda: self.scene_manager.client_settings.set_language(0))
+        self.german_language_button = Button(pg.Rect(250, 300, 120, 46), "german", lambda: self.scene_manager.client_settings.set_language(1))
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
@@ -59,14 +61,18 @@ class SettingsScreen(MenuScreen):
         settings.set_master_volume(self.control_sliders[0].value)
         settings.set_music_volume(self.control_sliders[1].value)
         settings.set_effects_volume(self.control_sliders[2].value)
-        settings.set_language(self.control_sliders[3].value)
         settings.set_fullscreen(self.fullscreen_checkbox.value)
         self.scene_manager.apply_fullscreen(self.fullscreen_checkbox.value)
 
     def _apply_layout(self) -> None:
         """Position all controls according to CONTROL_LAYOUT. Called each frame so the layout stays correct after window resize."""
         left = self.content_area.x
-        controls: list[Slider | Checkbox | Button] = [*self.control_sliders, self.fullscreen_checkbox, self.apply_button]
+        controls: list[Slider | Checkbox | Button] = [*self.control_sliders,
+                                                        self.fullscreen_checkbox,
+                                                        self.apply_button,
+                                                        self.german_language_button,
+                                                        self.english_language_button]
+        
         for control, y in zip(controls, self.CONTROL_LAYOUT, strict=False):
             control.rect.x = left
             control.rect.y = self.content_area.y + y
@@ -105,6 +111,8 @@ class SettingsScreen(MenuScreen):
             slider.draw(self.surface, self.body_font, self.small_font)
         self.fullscreen_checkbox.draw(self.surface, self.body_font)
         self.apply_button.draw(self.surface, self.button_font)
+        self.english_language_button.draw(self.surface, self.button_font)
+        self.german_language_button.draw(self.surface, self.button_font)
 
     def _draw_section_header(self, title: str, y: int) -> None:
         """Render a bold section label at the given vertical offset within the content area.

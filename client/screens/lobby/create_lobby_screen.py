@@ -11,7 +11,6 @@ from shared.lib.lobby import VALID_BOARD_SIZES
 from client.ui.controls import Button, TextInput
 from client.ui.theme import TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
-
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
@@ -65,7 +64,9 @@ class CreateLobbyScreen(MenuScreen):
             self.name_input.text,
             self.scene_manager.runtime_state.create_lobby.board_size,
         )
-
+        self.scene_manager.client_settings.set_name(self.name_input.text)
+        self.scene_manager.client_settings.write_JSON()
+        
     def handle_content_event(self, event: pg.event.Event) -> None:
         """Handle input events for the form controls."""
         super().handle_content_event(event)

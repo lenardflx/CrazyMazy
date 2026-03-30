@@ -19,7 +19,7 @@ class ClientData:
         #0 für englisch (default), 1 für deutsch
         self.language: int = 0
 
-        self.tutorial: bool = False
+        self.tutorial_played: bool = False
 
 
         # Load the last saved settings from disk, overwriting the defaults above.
@@ -34,7 +34,7 @@ class ClientData:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.master_volume = val_volume
-        self.write_JSON()
+
 
     def set_music_volume(self, val_volume: int) -> None:
         """Set the music channel volume.
@@ -45,7 +45,7 @@ class ClientData:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.music_volume = val_volume
-        self.write_JSON()
+
 
     def set_effects_volume(self, val_volume: int) -> None:
         """Set the sound-effects channel volume.
@@ -56,27 +56,27 @@ class ClientData:
         if val_volume > 100 or val_volume < 0:
             raise ValueError("value has to be between 0 and 100")
         self.effects_volume = val_volume
-        self.write_JSON()
+
 
     def set_fullscreen(self, val_fullscreen: bool) -> None:
         """Set the fullscreen preference."""
         self.fullscreen = val_fullscreen
-        self.write_JSON()
+
 
     def set_name(self, val_name: str) -> None:
         """Set the default name for games."""
         self.name = val_name
-        self.write_JSON()
+
 
     def set_language(self, val_language: int) -> None:
         """Set the language preference."""
         self.language = val_language
-        self.write_JSON()
+
 
     def set_tutorial(self, val_tutorial: bool) -> None:
-        """Set whether the tutorial has been completed."""
-        self.tutorial = val_tutorial
-        self.write_JSON()
+        """Set whether the tutorial_played has been completed."""
+        self.tutorial_played = val_tutorial
+
 
     def get_master_volume(self) -> int:
         return self.master_volume
@@ -97,7 +97,7 @@ class ClientData:
         return self.language
 
     def get_tutorial(self) -> bool:
-        return self.tutorial
+        return self.tutorial_played
 
     def write_JSON(self) -> None:
         """Persist the current settings to data/app_data.json."""
@@ -108,7 +108,7 @@ class ClientData:
             "fullscreen": self.get_fullscreen(),
             "name": self.get_name(),
             "language": self.get_language(),
-            "tutorial": self.get_tutorial(),
+            "tutorial_played": self.get_tutorial(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
@@ -134,7 +134,7 @@ class ClientData:
                     self.set_name(val)
                 case "language":
                     self.set_language(val)
-                case "tutorial":
+                case "tutorial_played":
                     self.set_tutorial(val)
                 case _:
                     raise NotImplementedError("attribute not implemented in json")
