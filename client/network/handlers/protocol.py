@@ -1,4 +1,5 @@
 # Author: Lenard Felix, Raphael Eiden
+from __future__ import annotations
 """
 This file handles all incoming events from the server.
 The handler methods update the global `ClientState`, which can then be
@@ -11,8 +12,6 @@ Protocol event handlers for incoming server messages.
 Each handler is registered with the dispatcher and is called when the corresponding event type arrives.
 Handlers update the ClientState's version counters so that the TransportSync can detect changes on the next frame.
 """
-
-from __future__ import annotations
 
 from client.network.dispatch import dispatcher
 from client.network.state import ClientState
