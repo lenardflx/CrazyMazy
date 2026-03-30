@@ -5,6 +5,8 @@ TODO: error refactor needs to be applied here.
 
 from __future__ import annotations
 
+from client.network.client_connection import ClientConnection
+from client.state.runtime_state import RuntimeState
 from shared.events import (
     ClientGameAddNpcEvent,
     ClientGameGiveUpEvent,
@@ -15,20 +17,15 @@ from shared.events import (
 )
 from shared.types.enums import InsertionSide, NpcDifficulty
 
-from client.network.services._service import RequestService
-from client.state.runtime_state import ErrorTarget, PendingRequest
-
-
-class GameService(RequestService):
+class GameService:
     """Sends game-related requests to the server on behalf of the player."""
+    def __init__(self, connection: ClientConnection):
+        self._connection = connection
 
     def start_game(self) -> bool:
         """Request the server to start the game. Only the lobby leader can do this."""
-        self._clear_errors(ErrorTarget.GLOBAL)
-        return self._send_request(
-            ClientGameStartEvent(),
-            pending=PendingRequest.START_GAME,
-            error_target=ErrorTarget.GLOBAL,
+        return self._connection.send_event(
+            ClientGameStartEvent()
         )
 
     def add_npc(self, difficulty: NpcDifficulty = NpcDifficulty.NORMAL) -> bool:
@@ -36,12 +33,7 @@ class GameService(RequestService):
 
         :param difficulty: The difficulty level of the NPC to add.
         """
-        self._clear_errors(ErrorTarget.GLOBAL)
-        return self._send_request(
-            ClientGameAddNpcEvent(difficulty=difficulty),
-            pending=PendingRequest.ADD_NPC,
-            error_target=ErrorTarget.GLOBAL,
-        )
+        return self._connection.send_event(ClientGameAddNpcEvent(difficulty=difficulty))
 
     def shift_tile(self, side: InsertionSide, index: int, rotation: int) -> bool:
         """Request the server to insert the spare tile at the given board edge position with the given rotation.
@@ -50,15 +42,8 @@ class GameService(RequestService):
         :param index: The column or row index to insert at.
         :param rotation: The clockwise rotation to apply to the spare tile (0–3).
         """
-        self._clear_errors(ErrorTarget.GAME)
-        return self._send_request(
-            ClientGameShiftTileEvent(
-                insertion_side=side.value,
-                insertion_index=index,
-                rotation=rotation,
-            ),
-            pending=PendingRequest.SHIFT_TILE,
-            error_target=ErrorTarget.GAME,
+        return self._connection.send_event(
+            ClientGameShiftTileEvent(insertion_side=side.value, insertion_index=index, rotation=rotation)
         )
 
     def move_player(self, x: int, y: int) -> bool:
@@ -67,32 +52,19 @@ class GameService(RequestService):
         :param x: Target column.
         :param y: Target row.
         """
-        self._clear_errors(ErrorTarget.GAME)
-        return self._send_request(
-            ClientGameMovePlayerEvent(x=x, y=y),
-            pending=PendingRequest.MOVE_PLAYER,
-            error_target=ErrorTarget.GAME,
+        return self._connection.send_event(
+            ClientGameMovePlayerEvent(x=x, y=y)
         )
 
     def give_up(self) -> bool:
         """Request the server to mark the local player as having given up, turning them into a spectator."""
-        self._clear_errors(ErrorTarget.GAME)
-        return self._send_request(
-            ClientGameGiveUpEvent(),
-            pending=PendingRequest.GIVE_UP,
-            error_target=ErrorTarget.GAME,
+        return self._connection.send_event(
+            ClientGameGiveUpEvent()
         )
 
     def leave_game(self, *, in_game: bool) -> bool:
         """Request the server to remove the local player from the current game or lobby.
-
-        :param in_game: True if the player is leaving during an active match (errors go to the game screen),
-            False if leaving from the lobby or post-game screen (errors go to the global banner).
         """
-        target = ErrorTarget.GAME if in_game else ErrorTarget.GLOBAL
-        self._clear_errors(target)
-        return self._send_request(
+        return self._connection.send_event(
             ClientGameLeaveEvent(),
-            pending=PendingRequest.LEAVE_GAME,
-            error_target=target,
         )

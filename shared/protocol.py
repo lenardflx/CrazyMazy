@@ -9,13 +9,17 @@ from shared.utils.ids import new_message_id
 
 
 class ErrorCode(StrEnum):
+    CONNECTION_ERROR = "CONNECTION_ERROR"
     INVALID_MESSAGE = "INVALID_MESSAGE"
     INVALID_PAYLOAD = "INVALID_PAYLOAD"
 
+    DISPLAY_NAME_NOT_ENTERED = "DISPLAY_NAME_NOT_ENTERED"
     DISPLAY_NAME_TAKEN = "DISPLAY_NAME_TAKEN"
     DISPLAY_NAME_TOO_SHORT = "DISPLAY_NAME_TOO_SHORT"
     DISPLAY_NAME_TOO_LONG = "DISPLAY_NAME_TOO_LONG"
     DISPLAY_NAME_ILLEGAL = "DISPLAY_NAME_ILLEGAL"
+
+    JOIN_CODE_NOT_ENTERED = "JOIN_CODE_NOT_ENTERED"
 
     INVALID_BOARD_SIZE = "INVALID_BOARD_SIZE"
     """
@@ -95,6 +99,12 @@ class ErrorCode(StrEnum):
     """
     When a player is not found, i.e. there is no player with a 
     given id or the connection does not exist.
+    """
+
+    ADD_NPC_ONLY_IN_LOBBY = "ADD_NPC_ONLY_IN_LOBBY"
+    """
+    When a client sends an NPC create packet but the game is not in 
+    lobby state, so no players/NPCs can join. 
     """
 
 

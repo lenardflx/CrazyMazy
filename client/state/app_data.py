@@ -4,11 +4,9 @@ import json
 
 from shared.paths import BASE_DIR
 
-# TODO: maybe make this into AppData class and add other states there like last display name, and tutorial completion status?
-
-class ClientSettings:
+class ClientData:
     """
-    Persists user preferences (volumes, fullscreen) to a JSON file and reloads them on startup.
+    Persists user preferences (volumes, fullscreen etc.) to a JSON file and reloads them on startup.
     All setters validate their input and immediately write to disk so settings survive restarts.
     """
 
@@ -108,9 +106,9 @@ class ClientSettings:
             "music_volume": self.get_music_volume(),
             "effects_volume": self.get_effects_volume(),
             "fullscreen": self.get_fullscreen(),
-            "name": self.get_fullscreen(),
-            "language": self.get_fullscreen(),
-            "tutorial": self.get_fullscreen(),
+            "name": self.get_name(),
+            "language": self.get_language(),
+            "tutorial": self.get_tutorial(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
