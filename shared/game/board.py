@@ -36,7 +36,7 @@ class Board:
         Represents the full game board.
 
         Args:
-            width: Board dimension (Labyrinth uses 7×7).
+            width: Board dimension.
         """
         if width >= 7 and width % 2 == 1:
             self.width = width

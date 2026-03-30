@@ -8,9 +8,11 @@ import pygame as pg
 from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation
 from client.textures import PLAYER_IMAGES, TILE_IMAGES, TREASURE_IMAGES
 from client.ui.theme import DISABLED, MOVE_HIGHLIGHT, PANEL, PANEL_ALT, TEXT_PRIMARY, blend_color, font
+from shared.lib.snapshot import _parse_turn_payload, parse_game_snapshot_payload
 from shared.types.enums import InsertionSide, PlayerColor, PlayerSkin, TreasureType
 from shared.game.tile import Tile
 from shared.game.snapshot import SnapshotGameState
+from shared.types.payloads import GameSnapshotPayload
 
 # TODO: finish documentation.... this file is annoying
 
@@ -132,7 +134,7 @@ class BoardView:
             
             # Check every arrow and if it was clicked.
             for arrow in layout.arrows:
-                if arrow.rect.collidepoint(pos):
+                if arrow.rect.collidepoint(pos) and self._is_arrow_clickable(game_state, arrow):
                     return "shift", arrow.side, arrow.index
 
         # If we currently move, the only clickable elements are the reachable cells on the board.
@@ -158,6 +160,21 @@ class BoardView:
                 )
             )
         return arrows
+
+    def _is_arrow_clickable(
+        self,
+        game_state: SnapshotGameState,
+        arrow: ArrowTarget,
+        shift_animation: BoardShiftAnimation | None = None,
+        move_animation: PlayerMoveAnimation | None = None,
+    ) -> bool:
+        is_blocked = game_state.is_insertion_blocked(arrow.side, arrow.index)
+        return (
+            not is_blocked
+            and game_state.can_shift
+            and shift_animation is None
+            and move_animation is None
+        )
 
     def _draw_board(
         self,
@@ -201,9 +218,8 @@ class BoardView:
             player_rect = self._animated_rect(layout.cells[player.position], player.position, layout.cell_size, shift_animation)
             self._draw_player_pin(surface, player.piece_color, player_rect.center)
 
-        # Control arrows for shifting
         for arrow in layout.arrows:
-            self._draw_arrow(surface, arrow, enabled=game_state.can_shift and shift_animation is None and move_animation is None)
+            self._draw_arrow(surface, arrow, enabled=self._is_arrow_clickable(game_state, arrow, shift_animation, move_animation))
 
     def _draw_spare_panel(
         self,
