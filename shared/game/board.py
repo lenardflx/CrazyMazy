@@ -435,3 +435,7 @@ class Board:
             entity = TileData(game_id=game_id)
             self._tile_entities[id(tile)] = entity
         return entity
+
+    def is_border(self, position: tuple[int, int]) -> bool:
+        # returns if a position is at the border of the board
+        return 0 in position or self.width in position
