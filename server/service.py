@@ -9,8 +9,6 @@ from time import sleep
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from server.handlers._responses import snapshot_response
-from server.network.outgoing import flush_outgoing
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
 from server.lib.game import can_join_game, is_valid_board_size, normalize_join_code
 from server.lib.player import (
@@ -711,6 +709,9 @@ class GameService:
         Thread(target=self._run_npc_turns, args=(game_id,), daemon=True).start()
 
     def _run_npc_turns(self, game_id: UUID) -> None:
+        from server.handlers._responses import snapshot_response
+        from server.network.outgoing import flush_outgoing
+
         try:
             while True:
                 sleep(_NPC_ACTION_DELAY_SECONDS)
@@ -732,6 +733,9 @@ class GameService:
         )
 
     def _perform_next_npc_action(self, state: GameState) -> GameState:
+        from server.handlers._responses import snapshot_response
+        from server.network.outgoing import flush_outgoing
+
         game = state.game
         npc = state.npcs[game.current_player_id]
         turn = npc.choose_turn(

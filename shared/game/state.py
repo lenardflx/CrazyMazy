@@ -19,6 +19,14 @@ class GameState:
     treasures_by_player: dict[UUID, list[TreasureData]]
     npcs: dict[UUID, Npc] = field(default_factory=dict)
 
+    def current_treasure(self, player_id: UUID) -> TreasureData | None:
+        """Return the next uncollected treasure for a player, or None if all collected."""
+        treasures = self.treasures_by_player.get(player_id, [])
+        return next(
+            (t for t in sorted(treasures, key=lambda t: t.order_index) if not t.collected),
+            None,
+        )
+
     @property
     def tiles(self) -> list[TileData]:
         if self.board is None:

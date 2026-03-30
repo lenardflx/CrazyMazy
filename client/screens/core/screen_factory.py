@@ -14,9 +14,10 @@ from client.screens.lobby.create_lobby_screen import CreateLobbyScreen
 from client.screens.lobby.join_lobby_screen import JoinLobbyScreen
 from client.screens.lobby.lobby_screen import LobbyScreen
 from client.screens.menu.main_menu_screen import MainMenuScreen
-from client.screens.menu.message_screen import MessageScreen
 from client.screens.menu.no_server_screen import NoServerScreen
 from client.screens.menu.settings_screen import SettingsScreen
+from client.screens.tutorial.tutorial_screen import TutorialPostGameScreen, TutorialScreen
+from shared.types.enums import GamePhase
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -42,7 +43,12 @@ def create_screen(scene: SceneTypes, surface: pygame.Surface, manager: SceneMana
         case SceneTypes.GAME:
             return GameScreen(surface, manager)
         case SceneTypes.POST_GAME:
+            if (
+                manager.tutorial_session is not None
+                and manager.tutorial_session.snapshot is not None
+                and manager.tutorial_session.snapshot.phase == GamePhase.POSTGAME
+            ):
+                return TutorialPostGameScreen(surface, manager)
             return PostGameScreen(surface, manager)
         case SceneTypes.TUTORIAL:
-            # TODO: Replace with the actual interactive tutorial screen
-            return MessageScreen(surface, manager, title="Tutorial", message="Coming soon")
+            return TutorialScreen(surface, manager)

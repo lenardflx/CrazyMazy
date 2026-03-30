@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pygame
 
 from sys import platform
@@ -19,6 +21,9 @@ from client.screens.core.transport_sync import TransportSync
 from client.state.runtime_state import RuntimeState
 from client.state.app_data import ClientData
 from shared.game.snapshot import SnapshotGameState
+
+if TYPE_CHECKING:
+    from client.tutorial.session import TutorialSession
 
 
 class SceneManager:
@@ -39,6 +44,7 @@ class SceneManager:
         self.audio = audio
         self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
+        self.tutorial_session: TutorialSession | None = None
         self.lobby_service = LobbyService(connection, self.runtime_state)
         self.game_service = GameService(connection)
 
