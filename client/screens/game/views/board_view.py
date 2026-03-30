@@ -12,7 +12,9 @@ from shared.types.enums import InsertionSide, PlayerColor, PlayerSkin, TreasureT
 from shared.game.tile import Tile
 from shared.game.snapshot import SnapshotGameState
 
+# TODO: finish documentation.... this file is annoying
 
+# Color chodes for the Player
 PLAYER_COLOR_VALUES = {
     PlayerColor.RED: (210, 74, 74),
     PlayerColor.BLUE: (63, 109, 215),
@@ -20,6 +22,7 @@ PLAYER_COLOR_VALUES = {
     PlayerColor.YELLOW: (209, 173, 59),
 }
 
+# The type for handling clicks on the game board
 BoardClick = (
     tuple[Literal["rotate"], int]
     | tuple[Literal["shift"], InsertionSide, int]
@@ -30,6 +33,7 @@ BoardClick = (
 
 @dataclass(slots=True, frozen=True)
 class ArrowTarget:
+    """Represents a target for an arrow on the game board."""
     rect: pg.Rect
     side: InsertionSide
     index: int
@@ -37,6 +41,7 @@ class ArrowTarget:
 
 @dataclass(slots=True, frozen=True)
 class GameBoardLayout:
+    """Represents the layout of the game board."""
     board_rect: pg.Rect
     cell_size: int
     cells: dict[tuple[int, int], pg.Rect]
@@ -50,19 +55,28 @@ class GameBoardLayout:
 
 
 class BoardView:
+    """
+    The BoardView is responsible for rendering the game board, including the tiles, players, and UI elements related to the board.
+    It draws the current state and is responsible for determining what the player has clicked on when they interact with the board.
+    """
     def __init__(self) -> None:
         self.title_font = font(18, bold=True)
 
     def layout(self, surface_rect: pg.Rect, board_size: int) -> GameBoardLayout:
+        """Calculate the layout of the game board and related UI elements based on the surface size and board size."""
+
+        # Panels for the board, the side UI, the spare tile and the player list
         board_panel = pg.Rect(24, 96, 770, surface_rect.height - 120)
         side_panel = pg.Rect(820, 96, surface_rect.width - 844, surface_rect.height - 120)
         spare_panel = pg.Rect(side_panel.x, side_panel.y, side_panel.width, 236)
         players_panel = pg.Rect(side_panel.x, side_panel.y + 254, side_panel.width, side_panel.height - 254)
 
+        # Calculate the size of each cell on the board based on the available space and the board size, and create rects for each cell and the spare tile.
         cell_size = min((board_panel.width - 64) // board_size, (board_panel.height - 64) // board_size)
         board_rect = pg.Rect(board_panel.x + 32, board_panel.y + 32, cell_size * board_size, cell_size * board_size)
         spare_tile_rect = pg.Rect(spare_panel.x + 18, spare_panel.y + 52, 112, 112)
 
+        # Create rects for each cell on the board and for the arrow targets around the board.
         cells = {
             (col, row): pg.Rect(
                 board_rect.x + col * cell_size,
@@ -75,6 +89,7 @@ class BoardView:
         }
         arrows = self._build_arrows(board_rect, cell_size, board_size)
 
+        # Return the complete layout for board
         return GameBoardLayout(
             board_rect=board_rect,
             cell_size=cell_size,
@@ -97,26 +112,39 @@ class BoardView:
         shift_animation: BoardShiftAnimation | None,
         move_animation: PlayerMoveAnimation | None,
     ) -> None:
+        """Draw the game board and related UI elements based on the current game state and animations."""
         self._draw_board(surface, layout, game_state, shift_animation, move_animation)
         self._draw_spare_panel(surface, layout, spare_tile, game_state)
 
     def resolve_click(self, pos: tuple[int, int], layout: GameBoardLayout, game_state: SnapshotGameState) -> BoardClick:
+        """
+        Determine what the player has clicked on based on the position of the click, the layout of the board, and the current game state.
+        Returns a BoardClick indicating whether the player clicked on a rotate button, an arrow to shift.
+        This is done by checking the collision of the click position with the elements on the board.
+        """
+        # If we currently shift, then our rotation buttons and arrows are the only clickable elements.
         if game_state.can_shift:
+            # Rotation buttons
             if layout.rotate_left_button.collidepoint(pos):
                 return "rotate", -1
             if layout.rotate_right_button.collidepoint(pos):
                 return "rotate", 1
+            
+            # Check every arrow and if it was clicked.
             for arrow in layout.arrows:
                 if arrow.rect.collidepoint(pos):
                     return "shift", arrow.side, arrow.index
 
+        # If we currently move, the only clickable elements are the reachable cells on the board.
         if game_state.can_move:
+            # Check every cell and if it was clicked and is reachable.
             for (x, y), cell in layout.cells.items():
                 if cell.collidepoint(pos) and game_state.is_position_reachable((x, y)):
                     return "move", x, y
         return None
 
     def _build_arrows(self, board_rect: pg.Rect, cell_size: int, board_size: int) -> list[ArrowTarget]:
+        """Build the list of ArrowTargets for the given board layout. Arrows are placed on every odd index along the edges of the board."""
         arrows: list[ArrowTarget] = []
         for index in range(1, board_size, 2):
             center_x = board_rect.x + index * cell_size + cell_size // 2 - 16
@@ -139,9 +167,11 @@ class BoardView:
         shift_animation: BoardShiftAnimation | None,
         move_animation: PlayerMoveAnimation | None,
     ) -> None:
+        """Draw the game board, including the tiles, players, and arrows. Takes into account the current animations for shifting and moving."""
         pg.draw.rect(surface, PANEL_ALT, layout.board_rect.inflate(20, 20), border_radius=20)
         pg.draw.rect(surface, PANEL, layout.board_rect, border_radius=16)
 
+        # Tiles
         for position, rect in layout.cells.items():
             tile = game_state.tile_at(position)
             if tile is None:
@@ -154,9 +184,11 @@ class BoardView:
                 highlight=game_state.is_position_reachable(position),
             )
 
+        # The tile that is being shifted out of the board during animation
         if shift_animation is not None:
             self._draw_outgoing_tile(surface, layout, game_state, shift_animation)
 
+        # Players movement animation and pins
         for player in game_state.ordered_players:
             if player.position is None:
                 continue
@@ -169,6 +201,7 @@ class BoardView:
             player_rect = self._animated_rect(layout.cells[player.position], player.position, layout.cell_size, shift_animation)
             self._draw_player_pin(surface, player.piece_color, player_rect.center)
 
+        # Control arrows for shifting
         for arrow in layout.arrows:
             self._draw_arrow(surface, arrow, enabled=game_state.can_shift and shift_animation is None and move_animation is None)
 
@@ -179,6 +212,8 @@ class BoardView:
         tile: Tile,
         game_state: SnapshotGameState,
     ) -> None:
+        """Draw the spare tile panel, including the current spare tile and the rotate buttons. The rotate buttons are only enabled when the player can shift."""
+        # TODO: replace the buttons with our button component.
         pg.draw.rect(surface, PANEL, layout.spare_panel, border_radius=20)
         surface.blit(self.title_font.render("Current Tile", True, TEXT_PRIMARY), (layout.spare_panel.x + 18, layout.spare_panel.y + 16))
 
@@ -205,6 +240,7 @@ class BoardView:
         home_color: PlayerColor | None = None,
         highlight: bool = False,
     ) -> None:
+        """Draw a single tile at the given rect, with optional highlights for the home player and reachable positions."""
         radius = max(6, min(14, min(rect.size) // 7))
         pg.draw.rect(surface, (77, 62, 48, 40), rect.move(0, 2), border_radius=radius)
 

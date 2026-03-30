@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 
 
 class LobbyScreen(MenuScreen):
+    """
+    The lobby screen shown after joining or creating a game. Displays the join code, board size,
+    and current player list. The lobby leader can start the game or add NPCs; all players can leave.
+    """
+
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Lobby")
         self.player_panel_view = PlayerPanelView()
@@ -26,6 +31,7 @@ class LobbyScreen(MenuScreen):
         self.leave_button = Button(pg.Rect(self.content_rect.x + 340, button_y, 160, 44), "Leave Lobby", self._confirm_leave)
 
     def _add_npc(self) -> None:
+        """Open a choice dialog letting the leader pick an NPC difficulty to add to the lobby."""
         self.show_choice(
             "Add NPC",
             "Choose the difficulty for the new NPC.",
@@ -37,17 +43,22 @@ class LobbyScreen(MenuScreen):
         )
 
     def _start_game(self) -> None:
+        """Request the server to start the game. Only the lobby leader can do this."""
         self.scene_manager.game_service.start_game()
 
     def _confirm_leave(self) -> None:
+        """Open a confirmation dialog before leaving the lobby."""
         self.show_confirm("Leave Lobby?", "Return to the main menu?", self._leave_lobby, confirm_label="Leave")
 
     def _leave_lobby(self) -> None:
+        """Confirm action to leave the lobby and return to the main menu."""
         self.scene_manager.game_service.leave_game(in_game=False)
 
     def handle_content_event(self, event: pg.event.Event) -> None:
+        """Handle events and update button enabled-state based on the current game state."""
         super().handle_content_event(event)
         game_state = self.scene_manager.game_state
+        # The start and add-NPC buttons are only enabled when the server says we can take those actions.
         self.add_npc_button.enabled = game_state is not None and game_state.can_add_npc
         self.start_button.enabled = game_state is not None and game_state.can_start
         self.add_npc_button.handle_event(event)
@@ -55,6 +66,8 @@ class LobbyScreen(MenuScreen):
         self.leave_button.handle_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
+        """Draw the lobby information, player list, and action buttons.
+        The lobby information and player list are only shown if we have a valid game state from the server."""
         super().draw_content(rect)
         game_state = self.scene_manager.game_state
         if game_state is None or game_state.phase != GamePhase.PREGAME:

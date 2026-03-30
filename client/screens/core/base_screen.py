@@ -4,9 +4,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import pygame
 
-#Die Oberklasse für alle Screens
 class BaseScreen(ABC):
-    """Base class for all screens in the game."""
+    """
+    Base class for all screens in the game.
+    Each screen has to inherit from this class and implement the abstract methods.
+    """
     def __init__(self, surface: pygame.Surface) -> None:
         self.surface = surface
         self.error_message: str | None = None

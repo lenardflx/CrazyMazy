@@ -10,6 +10,8 @@ _DISCONNECTED = "Not connected to the server."
 
 
 class RequestService:
+    """Shared base for LobbyService and GameService."""
+
     def __init__(self, connection: ClientConnection, runtime: RuntimeState) -> None:
         self._connection = connection
         self._runtime = runtime

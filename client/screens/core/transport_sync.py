@@ -11,7 +11,8 @@ from shared.game.snapshot import SnapshotGameState
 
 
 class TransportSync:
-    """Watches the network transport for version changes and translates them into
+    """
+    Watches the network transport for version changes and translates them into
     scene transitions and state updates.
 
     Call sync() once per frame. It returns the scene to navigate to when a
@@ -32,6 +33,9 @@ class TransportSync:
 
     @property
     def game_state(self) -> SnapshotGameState | None:
+        """
+        Safety layer to only allow selection, no writes of the variable.
+        """
         return self._game_state
 
     def sync(self) -> tuple[SceneTypes | None, ErrorCode | None] | None:
@@ -39,6 +43,7 @@ class TransportSync:
         target_scene: SceneTypes | None = None
         error: ErrorCode | None = None
 
+        # Check if a incoming snapshot has a new version. If so, update the game state and trigger the corresponding animations and scene transition.
         if self._transport.snapshot_version != self._seen_snapshot_version:
             self._seen_snapshot_version = self._transport.snapshot_version
             snapshot = self._transport.game_snapshot
@@ -48,6 +53,7 @@ class TransportSync:
                 self._start_animations(self._game_state)
                 target_scene = self._scene_from_snapshot()
 
+        # TODO: remove when the new error handling is in place
         if self._transport.game_left_version != self._seen_game_left_version:
             self._seen_game_left_version = self._transport.game_left_version
             self._game_state = None
@@ -56,6 +62,7 @@ class TransportSync:
             self._runtime.game.move_animation = None
             target_scene = SceneTypes.MAIN_MENU
 
+        # TODO: remove when the new error handling is in place (shouldnt be needed anymore)
         if self._transport.error_version != self._seen_error_version:
             self._seen_error_version = self._transport.error_version
             error = self._transport.last_error
@@ -68,6 +75,11 @@ class TransportSync:
         self._runtime.clear_errors()
 
     def _start_animations(self, game_state: SnapshotGameState) -> None:
+        """
+        Check the game state for changes that require starting animations, and if so, start them.
+        """
+
+        # Shift animation. It moves a row in the board.
         shift = game_state.last_shift
         self._runtime.game.shift_animation = (
             None
@@ -77,6 +89,8 @@ class TransportSync:
                 index=shift.index,
             )
         )
+
+        # Move animation. It moves a player on the board and optionally shows a collected treasure
         move = game_state.last_move
         self._runtime.game.move_animation = (
             None
@@ -89,6 +103,7 @@ class TransportSync:
         )
 
     def _scene_from_snapshot(self) -> SceneTypes:
+        """Determine the scene to transition to based on the current game state."""
         if self._game_state is None:
             return SceneTypes.MAIN_MENU
         if self._game_state.phase == GamePhase.POSTGAME:

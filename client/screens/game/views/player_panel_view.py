@@ -9,6 +9,11 @@ from shared.types.enums import GamePhase, PlayerControllerKind, PlayerSkin
 
 
 class PlayerPanelView:
+    """
+    Renders the list of players in the game, showing their name, piece color, and progress (or placement in post-game).
+    Used both during the game (sidebar) and on the post-game screen.
+    """
+
     def draw(
         self,
         surface: pg.Surface,
@@ -16,7 +21,12 @@ class PlayerPanelView:
         game_state: SnapshotGameState,
         *,
         post_game: bool = False,
-    ) -> None:
+    ) -> None: # TODO: better docs
+        """Draw one row per player inside the given rect.
+
+        :param rect: The bounding area to fill with player rows.
+        :param post_game: If True, only players with a final placement are shown.
+        """
         players = game_state.ordered_players
         if post_game:
             players = [player for player in players if player.placement is not None]
@@ -25,6 +35,7 @@ class PlayerPanelView:
 
         is_lobby = game_state.phase == GamePhase.PREGAME
         gap = 12
+        # Calculate a row height that fits all players into the available rect without overflowing, clamped to a readable range.
         row_height = min(68, max(48, (rect.height - gap * max(0, len(players) - 1)) // len(players)))
         y = rect.y
 
@@ -72,6 +83,11 @@ class PlayerPanelView:
             surface.blit(row_surface, row.topleft)
 
     def _draw_progress(self, surface: pg.Surface, player: SnapshotPlayerState, right: int, row: pg.Rect) -> None:
+        """Draw a row of six treasure-card indicators, filled for each treasure the player has collected.
+
+        :param right: The right edge x-coordinate to align the card strip against.
+        :param row: The full player row rect, used to vertically center the cards.
+        """
         unlocked = player.collected_treasure_count
         card_w = 18
         gap = 8
@@ -85,6 +101,9 @@ class PlayerPanelView:
             pg.draw.rect(surface, color, card, border_radius=5)
 
     def _inline_meta(self, player: SnapshotPlayerState, game_state: SnapshotGameState) -> str | None:
+        """Build a short parenthetical tag string for the lobby player row (e.g. "You, Leader", "Hard NPC").
+        Returns None if no tags apply.
+        """
         tags: list[str] = []
         if player.id == game_state.viewer_id:
             tags.append("You")

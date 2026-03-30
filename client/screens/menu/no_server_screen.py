@@ -6,6 +6,7 @@ from client.screens.core.base_screen import BaseScreen
 
 
 class NoServerScreen(BaseScreen):
+    """Displayed when the client cannot reach the server. Shows a static error message and accepts no input."""
     def __init__(self, surface: pygame.Surface) -> None:
         super().__init__(surface)
 

@@ -14,6 +14,11 @@ if TYPE_CHECKING:
 
 
 class JoinLobbyScreen(MenuScreen):
+    """
+    Screen for joining an existing lobby. Allows the player to enter their name and a lobby join code.
+    Submitting the form sends a join-lobby request to the server via LobbyService.
+    """
+
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Join Lobby")
         form = self.scene_manager.runtime_state.join_lobby
@@ -28,18 +33,21 @@ class JoinLobbyScreen(MenuScreen):
         )
 
     def _join_lobby(self) -> None:
+        """Submit the form and request the server to join the lobby matching the entered join code."""
         self.scene_manager.lobby_service.join_lobby(
             self.name_input.text,
             self.code_input.text,
         )
 
     def handle_content_event(self, event: pg.event.Event) -> None:
+        """Handle input events for the form controls."""
         super().handle_content_event(event)
         self.name_input.handle_event(event)
         self.code_input.handle_event(event)
         self.join_button.handle_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
+        """Draw the form controls and any error messages."""
         super().draw_content(rect)
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
         self.code_input.draw(self.surface, self.small_font, self.body_font, "Join Code")

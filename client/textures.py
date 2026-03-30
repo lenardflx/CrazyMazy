@@ -7,6 +7,7 @@ from shared.paths import BASE_DIR
 
 
 def _image_load(path: str) -> pygame.Surface:
+    """Load a pygame surface from the given path relative to the project base directory."""
     return pygame.image.load(BASE_DIR / path)
 
 
