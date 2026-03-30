@@ -63,6 +63,7 @@ class TurnPayload(TypedDict):
     """Serialized turn-state metadata for the current game revision."""
 
     current_player_id: str | None
+    turn_start_timestamp: int | None
     turn_phase: str | None
     blocked_insertion_side: str | None
     blocked_insertion_index: int | None
