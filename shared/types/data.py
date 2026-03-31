@@ -132,8 +132,17 @@ class GameData(SQLModel):
     # why the game ended once it reaches postgame
     end_reason: Optional[GameEndReason] = Field(default=None)
 
+    # the maximum amount of seconds a player has time to insert a tile
+    insert_timeout: int = Field(default=None)
+
+    # the maximum amount of seconds a player has time to move
+    move_timeout: int = Field(default=None)
+
     # Turn Phase during an active Match
     turn_phase: Optional[TurnPhase] = Field(default=None)
+
+    # The timestamp at which the current move started
+    turn_start_timestamp: Optional[int] = Field(default=None)
 
     # Current active player during the running match. Random pick at match start
     current_player_id: Optional[UUID] = Field(default=None, foreign_key="player.id", index=True)

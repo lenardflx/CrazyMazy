@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.lang import language_service
-from shared.lib.lobby import VALID_BOARD_SIZES
+from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
 from client.ui.controls import Button, TextInput
 from client.ui.theme import TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
@@ -31,6 +31,11 @@ class CreateLobbyScreen(MenuScreen):
         self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name if scene_manager.client_settings.get_name() == "" else scene_manager.client_settings.get_name(),
                                     placeholder=PLACEHOLDER_NAME if scene_manager.client_settings.get_name() == "" else scene_manager.client_settings.get_name())
         sizes = tuple(sorted(VALID_BOARD_SIZES))
+        insert_timeouts = tuple(sorted(VALID_INSERT_TIMEOUTS))
+        move_timeouts = tuple(sorted(VALID_MOVE_TIMEOUTS))
+
+        self.board_size_y = self.content_rect.y + 192
+
         self.size_buttons = []
         for index, size in enumerate(sizes):
             button = Button(
@@ -61,6 +66,37 @@ class CreateLobbyScreen(MenuScreen):
                 variant="primary" if form.player_limit == limit else "secondary",
             )
             self.player_limit_buttons.append(button)
+
+        self.insert_timeout_buttons = []
+        self.insert_timeout_y = self.size_buttons[-1].rect.bottom + 20
+        for index, timeout in enumerate(insert_timeouts):
+            button = Button(
+                pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + index * 94, self.insert_timeout_y, 86, 42),
+                str(timeout),
+                self._set_board_size_action(timeout),
+                variant="primary" if form.insert_timeout == timeout else "secondary",
+            )
+            self.insert_timeout_buttons.append(button)
+        self.insert_timeout_buttons.append(Button(
+            pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + len(insert_timeouts) * 94, self.insert_timeout_y, 86, 42),
+            str("∞"),
+            self._set_board_size_action(-1),
+            variant="primary" if form.insert_timeout == -1 else "secondary",
+        ))
+
+        self.move_timeout_buttons = []
+        # self.move_timeout_y = self.insert_timeout_buttons[-1] + 20
+        for index, timeout in enumerate(move_timeouts):
+            button = Button(
+                pg.Rect(center_x - ((len(move_timeouts) * 86 + (len(move_timeouts) - 1) * 8) // 2) + index * 94,
+                        self.insert_timeout_y, 86, 42),
+                str(timeout),
+                self._set_board_size_action(timeout),
+                variant="primary" if form.insert_timeout == timeout else "secondary",
+            )
+            self.move_timeout_buttons.append(button)
+
+
         self.create_button = Button(
             pg.Rect(center_x - 100, self.content_rect.y + 430, 200, 48),
             "Create Lobby",

@@ -63,6 +63,7 @@ class TurnPayload(TypedDict):
     """Serialized turn-state metadata for the current game revision."""
 
     current_player_id: str | None
+    turn_start_timestamp: int | None
     turn_phase: str | None
     blocked_insertion_side: str | None
     blocked_insertion_index: int | None
@@ -111,6 +112,8 @@ class ClientCreateLobbyPayload(TypedDict):
     player_name: str
     is_public: bool
     player_limit: int
+    insert_timeout: int
+    move_timeout: int
 
 
 class ClientJoinGamePayload(TypedDict):

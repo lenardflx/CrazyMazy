@@ -28,6 +28,8 @@ def parse_client_game_create_lobby_payload(payload: Mapping[str, Any]) -> Client
     player_name = parse_str(payload.get("player_name"))
     is_public = parse_bool(payload.get("is_public"))
     player_limit = parse_int(payload.get("player_limit"))
+    insert_timeout = parse_int(payload.get("player_limit"))
+    move_timeout = parse_int(payload.get("player_limit"))
     if board_size is None or player_name is None or is_public is None or player_limit is None:
         return None
     return {
@@ -35,6 +37,8 @@ def parse_client_game_create_lobby_payload(payload: Mapping[str, Any]) -> Client
         "player_name": player_name,
         "is_public": is_public,
         "player_limit": player_limit,
+        "insert_timeout": insert_timeout,
+        "move_timeout": move_timeout,
     }
 
 

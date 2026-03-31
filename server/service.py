@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from threading import Lock, Thread
 from time import sleep
@@ -63,6 +64,9 @@ class GameService:
         self.treasure_repo = treasure_repo
         self._running_npc_games: set[UUID] = set()
         self._running_npc_games_lock = Lock()
+
+    def find_active_games(self) -> list[GameData]:
+        return self.game_repo.find_active_games()
 
     def create_lobby(
         self,
@@ -318,6 +322,7 @@ class GameService:
         game.game_phase = GamePhase.GAME
         game.end_reason = None
         game.turn_phase = TurnPhase.SHIFT
+        game.turn_start_timestamp = time.time_ns() // 1_000_000
         game.current_player_id = active[0].id
         game.blocked_insertion_side = None
         game.blocked_insertion_index = None
@@ -348,7 +353,7 @@ class GameService:
         :return: Updated game state after the shift.
         :raises ValueError: If it is not the player's turn, the insertion is blocked, or the index is invalid.
         """
-        _, game = self._require_current_player(player_id, TurnPhase.SHIFT)
+        _, game = self._require_current_player(player_id, TurnPhase.SHIFT) # todo: fix error handling here, currently unsafe as tuple unpacking does not always work!
         if not is_valid_insertion_index(game.board_size, index):
             raise ValueError(f"Invalid insertion index: {index}")
 
@@ -507,6 +512,9 @@ class GameService:
             next_player = self._next_active_player(remaining_players, player.id)
             game.current_player_id = next_player.id
             game.turn_phase = TurnPhase.SHIFT
+            game.turn_start_timestamp = time.time_ns() // 1_000_000
+            game.blocked_insertion_side = None
+            game.blocked_insertion_index = None
             game.last_shift_side = None
             game.last_shift_index = None
             game.last_shift_rotation = None
@@ -582,6 +590,9 @@ class GameService:
         next_player = self._next_active_player(active_players(self.player_repo.list_by_game_id(game.id)), player.id)
         game.current_player_id = next_player.id
         game.turn_phase = TurnPhase.SHIFT
+        game.turn_start_timestamp = time.time_ns() // 1_000_000
+        game.blocked_insertion_side = None
+        game.blocked_insertion_index = None
         game.last_shift_side = None
         game.last_shift_index = None
         game.last_shift_rotation = None
