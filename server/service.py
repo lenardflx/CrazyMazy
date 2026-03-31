@@ -367,7 +367,10 @@ class GameService:
         :return: Updated game state after the shift.
         :raises ValueError: If it is not the player's turn, the insertion is blocked, or the index is invalid.
         """
-        _, game = self._require_current_player(player_id, TurnPhase.SHIFT) # todo: fix error handling here, currently unsafe as tuple unpacking does not always work!
+        current = self._require_current_player(player_id, TurnPhase.SHIFT)
+        if not isinstance(current, tuple):
+            return current
+        _, game = current
         if not is_valid_insertion_index(game.board_size, index):
             raise ValueError(f"Invalid insertion index: {index}")
 
@@ -379,6 +382,8 @@ class GameService:
         state = self.get_game_state(game.id)
         if state is None:
             return ErrorCode.GAME_NOT_FOUND
+        if state.board is None:
+            return ErrorCode.GAME_INACTIVE
 
         state.board.shift_tile(side, index, rotation)
 
@@ -430,10 +435,15 @@ class GameService:
         :raises ValueError: If it is not the player's turn, the position is unreachable,
             or the player has no position.
         """
-        player, game = self._require_current_player(player_id, TurnPhase.MOVE)
+        current = self._require_current_player(player_id, TurnPhase.MOVE)
+        if not isinstance(current, tuple):
+            return current
+        player, game = current
         state = self.get_game_state(game.id)
         if state is None:
             return ErrorCode.GAME_NOT_FOUND
+        if state.board is None:
+            return ErrorCode.GAME_INACTIVE
 
         start = self._player_position(player)
         if start is None:
@@ -476,14 +486,17 @@ class GameService:
             return updated
         return self._finish_move(updated.game, player)
 
-    def end_turn(self, player_id: UUID) -> GameState:
+    def end_turn(self, player_id: UUID) -> GameState | ErrorCode:
         """Skip the move phase and pass the turn to the next player.
 
         :param player_id: UUID of the current player ending their turn.
         :return: Updated game state with the next player's turn started.
         :raises ValueError: If it is not the player's turn or the game is not in the MOVE phase.
         """
-        player, game = self._require_current_player(player_id, TurnPhase.MOVE)
+        current = self._require_current_player(player_id, TurnPhase.MOVE)
+        if not isinstance(current, tuple):
+            return current
+        player, game = current
         return self._finish_move(game, player)
 
     def _after_player_inactivation(
@@ -816,6 +829,8 @@ class GameService:
                     return
 
                 updated = self._perform_next_npc_action(state)
+                if isinstance(updated, ErrorCode):
+                    return
                 flush_outgoing(snapshot_response(updated))
         finally:
             with self._running_npc_games_lock:
@@ -828,12 +843,15 @@ class GameService:
             and state.game.current_player_id in state.npcs
         )
 
-    def _perform_next_npc_action(self, state: GameState) -> GameState:
+    def _perform_next_npc_action(self, state: GameState) -> GameState | ErrorCode:
         from server.handlers._responses import snapshot_response
         from server.network.outgoing import flush_outgoing
 
         game = state.game
-        npc = state.npcs[game.current_player_id]
+        current_player_id = game.current_player_id
+        if current_player_id is None:
+            raise ValueError("NPC turn requires a current player")
+        npc = state.npcs[current_player_id]
         if state.board is None:
             raise ValueError("NPC turn requires a board")
         turn = npc.choose_turn(
@@ -845,6 +863,8 @@ class GameService:
             target_on_spare=state.target_on_spare_for_player(npc.player_id),
         )
         updated = self.shift_tile(npc.player_id, turn.shift_side, turn.shift_index, turn.shift_rotation)
+        if isinstance(updated, ErrorCode):
+            return updated
         flush_outgoing(snapshot_response(updated))
         sleep(_NPC_ACTION_DELAY_SECONDS)
         if turn.move_to is None:
