@@ -31,6 +31,7 @@ UI_IMAGES = {
     "TURN_ARROW": _image_load("assets/images/ui/turn_arrow.png"),
     "CLOSE": _image_load("assets/images/ui/close.png"),
     "TITLE_BACKGROUND": _image_load("assets/images/ui/titleBackground.png"),
+    "SPACE_BACKGROUND": _image_load("assets/images/ui/backgroundSpace.png"),
 }
 
 TREASURE_IMAGES = {
