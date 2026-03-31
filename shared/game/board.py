@@ -425,6 +425,9 @@ class Board:
         return tile.treasure
 
     def _insertion_coordinates(self, side: InsertionSide, index: int) -> Position:
+        """
+        converts an insertion that uses insertion.side and insertion_index to a position tuple that can be used by the insert_tile method
+        """
         if side == InsertionSide.LEFT:
             return 0, index
         if side == InsertionSide.RIGHT:
@@ -432,6 +435,21 @@ class Board:
         if side == InsertionSide.TOP:
             return index, 0
         return index, self.width - 1
+
+    def convert_insertion(self,x : int, y : int) -> tuple[InsertionSide, int]:
+        """
+        convert coordinates to a tuple of InsertionSide and an InsertionIndex
+        """
+        if x == 0:
+            return InsertionSide.LEFT, y
+        if x == self.width:
+            return InsertionSide.RIGHT, y
+        if y == 0:
+            return InsertionSide.TOP, x
+        if y == self.width:
+            return InsertionSide.BOTTOM, x
+        else:
+            raise BoardError("This is not a border coordinate")
 
     def _initialize_tile_entities(self, game_id: UUID) -> None:
         self._tile_entities = {}
@@ -453,9 +471,7 @@ class Board:
         return 0 in position or self.width in position
 
     def insertion_shift_coordinates(self, position : tuple[int, int]) -> list[tuple[int,int]]:
-        '''
-        returns a list with the coordinates of all tiles that move after an insertion
-        '''
+        '''returns a list with the coordinates of all tiles that move after an insertion'''
 
         x,y = position
         moved_tiles = []
@@ -493,3 +509,11 @@ class Board:
                 moved_tiles += [(x, i)]
 
         return moved_tiles
+
+    def change_board(self, new_board: dict):
+        """
+        change all tiles from the board
+
+        is used by the npc to test several insertion for the same board
+        """
+        self.tiles = new_board
