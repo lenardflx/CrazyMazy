@@ -36,6 +36,8 @@ def handle_create_lobby(ctx: RequestContext, event: ClientCreateLobbyEvent) -> l
         connection_id=ctx.connection_id,
         is_public=event.is_public,
         player_limit=event.player_limit,
+        insert_timeout=event.insert_timeout,
+        move_timeout=event.move_timeout,
     )
     if isinstance(state, ErrorCode):
         return error_response(ctx, state)

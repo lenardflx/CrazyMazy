@@ -76,12 +76,18 @@ class GameService:
         *,
         is_public: bool = False,
         player_limit: int = 4,
+        insert_timeout: int,
+        move_timeout: int,
     ) -> ConnectionState | ErrorCode:
         """Create a new game lobby and register the creating player as leader.
 
         :param board_size: Side length of the square board.
         :param leader_display_name: Display name for the lobby leader.
         :param connection_id: WebSocket connection ID of the leader.
+        :param player_limit:
+        :param is_public:
+        :param insert_timeout:
+        :param move_timeout:
         :return: Connection state containing the new game and leader player.
                     `INVALID_BOARD_SIZE` when the configured width of the board is out of range or even.
                     ``
@@ -109,6 +115,8 @@ class GameService:
         # Assign the newly created player as leader before persisting.
         game.leader_player_id = leader.id
         game.revision += 1
+        game.insert_timeout = insert_timeout
+        game.move_timeout = move_timeout
         game = self.game_repo.update_game(game)
         return ConnectionState(game=game, player=leader)
 
@@ -322,7 +330,7 @@ class GameService:
         game.game_phase = GamePhase.GAME
         game.end_reason = None
         game.turn_phase = TurnPhase.SHIFT
-        game.turn_start_timestamp = time.time_ns() // 1_000_000
+        game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
         game.current_player_id = active[0].id
         game.blocked_insertion_side = None
         game.blocked_insertion_index = None
@@ -385,6 +393,7 @@ class GameService:
 
         # Transition to MOVE phase for the current player, blocking the reverse shift as the next valid action.
         game.turn_phase = TurnPhase.MOVE
+        game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.move_timeout * 1000
         game.blocked_insertion_side = opposite_side(side)
         game.blocked_insertion_index = index
         game.last_shift_side = side
@@ -512,7 +521,7 @@ class GameService:
             next_player = self._next_active_player(remaining_players, player.id)
             game.current_player_id = next_player.id
             game.turn_phase = TurnPhase.SHIFT
-            game.turn_start_timestamp = time.time_ns() // 1_000_000
+            game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
             game.blocked_insertion_side = None
             game.blocked_insertion_index = None
             game.last_shift_side = None
@@ -542,7 +551,13 @@ class GameService:
         return self.player_repo.list_by_game_id(player.game_id)
 
     def _mark_player_observer(self, player: PlayerData) -> list[PlayerData]:
-        """Set player status to OBSERVER and keep them connected to the session."""
+        """
+        Set player status to OBSERVER and keep them connected to the session.
+
+        :param player: The player to be made an observer.
+        :return: An updated list of all players connected to the game the given
+                 player was in.
+        """
         if player.status != PlayerStatus.OBSERVER:
             player.status = PlayerStatus.OBSERVER
             player.position_x = None
@@ -590,7 +605,7 @@ class GameService:
         next_player = self._next_active_player(active_players(self.player_repo.list_by_game_id(game.id)), player.id)
         game.current_player_id = next_player.id
         game.turn_phase = TurnPhase.SHIFT
-        game.turn_start_timestamp = time.time_ns() // 1_000_000
+        game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
         game.blocked_insertion_side = None
         game.blocked_insertion_index = None
         game.last_shift_side = None
