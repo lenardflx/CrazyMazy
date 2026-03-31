@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 from shared.paths import BASE_DIR
 
@@ -21,6 +22,7 @@ class ClientData:
 
         self.tutorial: bool = False
 
+        os.makedirs(os.path.dirname(BASE_DIR / "data/app_data.json"), exist_ok=True)
 
         # Load the last saved settings from disk, overwriting the defaults above.
         self.read_JSON()
