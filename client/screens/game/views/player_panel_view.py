@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 import pygame as pg
+from pygame import Surface
+from pygame.draw_py import draw_pixel
 
 from client.state.runtime_state import TreasureCollectAnimation
 from client.textures import PLAYER_IMAGES, TREASURE_IMAGES
+from client.ui import Button
 from client.ui.theme import ACTIVE_OUTLINE, DISABLED, PANEL, PANEL_ALT, TEXT_MUTED, TEXT_PRIMARY, blend_color, font
 from shared.game.snapshot import SnapshotGameState, SnapshotPlayerState
 from shared.types.enums import GamePhase, PlayerControllerKind, PlayerSkin, TreasureType
@@ -15,8 +20,15 @@ class PlayerPanelView:
     Used both during the game (sidebar) and on the post-game screen.
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, container: pg.Rect, total_surface: Surface) -> None:
+        # each button is reserved for a specific player
+        self.container = container
+        self.total_surface = total_surface
+        self.kick_buttons: dict[str, Button] = {}
+
+    def handle_player_panel_event(self, event: pg.event.Event):
+        for player_id, button in self.kick_buttons.items():
+            button.handle_event(event)
 
     def draw(
         self,
@@ -84,6 +96,16 @@ class PlayerPanelView:
                 meta_surface = meta_font.render(f"({meta})", True, TEXT_MUTED)
                 meta_x = name_x + name.get_width() + 8
                 row_surface.blit(meta_surface, (meta_x, row_surface.get_rect().centery - meta_surface.get_height() // 2))
+
+                # only draw kick button when the current player is the leader
+                # and the button is not rendered for themselves
+                if player.id != game_state.leader_player_id and game_state.viewer_id == game_state.leader_player_id:
+                    self._draw_kick_button(surface=row_surface,
+                                           row=row_surface.get_rect(),
+                                           x_offset=self.container.left,
+                                           y_offset=y - row_height - gap,
+                                           player=player)
+
             elif not is_lobby:
                 self._draw_progress(
                     row_surface,
@@ -97,6 +119,22 @@ class PlayerPanelView:
             if player.is_inactive:
                 row_surface.set_alpha(128)
             surface.blit(row_surface, row.topleft)
+
+    def _draw_kick_button(self,
+                          surface: pg.Surface,
+                          row: pg.Rect,
+                          x_offset: int,
+                          y_offset: int,
+                          player: SnapshotPlayerState):
+        if player.id not in self.kick_buttons:
+            kick_button_height = 29
+            #rect = pg.Rect(row.right + x_offset - 100, y_offset + row.centery - kick_button_height // 2, 80, kick_button_height)
+            rect = pg.Rect(row.right - 100, row.centery - kick_button_height // 2, 80, kick_button_height)
+            abs_rect = pg.Rect(row.right + x_offset - 100, y_offset + row.centery - kick_button_height // 2, 80, kick_button_height)
+            button = Button(rect=rect, label="KICK", on_click=lambda: print("Kick player " + player.id), variant="primary", abs_rect=abs_rect)
+            self.kick_buttons[player.id] = button
+        self.kick_buttons[player.id].draw(surface, font(20))
+
 
     def _draw_progress(
         self,
