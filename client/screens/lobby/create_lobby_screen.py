@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.lang import language_service
-from shared.lib.lobby import VALID_BOARD_SIZES
+from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
 from client.ui.controls import Button, TextInput
 from client.ui.theme import TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
@@ -29,6 +29,10 @@ class CreateLobbyScreen(MenuScreen):
         center_x = self.content_rect.centerx
         self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name, placeholder="Your name")
         sizes = tuple(sorted(VALID_BOARD_SIZES))
+        insert_timeouts = tuple(sorted(VALID_INSERT_TIMEOUTS))
+        move_timeouts = tuple(sorted(VALID_MOVE_TIMEOUTS))
+
+        self.board_size_y = self.content_rect.y + 192
         self.size_buttons = []
         for index, size in enumerate(sizes):
             button = Button(
@@ -38,6 +42,36 @@ class CreateLobbyScreen(MenuScreen):
                 variant="primary" if form.board_size == size else "secondary",
             )
             self.size_buttons.append(button)
+
+        self.insert_timeout_buttons = []
+        self.insert_timeout_y = self.size_buttons[-1].rect.bottom + 20
+        for index, timeout in enumerate(insert_timeouts):
+            button = Button(
+                pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + index * 94, self.insert_timeout_y, 86, 42),
+                str(timeout),
+                self._set_board_size_action(timeout),
+                variant="primary" if form.insert_timeout == timeout else "secondary",
+            )
+            self.insert_timeout_buttons.append(button)
+        self.insert_timeout_buttons.append(Button(
+            pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + len(insert_timeouts) * 94, self.insert_timeout_y, 86, 42),
+            str("∞"),
+            self._set_board_size_action(-1),
+            variant="primary" if form.insert_timeout == -1 else "secondary",
+        ))
+
+        self.move_timeout_buttons = []
+        # self.move_timeout_y = self.insert_timeout_buttons[-1] + 20
+        for index, timeout in enumerate(move_timeouts):
+            button = Button(
+                pg.Rect(center_x - ((len(move_timeouts) * 86 + (len(move_timeouts) - 1) * 8) // 2) + index * 94,
+                        self.insert_timeout_y, 86, 42),
+                str(timeout),
+                self._set_board_size_action(timeout),
+                variant="primary" if form.insert_timeout == timeout else "secondary",
+            )
+            self.move_timeout_buttons.append(button)
+
         self.create_button = Button(
             pg.Rect(center_x - 100, self.content_rect.y + 282, 200, 48),
             "Create Lobby",
@@ -80,10 +114,19 @@ class CreateLobbyScreen(MenuScreen):
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the form controls and any error messages."""
         super().draw_content(rect)
-        caption = self.body_font.render("Board Size", True, TEXT_PRIMARY)
-        self.surface.blit(caption, caption.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 172)))
+        board_size_caption = self.body_font.render("Board Size", True, TEXT_PRIMARY)
+        self.surface.blit(board_size_caption,
+                          board_size_caption.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 172)))
+        insert_timeout_caption = self.body_font.render("Insert Tile Timeout", True, TEXT_PRIMARY)
+        self.surface.blit(insert_timeout_caption,
+                          insert_timeout_caption.get_rect(center=(self.content_rect.centerx, self.board_size_y + 172)))
+        move_timeout_caption = self.body_font.render("Player Move Timeout", True, TEXT_PRIMARY)
+        self.surface.blit(move_timeout_caption,
+                          move_timeout_caption.get_rect(center=(self.content_rect.centerx, self.insert_timeout_y + 172)))
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
         for button in self.size_buttons:
+            button.draw(self.surface, self.button_font)
+        for button in self.insert_timeout_buttons:
             button.draw(self.surface, self.button_font)
         self.create_button.draw(self.surface, self.button_font)
         if self.error_message:
