@@ -76,6 +76,12 @@ class LobbyScreen(MenuScreen):
         self.surface.blit(code, (self.content_rect.x, self.content_rect.y + 62))
         size = self.body_font.render(f"Board Size: {game_state.board_size}", True, TEXT_MUTED)
         self.surface.blit(size, (self.content_rect.x, self.content_rect.y + 98))
+        visibility = self.body_font.render(
+            f"{'Public' if game_state.is_public else 'Private'} Lobby, {game_state.active_player_count}/{game_state.player_limit} Players",
+            True,
+            TEXT_MUTED,
+        )
+        self.surface.blit(visibility, (self.content_rect.x, self.content_rect.y + 122))
         self.player_panel_view.draw(
             self.surface,
             pg.Rect(self.content_rect.x, self.content_rect.y + 146, self.content_rect.width, 288),

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.screens.game.views.player_panel_view import PlayerPanelView
+from shared.game.snapshot import SnapshotGameState
 from client.ui.controls import Button
 from client.ui.theme import TEXT_MUTED
 from client.screens.menu.menu_screen import MenuScreen
@@ -31,6 +32,10 @@ class PostGameScreen(MenuScreen):
             self._play_again,
         )
 
+    @property
+    def _game_snapshot(self) -> SnapshotGameState | None:
+        return self.scene_manager.game_state
+
     def _play_again(self) -> None:
         """Start a new game with the same settings as the previous game."""
         # TODO: check how the service handles this. I think the ideal approach for future would be to return to a new lobby and insert all players into the new lobby. 
@@ -51,7 +56,7 @@ class PostGameScreen(MenuScreen):
         """Draw the post game screen content, including the results and buttons."""
 
         # If the game state is not in the post game phase, just draw the default.
-        game_state = self.scene_manager.game_state
+        game_state = self._game_snapshot
         if game_state is None or game_state.phase != GamePhase.POSTGAME:
             super().draw_content(rect)
             return
@@ -71,13 +76,10 @@ class PostGameScreen(MenuScreen):
         # Draw the buttons to return to the main menu or start a new game.
         self.menu_button.draw(self.surface, self.button_font)
         self.play_again_button.draw(self.surface, self.button_font)
-        if self.scene_manager.runtime_state.global_error_message:
-            error = self.small_font.render(self.scene_manager.runtime_state.global_error_message, True, (150, 58, 48))
-            self.surface.blit(error, (self.content_rect.x, self.content_rect.bottom - 88))
 
     def _result_title(self) -> str:
         """Determine the title to display based on the player's result in the game."""
-        game_state = self.scene_manager.game_state
+        game_state = self._game_snapshot
         if game_state is None:
             return "Game Over"
         viewer = game_state.viewer_player

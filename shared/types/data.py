@@ -123,6 +123,8 @@ class GameData(SQLModel):
 
     # Board size. Must be odd, and enforced in service
     board_size: int = Field(default=7)
+    is_public: bool = Field(default=False, index=True)
+    player_limit: int = Field(default=4)
 
     # lifecycle of the game: lobby -> running match -> rematch screen
     game_phase: GamePhase = Field(default=GamePhase.PREGAME)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from uuid import UUID
 
-from server.db import game_service
+from server.db.runtime import game_service
 from server.handlers._responses import error_response, left_response, snapshot_response
 from server.network.dispatch import dispatcher
 from server.network.models import OutgoingMessage, RequestContext
@@ -31,7 +31,11 @@ def handle_create_lobby(ctx: RequestContext, event: ClientCreateLobbyEvent) -> l
         board_size=event.board_size,
         leader_display_name=event.player_name,
         connection_id=ctx.connection_id,
+        is_public=event.is_public,
+        player_limit=event.player_limit,
     )
+    if isinstance(state, ErrorCode):
+        return error_response(ctx, state)
     game_state = game_service.get_game_state(state.game.id)
     if game_state is None:
         return error_response(ctx, ErrorCode.GAME_NOT_FOUND)
@@ -41,9 +45,10 @@ def handle_create_lobby(ctx: RequestContext, event: ClientCreateLobbyEvent) -> l
 @dispatcher.handler(ClientJoinGameEvent)
 def handle_join_game(ctx: RequestContext, event: ClientJoinGameEvent) -> list[OutgoingMessage]:
     state = game_service.join_game(
-        join_code=event.join_code,
+        join_code=None if event.join_public else event.join_code,
         display_name=event.player_name,
         connection_id=ctx.connection_id,
+        join_public=event.join_public,
     )
     if isinstance(state, ErrorCode):
         return error_response(ctx, state)

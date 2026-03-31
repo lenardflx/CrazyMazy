@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pygame
 
 from sys import platform
@@ -19,6 +21,9 @@ from client.screens.core.transport_sync import TransportSync
 from client.state.runtime_state import RuntimeState
 from client.state.app_data import ClientData
 from shared.game.snapshot import SnapshotGameState
+
+if TYPE_CHECKING:
+    from client.tutorial.session import TutorialSession
 
 
 class SceneManager:
@@ -39,6 +44,8 @@ class SceneManager:
         self.audio = audio
         self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
+        self.tutorial_session: TutorialSession | None = None
+        self.prompt_tutorial_on_main_menu = not self.client_settings.get_tutorial()
         self.lobby_service = LobbyService(connection, self.runtime_state)
         self.game_service = GameService(connection)
 
@@ -61,6 +68,7 @@ class SceneManager:
         if scene == self.current_scene:
             return
         self.current_scene = scene
+        self._sync_scene_music(scene)
         self.current_screen = create_screen(scene, self.surface, self)
 
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -91,6 +99,13 @@ class SceneManager:
             self.current_screen.error_message = language_service.get_message(error)
         if target is not None:
             self.go_to(target)
+
+    def _sync_scene_music(self, scene: SceneTypes) -> None:
+        # TODO: add ingame music here
+        if scene == SceneTypes.GAME:
+            self.audio.stop_music()
+            return
+        self.audio.play_music("lobby")
 
     @property
     def game_state(self) -> SnapshotGameState | None:

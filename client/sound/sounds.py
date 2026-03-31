@@ -1,8 +1,7 @@
 # Audio asset registry. TODO: universal asset manager for all asset types?
 
 MUSIC_TRACKS: dict[str, str] = {
-    # "menu":  "assets/music/menu.ogg",
-    # "game":  "assets/music/game.ogg",
+    "lobby": "assets/music/menue_lobby.wav",
 }
 
 SFX: dict[str, str] = {

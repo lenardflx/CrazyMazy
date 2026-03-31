@@ -10,10 +10,8 @@ from time import sleep
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from server.handlers._responses import snapshot_response
-from server.network.outgoing import flush_outgoing
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
-from server.lib.game import can_join_game, is_valid_board_size, normalize_join_code
+from server.lib.game import can_join_game, is_valid_board_size, is_valid_player_limit, normalize_join_code
 from server.lib.player import (
     active_players,
     is_display_name_taken,
@@ -75,6 +73,9 @@ class GameService:
         board_size: int,
         leader_display_name: str,
         connection_id: str,
+        *,
+        is_public: bool = False,
+        player_limit: int = 4,
     ) -> ConnectionState | ErrorCode:
         """Create a new game lobby and register the creating player as leader.
 
@@ -88,8 +89,14 @@ class GameService:
         """
         if not is_valid_board_size(board_size):
             return ErrorCode.INVALID_BOARD_SIZE
+        if not is_valid_player_limit(player_limit):
+            return ErrorCode.INVALID_PLAYER_LIMIT
 
-        game = self.game_repo.create_game(board_size)
+        game = self.game_repo.create_game(
+            board_size,
+            is_public=is_public,
+            player_limit=player_limit,
+        )
         leader = self._create_player_for_game(
             game=game,
             display_name=leader_display_name, # TODO: add constraints to display names (no symbols, length limit, etc.)
@@ -97,7 +104,6 @@ class GameService:
         )
 
         if isinstance(leader, ErrorCode):
-            print("error with player")
             return leader
 
         # Assign the newly created player as leader before persisting.
@@ -108,9 +114,11 @@ class GameService:
 
     def join_game(
         self,
-        join_code: str,
+        join_code: str | None,
         display_name: str,
         connection_id: str,
+        *,
+        join_public: bool = False,
     ) -> ConnectionState | ErrorCode:
         """Join an existing lobby by join code.
 
@@ -121,9 +129,13 @@ class GameService:
                     `GAME_NOT_FOUND` error when the game does not exist.
                     `GAME_NOT_JOINABLE` when the game is not in lobby state.
         """
-        game = self.find_game_by_code(join_code)
+        game = (
+            self._find_public_joinable_game()
+            if join_public
+            else (None if join_code is None else self.find_game_by_code(join_code))
+        )
         if game is None:
-            return ErrorCode.GAME_NOT_FOUND
+            return ErrorCode.NO_PUBLIC_LOBBY if join_public else ErrorCode.GAME_NOT_FOUND
 
         players = self.player_repo.list_by_game_id(game.id)
         if not can_join_game(game, players):
@@ -135,14 +147,19 @@ class GameService:
             connection_id=connection_id,
         )
 
-        print("player: " + player)
         if isinstance(player, ErrorCode):
-            print("error player")
             return player
 
         game.revision += 1
         self.game_repo.update_game(game)
         return ConnectionState(game=game, player=player)
+
+    def _find_public_joinable_game(self) -> GameData | None:
+        for game in self.game_repo.list_public_games():
+            players = self.player_repo.list_by_game_id(game.id)
+            if can_join_game(game, players):
+                return game
+        return None
 
     def add_npc(self, leader_player_id: UUID, difficulty: NpcDifficulty = NpcDifficulty.NORMAL) -> GameState | ErrorCode:
         leader = self.player_repo.find_by_id(leader_player_id)
@@ -368,7 +385,6 @@ class GameService:
 
         # Transition to MOVE phase for the current player, blocking the reverse shift as the next valid action.
         game.turn_phase = TurnPhase.MOVE
-        game.turn_start_timestamp = time.time_ns() // 1_000_000
         game.blocked_insertion_side = opposite_side(side)
         game.blocked_insertion_index = index
         game.last_shift_side = side
@@ -719,6 +735,9 @@ class GameService:
         Thread(target=self._run_npc_turns, args=(game_id,), daemon=True).start()
 
     def _run_npc_turns(self, game_id: UUID) -> None:
+        from server.handlers._responses import snapshot_response
+        from server.network.outgoing import flush_outgoing
+
         try:
             while True:
                 sleep(_NPC_ACTION_DELAY_SECONDS)
@@ -740,6 +759,9 @@ class GameService:
         )
 
     def _perform_next_npc_action(self, state: GameState) -> GameState:
+        from server.handlers._responses import snapshot_response
+        from server.network.outgoing import flush_outgoing
+
         game = state.game
         npc = state.npcs[game.current_player_id]
         turn = npc.choose_turn(

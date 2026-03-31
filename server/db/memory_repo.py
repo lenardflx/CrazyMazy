@@ -34,23 +34,36 @@ class GameRepositoryInMemory(GameRepository):
             return None
         return self._games.get(game_id)
 
+    def list_public_games(self) -> list[GameData]:
+        candidates = [game for game in self._games.values() if game.is_public]
+        candidates.sort(key=lambda game: game.created_at)
+        return candidates
+
     def find_active_games(self) -> list[GameData]:
         return [x for x in self._games.values() if x.game_phase == GamePhase.GAME]
-
-    def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
-        game = GameData(
-            code=self._new_code(),
-            leader_player_id=leader_player_id,
-            board_size=board_size,
-        )
-        self._games[game.id] = game
-        self._game_ids_by_code[game.code] = game.id
-        return game
 
     def delete_game(self, game_id: UUID) -> None:
         game = self._games.pop(game_id, None)
         if game is not None:
             self._game_ids_by_code.pop(game.code, None)
+
+    def create_game(self,
+                    board_size: int,
+                    leader_player_id: UUID | None = None,
+                    *,
+                    is_public: bool = False,
+                    player_limit: int = 4,
+    ) -> GameData:
+        game = GameData(
+            code=self._new_code(),
+            leader_player_id=leader_player_id,
+            board_size=board_size,
+            is_public=is_public,
+            player_limit=player_limit,
+        )
+        self._games[game.id] = game
+        self._game_ids_by_code[game.code] = game.id
+        return game
 
     def update_game(self, new_game: GameData) -> GameData:
         existing = self._games.get(new_game.id)

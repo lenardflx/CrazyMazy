@@ -9,7 +9,8 @@ from server.db.memory_repo import (
     TreasureRepositoryInMemory,
 )
 from server.service import GameService
-from shared.types.enums import GameEndReason, GamePhase, PlayerResult, PlayerStatus, TurnPhase
+from shared.protocol import ErrorCode
+from shared.types.enums import GameEndReason, GamePhase, InsertionSide, PlayerResult, PlayerStatus, TurnPhase
 
 
 def make_service() -> GameService:
@@ -57,6 +58,52 @@ def test_join_game_assigns_next_slot_automatically() -> None:
     assert joined.player.display_name == "Bob"
     assert joined.player.join_order == 1
     assert joined.player.piece_color.value == "YELLOW"
+
+
+def test_create_lobby_persists_public_flag_and_player_limit() -> None:
+    service = make_service()
+
+    state = service.create_lobby(
+        board_size=7,
+        leader_display_name="Ada",
+        connection_id="conn_1",
+        is_public=True,
+        player_limit=3,
+    )
+
+    assert state.game.is_public is True
+    assert state.game.player_limit == 3
+
+
+def test_join_game_respects_player_limit() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1", player_limit=2)
+    assert not isinstance(created, Exception)
+
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    assert joined.player.join_order == 1
+
+    rejected = service.join_game(created.game.code, "Cara", "conn_3")
+    assert rejected == ErrorCode.GAME_NOT_JOINABLE
+
+
+def test_join_public_picks_first_joinable_public_lobby() -> None:
+    service = make_service()
+    first = service.create_lobby(7, "Ada", "conn_1", is_public=True, player_limit=2)
+    second = service.create_lobby(7, "Bea", "conn_2", is_public=True, player_limit=4)
+
+    service.join_game(first.game.code, "Bob", "conn_3")
+    joined = service.join_game(None, "Cara", "conn_4", join_public=True)
+
+    assert joined.game.id == second.game.id
+
+
+def test_join_public_returns_no_public_lobby_when_none_available() -> None:
+    service = make_service()
+
+    rejected = service.join_game(None, "Cara", "conn_4", join_public=True)
+
+    assert rejected == ErrorCode.NO_PUBLIC_LOBBY
 
 
 def test_join_game_rejects_taken_display_name() -> None:
@@ -251,6 +298,49 @@ def test_move_player_win_assigns_postgame_placements_to_other_players() -> None:
     assert players[created.player.id].placement == 1
     assert players[created.player.id].result == PlayerResult.WON
     assert players[joined.player.id].placement == 2
+
+
+def test_end_turn_preserves_blocked_insertion_for_next_player() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    started = service.start_game(created.player.id)
+
+    game = service.find_game(started.game.id)
+    assert game is not None
+    game.current_player_id = created.player.id
+    game.turn_phase = TurnPhase.MOVE
+    game.blocked_insertion_side = InsertionSide.LEFT
+    game.blocked_insertion_index = 3
+    service.game_repo.update_game(game)
+
+    state = service.end_turn(created.player.id)
+
+    assert state.game.current_player_id == joined.player.id
+    assert state.game.turn_phase == TurnPhase.SHIFT
+    assert state.game.blocked_insertion_side == InsertionSide.LEFT
+    assert state.game.blocked_insertion_index == 3
+
+
+def test_give_up_preserves_blocked_insertion_when_turn_passes() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    third = service.join_game(created.game.code, "Cara", "conn_3")
+    created.game.game_phase = GamePhase.GAME
+    created.game.current_player_id = joined.player.id
+    created.game.turn_phase = TurnPhase.MOVE
+    created.game.blocked_insertion_side = InsertionSide.TOP
+    created.game.blocked_insertion_index = 1
+    service.game_repo.update_game(created.game)
+
+    state = service.give_up(joined.player.id)
+
+    assert state is not None
+    assert state.game.current_player_id == third.player.id
+    assert state.game.turn_phase == TurnPhase.SHIFT
+    assert state.game.blocked_insertion_side == InsertionSide.TOP
+    assert state.game.blocked_insertion_index == 1
 
 
 def test_give_up_ending_game_assigns_postgame_placements_to_all_remaining_players() -> None:

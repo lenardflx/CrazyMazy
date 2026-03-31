@@ -7,7 +7,7 @@ import pygame as pg
 
 from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation
 from client.textures import PLAYER_IMAGES, TILE_IMAGES, TREASURE_IMAGES
-from client.ui.theme import DISABLED, MOVE_HIGHLIGHT, PANEL, PANEL_ALT, TEXT_PRIMARY, blend_color, font
+from client.ui.theme import DISABLED, PANEL, PANEL_ALT, TEXT_MUTED, TEXT_PRIMARY, MOVE_HIGHLIGHT, blend_color, font
 from shared.types.enums import InsertionSide, PlayerColor, PlayerSkin, TreasureType
 from shared.game.tile import Tile
 from shared.game.snapshot import SnapshotGameState
@@ -54,6 +54,13 @@ class GameBoardLayout:
     players_panel: pg.Rect
 
 
+@dataclass(slots=True, frozen=True)
+class TileOverlayAnchors:
+    """Precomputed overlay anchor points inside a tile rect."""
+    marker_center: tuple[int, int]
+    player_centers: dict[PlayerColor, tuple[int, int]]
+
+
 class BoardView:
     """
     The BoardView is responsible for rendering the game board, including the tiles, players, and UI elements related to the board.
@@ -61,6 +68,8 @@ class BoardView:
     """
     def __init__(self) -> None:
         self.title_font = font(18, bold=True)
+        self.small_font = font(14)
+        self.xs_font = font(12)
 
     def layout(self, surface_rect: pg.Rect, board_size: int) -> GameBoardLayout:
         """Calculate the layout of the game board and related UI elements based on the surface size and board size."""
@@ -132,7 +141,7 @@ class BoardView:
             
             # Check every arrow and if it was clicked.
             for arrow in layout.arrows:
-                if arrow.rect.collidepoint(pos):
+                if arrow.rect.collidepoint(pos) and self._is_arrow_clickable(game_state, arrow):
                     return "shift", arrow.side, arrow.index
 
         # If we currently move, the only clickable elements are the reachable cells on the board.
@@ -159,6 +168,21 @@ class BoardView:
             )
         return arrows
 
+    def _is_arrow_clickable(
+        self,
+        game_state: SnapshotGameState,
+        arrow: ArrowTarget,
+        shift_animation: BoardShiftAnimation | None = None,
+        move_animation: PlayerMoveAnimation | None = None,
+    ) -> bool:
+        is_blocked = game_state.is_insertion_blocked(arrow.side, arrow.index)
+        return (
+            not is_blocked
+            and game_state.can_shift
+            and shift_animation is None
+            and move_animation is None
+        )
+
     def _draw_board(
         self,
         surface: pg.Surface,
@@ -171,39 +195,53 @@ class BoardView:
         pg.draw.rect(surface, PANEL_ALT, layout.board_rect.inflate(20, 20), border_radius=20)
         pg.draw.rect(surface, PANEL, layout.board_rect, border_radius=16)
 
+        players_by_position: dict[tuple[int, int], list[PlayerColor]] = {}
+        for player in game_state.ordered_players:
+            if player.position is None:
+                continue
+            if move_animation is not None and player.id == move_animation.player_id:
+                continue
+            players_by_position.setdefault(player.position, []).append(player.piece_color)
+
         # Tiles
         for position, rect in layout.cells.items():
             tile = game_state.tile_at(position)
             if tile is None:
                 continue
+            animated_rect = self._animated_rect(rect, position, layout.cell_size, shift_animation)
             self._draw_tile(
                 surface,
-                self._animated_rect(rect, position, layout.cell_size, shift_animation),
+                animated_rect,
                 tile,
-                home_color=game_state.home_color_at(position),
                 highlight=game_state.is_position_reachable(position),
+            )
+            self._draw_tile_overlays(
+                surface,
+                animated_rect,
+                players_by_position.get(position, []),
+                treasure_type=tile.treasure,
+                home_color=game_state.home_color_at(position),
             )
 
         # The tile that is being shifted out of the board during animation
         if shift_animation is not None:
             self._draw_outgoing_tile(surface, layout, game_state, shift_animation)
 
-        # Players movement animation and pins
+        # Only the actively moving player is drawn separately between tiles.
         for player in game_state.ordered_players:
             if player.position is None:
                 continue
             if move_animation is not None and player.id == move_animation.player_id:
-                self._draw_player_pin(surface, player.piece_color, self._moving_player_center(layout, move_animation))
-                # TODO: When the walking animation reaches the destination and
-                # `move_animation.collected_treasure_type` is set, trigger the client-side
-                # treasure pickup effect from here so token movement and treasure feedback stay synced.
+                self._draw_player_pin(
+                    surface,
+                    player.piece_color,
+                    self._moving_player_center(layout, move_animation, player.piece_color),
+                    max_size=max(14, layout.cell_size // 4),
+                )
                 continue
-            player_rect = self._animated_rect(layout.cells[player.position], player.position, layout.cell_size, shift_animation)
-            self._draw_player_pin(surface, player.piece_color, player_rect.center)
 
-        # Control arrows for shifting
         for arrow in layout.arrows:
-            self._draw_arrow(surface, arrow, enabled=game_state.can_shift and shift_animation is None and move_animation is None)
+            self._draw_arrow(surface, arrow, enabled=self._is_arrow_clickable(game_state, arrow, shift_animation, move_animation))
 
     def _draw_spare_panel(
         self,
@@ -224,12 +262,61 @@ class BoardView:
         for rect, label in ((layout.rotate_left_button, "<"), (layout.rotate_right_button, ">")):
             pg.draw.rect(surface, button_fill, rect, border_radius=12)
             surface.blit(self.title_font.render(label, True, button_text), self.title_font.render(label, True, button_text).get_rect(center=rect.center))
+        self._draw_treasure_stack(surface, layout.treasure_stack_rect, game_state)
 
-        for offset in range(3):
-            pg.draw.rect(surface, (224, 218, 210), layout.treasure_stack_rect.move(offset * 6, -offset * 6), border_radius=8)
-        treasure_surface = _treasure_surface(game_state.active_treasure_type, (76, 76))
-        if treasure_surface is not None:
-            surface.blit(treasure_surface, treasure_surface.get_rect(center=layout.treasure_stack_rect.center))
+    def _draw_treasure_stack(self, surface: pg.Surface, rect: pg.Rect, game_state: SnapshotGameState) -> None:
+        viewer = game_state.viewer_player
+        remaining = 0 if viewer is None else viewer.remaining_treasure_count
+        visible_stack = max(1, min(remaining, 6))
+        top_rect = rect
+
+        for offset in range(visible_stack - 1, 0, -1):
+            stack_rect = rect.move(-offset * 4, offset * 4)
+            self._draw_stack_card(surface, stack_rect, face_up=False)
+
+        self._draw_stack_card(surface, top_rect, face_up=True)
+        if game_state.active_treasure_type is not None:
+            treasure_surface = _treasure_surface(game_state.active_treasure_type, (68, 68))
+            if treasure_surface is not None:
+                surface.blit(treasure_surface, treasure_surface.get_rect(center=(top_rect.centerx, top_rect.centery - 6)))
+            self._draw_stack_count(surface, top_rect, remaining)
+            return
+
+        self._draw_home_target(surface, top_rect, game_state)
+
+    def _draw_stack_card(self, surface: pg.Surface, rect: pg.Rect, *, face_up: bool) -> None:
+        outline_color = blend_color(PANEL_ALT, TEXT_PRIMARY, 0.2)
+        fill = PANEL if face_up else blend_color(PANEL_ALT, PANEL, 0.08)
+        shadow = blend_color(fill, (76, 58, 42), 0.12)
+        pg.draw.rect(surface, shadow, rect.move(0, 2), border_radius=12)
+        pg.draw.rect(surface, fill, rect, border_radius=12)
+        pg.draw.rect(surface, outline_color, rect, width=1, border_radius=12)
+
+        if face_up:
+            return
+
+        inset = rect.inflate(-10, -14)
+        pg.draw.rect(surface, blend_color(PANEL_ALT, TEXT_PRIMARY, 0.08), inset, border_radius=8)
+
+    def _draw_stack_count(self, surface: pg.Surface, rect: pg.Rect, remaining: int) -> None:
+        label = self.xs_font.render("Cards left", True, TEXT_MUTED)
+        value = self.small_font.render(str(remaining), True, TEXT_PRIMARY)
+        label_pos = label.get_rect(midleft=(rect.x + 12, rect.bottom - 16))
+        value_pos = value.get_rect(midright=(rect.right - 12, rect.bottom - 16))
+        surface.blit(label, label_pos)
+        surface.blit(value, value_pos)
+
+    def _draw_home_target(self, surface: pg.Surface, rect: pg.Rect, game_state: SnapshotGameState) -> None:
+        viewer = game_state.viewer_player
+        if viewer is None:
+            return
+
+        go_label = self.small_font.render("Go", True, TEXT_MUTED)
+        home_label = self.title_font.render("HOME", True, PLAYER_COLOR_VALUES[viewer.piece_color])
+        go_rect = go_label.get_rect(center=(rect.centerx, rect.centery - 18))
+        home_rect = home_label.get_rect(center=(rect.centerx, rect.centery + 10))
+        surface.blit(go_label, go_rect)
+        surface.blit(home_label, home_rect)
 
     def _draw_tile(
         self,
@@ -237,7 +324,6 @@ class BoardView:
         rect: pg.Rect,
         tile: Tile,
         *,
-        home_color: PlayerColor | None = None,
         highlight: bool = False,
     ) -> None:
         """Draw a single tile at the given rect, with optional highlights for the home player and reachable positions."""
@@ -257,14 +343,30 @@ class BoardView:
         clipped.blit(mask, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
         surface.blit(clipped, rect)
 
-        if home_color is not None:
-            badge = pg.Rect(rect.x + 8, rect.bottom - 20, 12, 12)
-            pg.draw.circle(surface, PLAYER_COLOR_VALUES[home_color], badge.center, 6)
-            pg.draw.circle(surface, (247, 239, 224), badge.center, 6, 2)
+    def _draw_tile_overlays(
+        self,
+        surface: pg.Surface,
+        rect: pg.Rect,
+        players: list[PlayerColor],
+        *,
+        treasure_type: TreasureType | None,
+        home_color: PlayerColor | None,
+    ) -> None:
+        anchors = self._tile_overlay_anchors(rect)
 
-        treasure_surface = _treasure_surface(tile.treasure, (22, 22))
-        if treasure_surface is not None:
-            surface.blit(treasure_surface, treasure_surface.get_rect(topright=(rect.right - 6, rect.y + 6)))
+        if treasure_type is not None:
+            treasure_surface = _treasure_surface(treasure_type, (max(16, rect.width // 4), max(16, rect.width // 4)))
+            if treasure_surface is not None:
+                surface.blit(treasure_surface, treasure_surface.get_rect(center=anchors.marker_center))
+
+        if home_color is not None:
+            radius = max(6, rect.width // 10)
+            pg.draw.circle(surface, PLAYER_COLOR_VALUES[home_color], anchors.marker_center, radius)
+            pg.draw.circle(surface, (247, 239, 224), anchors.marker_center, radius, 2)
+
+        for piece_color in players:
+            center = anchors.player_centers[piece_color]
+            self._draw_player_pin(surface, piece_color, center, max_size=max(14, rect.width // 4))
 
     def _draw_arrow(self, surface: pg.Surface, arrow: ArrowTarget, *, enabled: bool) -> None:
         fill = (214, 186, 144) if enabled else blend_color(PANEL_ALT, DISABLED, 0.7)
@@ -332,23 +434,59 @@ class BoardView:
             InsertionSide.BOTTOM: (0, -1),
         }[side]
 
-    def _moving_player_center(self, layout: GameBoardLayout, animation: PlayerMoveAnimation) -> tuple[int, int]:
+    def _moving_player_center(
+        self,
+        layout: GameBoardLayout,
+        animation: PlayerMoveAnimation,
+        piece_color: PlayerColor,
+    ) -> tuple[int, int]:
         if len(animation.path) < 2:
-            return layout.cells[animation.path[-1]].center
+            return self._player_anchor(layout.cells[animation.path[-1]], piece_color)
 
         total_segments = len(animation.path) - 1
         scaled_progress = animation.eased_progress * total_segments
         segment_index = min(total_segments - 1, int(scaled_progress))
         segment_progress = scaled_progress - segment_index
-        start = layout.cells[animation.path[segment_index]].center
-        end = layout.cells[animation.path[segment_index + 1]].center
+        start = self._player_anchor(layout.cells[animation.path[segment_index]], piece_color)
+        end = self._player_anchor(layout.cells[animation.path[segment_index + 1]], piece_color)
         return (
             round(start[0] + (end[0] - start[0]) * segment_progress),
             round(start[1] + (end[1] - start[1]) * segment_progress),
         )
 
-    def _draw_player_pin(self, surface: pg.Surface, piece_color: PlayerColor, center: tuple[int, int]) -> None:
+    def _tile_overlay_anchors(self, rect: pg.Rect) -> TileOverlayAnchors:
+        inset_x = rect.width // 2.5
+        inset_y = rect.height // 2.5
+        return TileOverlayAnchors(
+            marker_center=rect.center,
+            player_centers={
+                PlayerColor.RED: (rect.left + inset_x, rect.top + inset_y),
+                PlayerColor.BLUE: (rect.right - inset_x, rect.top + inset_y),
+                PlayerColor.GREEN: (rect.left + inset_x, rect.bottom - inset_y),
+                PlayerColor.YELLOW: (rect.right - inset_x, rect.bottom - inset_y),
+            },
+        )
+
+    def _player_anchor(self, rect: pg.Rect, piece_color: PlayerColor) -> tuple[int, int]:
+        return self._tile_overlay_anchors(rect).player_centers[piece_color]
+
+    def _draw_player_pin(
+        self,
+        surface: pg.Surface,
+        piece_color: PlayerColor,
+        center: tuple[int, int],
+        *,
+        max_size: int | None = None,
+    ) -> None:
         pin = PLAYER_IMAGES[PlayerSkin.DEFAULT][piece_color]
+        if max_size is not None:
+            width, height = pin.get_size()
+            scale = min(max_size / max(width, 1), max_size / max(height, 1))
+            target_size = (
+                max(1, round(width * scale)),
+                max(1, round(height * scale)),
+            )
+            pin = pg.transform.smoothscale(pin, target_size)
         surface.blit(pin, pin.get_rect(center=center))
 
 

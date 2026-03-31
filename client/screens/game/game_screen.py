@@ -9,6 +9,7 @@ import pygame as pg
 from client.screens.core.base_screen import BaseScreen
 from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout
 from client.screens.game.views.player_panel_view import PlayerPanelView
+from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, font
@@ -73,6 +74,14 @@ class GameScreen(BaseScreen):
         self.scene_manager.game_service.give_up()
         self.dialog = None
 
+    @property
+    def _game_runtime(self) -> GameRuntimeState:
+        return self.scene_manager.runtime_state.game
+
+    @property
+    def _game_snapshot(self) -> SnapshotGameState | None:
+        return self.scene_manager.game_state
+
     def handle_event(self, event: pg.event.Event) -> None:
         """Handle a Pygame event. This covers all actions on the screen. It passes the events to the different UI elements."""
 
@@ -82,17 +91,18 @@ class GameScreen(BaseScreen):
             return
 
         # Top right buttons for giving up and quitting the match
-        self.give_up_button.handle_event(event)
+        if self.give_up_button is not None:
+            self.give_up_button.handle_event(event)
         self.menu_button.handle_event(event)
 
         # If there is an ongoing animation, ignore board clicks to prevent interactions during the animation.
-        runtime_game = self.scene_manager.runtime_state.game
+        runtime_game = self._game_runtime
         if runtime_game.shift_animation is not None or runtime_game.move_animation is not None:
             return
 
         # Resolve the game layout based on the current game state. If we cant resolve a layout, we cant resolve board clicks, so return early.
-        game_state = self.scene_manager.game_state
-        layout = self._game_layout(game_state)
+        game_state = self._game_snapshot
+        layout = self._game_layout()
         if game_state is None or layout is None or event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
             return
 
@@ -112,7 +122,7 @@ class GameScreen(BaseScreen):
         """
 
         # Shift animation
-        runtime_game = self.scene_manager.runtime_state.game
+        runtime_game = self._game_runtime
         shift_animation = runtime_game.shift_animation
         if shift_animation is not None:
             shift_animation.advance(dt)
@@ -124,7 +134,20 @@ class GameScreen(BaseScreen):
         if move_animation is not None:
             move_animation.advance(dt)
             if move_animation.is_finished:
+                if move_animation.collected_treasure_type is not None:
+                    # TODO: play treasure collect SFX when the card flip animation starts.
+                    runtime_game.treasure_collect_animation = TreasureCollectAnimation(
+                        player_id=move_animation.player_id,
+                        treasure_type=move_animation.collected_treasure_type,
+                    )
                 runtime_game.move_animation = None
+
+        # Treasure collect animation
+        treasure_animation = runtime_game.treasure_collect_animation
+        if treasure_animation is not None:
+            treasure_animation.advance(dt)
+            if treasure_animation.is_finished:
+                runtime_game.treasure_collect_animation = None
 
     def draw(self) -> None:
         """Draw the game screen."""
@@ -133,52 +156,61 @@ class GameScreen(BaseScreen):
         self.surface.fill(BACKGROUND)
 
         # Resolve the game layout based on the current game state
-        game_state = self.scene_manager.game_state
-        layout = self._game_layout(game_state)
+        game_state = self._game_snapshot
+        layout = self._game_layout()
         if game_state is None or layout is None:
             return
 
         # Resolve the spare tile
-        spare_tile = game_state.rotated_spare_tile(self.scene_manager.runtime_state.game.spare_rotation)
+        runtime = self._game_runtime
+        spare_tile = game_state.rotated_spare_tile(runtime.spare_rotation)
         if spare_tile is None:
             return
-        
+
         # Draw the Board and the Panel
         self.board_view.draw(
             self.surface,
             layout,
             game_state,
             spare_tile,
-            self.scene_manager.runtime_state.game.shift_animation,
-            self.scene_manager.runtime_state.game.move_animation,
+            runtime.shift_animation,
+            runtime.move_animation,
         )
         self.player_panel_view.draw(
             self.surface,
             layout.players_panel,
             game_state,
+            treasure_animation=runtime.treasure_collect_animation,
+            pending_collect=(
+                None
+                if runtime.move_animation is None or runtime.move_animation.collected_treasure_type is None
+                else (runtime.move_animation.player_id, runtime.move_animation.collected_treasure_type)
+            ),
         )
 
         # Render a status text about the current turn.
         status = self.title_font.render(game_state.turn_prompt, True, TEXT_PRIMARY)
         self.surface.blit(status, (24, 28))
-        self.give_up_button.draw(self.surface, self.button_font)
+        if self.give_up_button is not None:
+            self.give_up_button.draw(self.surface, self.button_font)
         self.menu_button.draw(self.surface, self.button_font)
 
-        # Render a error message if any
-        error_message = self.scene_manager.runtime_state.game.error_message
-        if error_message:
-            error = self.small_font.render(error_message, True, (150, 58, 48))
-            self.surface.blit(error, (24, 60))
+        self._draw_overlay(layout)
 
         # Render the dialog on top, if one is active
         if self.dialog is not None:
             self.dialog.draw(self.surface)
 
-    def _game_layout(self, game_state: SnapshotGameState | None) -> GameBoardLayout | None:
+    def _draw_overlay(self, layout: GameBoardLayout) -> None:
+        """Hook for subclasses to draw additional overlays on top of the board."""
+        pass
+
+    def _game_layout(self) -> GameBoardLayout | None:
         """
         Resolve the game board layout based on the current game state.
         If the game state is not in the correct phase or the spare tile is not available, return None to indicate that we cant resolve a layout.
         """
+        game_state = self._game_snapshot
         if game_state is None or game_state.phase != GamePhase.GAME or game_state.spare_tile is None:
             return None
         return self.board_view.layout(self.surface.get_rect(), game_state.board_size)
@@ -190,8 +222,7 @@ class GameScreen(BaseScreen):
         We do not send this to the server since it only cares about the final rotation when the player performs a shift action, and this allows the player to preview the rotation before applying it.
         """
 
-        game_state = self.scene_manager.runtime_state.game
-        game_state.spare_rotation = (game_state.spare_rotation + direction) % 4
+        self._game_runtime.spare_rotation = (self._game_runtime.spare_rotation + direction) % 4
 
     def _handle_board_click(self, click: BoardClick | None) -> None:
         """Handle a click on the game board."""
@@ -210,10 +241,10 @@ class GameScreen(BaseScreen):
                 if self.scene_manager.game_service.shift_tile(
                     side,
                     index,
-                    self.scene_manager.runtime_state.game.spare_rotation,
+                    self._game_runtime.spare_rotation,
                 ):
                     # If shift action was successful, reset the spare tile rotation in the runtime state to 0
-                    self.scene_manager.runtime_state.game.spare_rotation = 0
+                    self._game_runtime.spare_rotation = 0
             # If the click is a move click, perform a move action to the given x and y coordinates.
             case ("move", x, y):
                 self.scene_manager.game_service.move_player(x, y)

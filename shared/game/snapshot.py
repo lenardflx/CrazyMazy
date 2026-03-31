@@ -107,6 +107,8 @@ class SnapshotTurnState:
     current_player_id: str | None
     turn_start_timestamp: int
     phase: TurnPhase | None
+    blocked_insertion_side: InsertionSide | None = None
+    blocked_insertion_index: int | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -138,6 +140,8 @@ class SnapshotGameState:
     phase: GamePhase
     revision: int
     board_size: int
+    is_public: bool
+    player_limit: int
     leader_player_id: str | None
     turn: SnapshotTurnState
     board: Board | None
@@ -182,11 +186,15 @@ class SnapshotGameState:
 
     @property
     def can_add_npc(self) -> bool:
-        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and len(self.players) < 4
+        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and self.active_player_count < self.player_limit
 
     @property
     def can_start(self) -> bool:
-        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and len(self.players) >= 2
+        return self.phase == GamePhase.PREGAME and self.viewer_is_leader and self.active_player_count >= 2
+
+    @property
+    def active_player_count(self) -> int:
+        return sum(1 for player in self.players if not player.is_inactive)
 
     @property
     def can_shift(self) -> bool:
@@ -195,6 +203,9 @@ class SnapshotGameState:
     @property
     def can_move(self) -> bool:
         return self.viewer_turn and self.turn.phase == TurnPhase.MOVE
+
+    def is_insertion_blocked(self, side: InsertionSide, index: int) -> bool:
+        return self.turn.blocked_insertion_side == side and self.turn.blocked_insertion_index == index
 
     @property
     def turn_prompt(self) -> str:
@@ -239,11 +250,19 @@ class SnapshotGameState:
             phase=phase,
             revision=snapshot["revision"],
             board_size=snapshot["board_size"],
+            is_public=snapshot["is_public"],
+            player_limit=snapshot["player_limit"],
             leader_player_id=snapshot["leader_player_id"],
             turn=SnapshotTurnState(
                 current_player_id=snapshot["turn"]["current_player_id"],
                 turn_start_timestamp=snapshot["turn"]["turn_start_timestamp"],
                 phase=None if turn_phase is None else TurnPhase(turn_phase),
+                blocked_insertion_side=(
+                    None
+                    if snapshot["turn"]["blocked_insertion_side"] is None
+                    else InsertionSide(snapshot["turn"]["blocked_insertion_side"])
+                ),
+                blocked_insertion_index=snapshot["turn"]["blocked_insertion_index"],
             ),
             board=_board_from_snapshot(snapshot["board_size"], snapshot["tiles"], phase),
             players=[SnapshotPlayerState.from_payload(player) for player in snapshot["players"]],

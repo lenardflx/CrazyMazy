@@ -36,6 +36,7 @@ class AudioManager:
             key: str(BASE_DIR / path)
             for key, path in MUSIC_TRACKS.items()
         }
+        self._current_music_key: str | None = None
 
         # Start with default volumes (100 %)
         self._effective_music: float = 1.0
@@ -66,10 +67,14 @@ class AudioManager:
         path = self._music_paths.get(key)
         if path is None:
             return
+        if self._current_music_key == key and pygame.mixer.music.get_busy():
+            return
         pygame.mixer.music.load(path)
         pygame.mixer.music.set_volume(self._effective_music)
         pygame.mixer.music.play(loops)
+        self._current_music_key = key
 
     def stop_music(self) -> None:
         """Stop any currently playing music."""
         pygame.mixer.music.stop()
+        self._current_music_key = None

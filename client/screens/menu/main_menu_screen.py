@@ -31,6 +31,19 @@ class MainMenuScreen(MenuScreen):
                 ("Quit", self._quit, "secondary"),
             ],
         )
+        if self.scene_manager.prompt_tutorial_on_main_menu:
+            self.scene_manager.prompt_tutorial_on_main_menu = False
+            self.show_confirm(
+                "Welcome",
+                "Start with the tutorial?",
+                self._start_tutorial,
+                confirm_label="Start",
+                cancel_label="Skip",
+            )
+
+    def _start_tutorial(self) -> None:
+        self.scene_manager.go_to(SceneTypes.TUTORIAL)
+
     def _quit(self) -> None:
         """Open a confirmation dialog before quitting the application."""
         self.show_confirm("Quit Game?", "Close the client now?", self._post_quit, confirm_label="Quit")
