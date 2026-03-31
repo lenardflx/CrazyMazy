@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 import pygame as pg
@@ -12,14 +13,15 @@ from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
-from client.ui.theme import BACKGROUND, TEXT_PRIMARY, font
-from shared.types.enums import GamePhase
+from client.ui.helper import format_ms_to_clock
+from client.ui.theme import BACKGROUND, TEXT_PRIMARY, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT
+from shared.types.enums import GamePhase, TurnPhase
 from shared.game.snapshot import SnapshotGameState
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
-#Die eigentliche Spielansicht
+
 class GameScreen(BaseScreen):
     """
     The GameScreen is responsible for displaying the game board and player panels, and handling user interactions during the game.
@@ -189,8 +191,8 @@ class GameScreen(BaseScreen):
         )
 
         # Render a status text about the current turn.
-        status = self.title_font.render(game_state.turn_prompt, True, TEXT_PRIMARY)
-        self.surface.blit(status, (24, 28))
+        self._draw_turn_indicator()
+
         if self.give_up_button is not None:
             self.give_up_button.draw(self.surface, self.button_font)
         self.menu_button.draw(self.surface, self.button_font)
@@ -200,6 +202,35 @@ class GameScreen(BaseScreen):
         # Render the dialog on top, if one is active
         if self.dialog is not None:
             self.dialog.draw(self.surface)
+
+    def _draw_turn_indicator(self):
+        rect = pg.Rect(21.0, 19.0, 600, 65)
+        draw_pixel_rect(surface=self.surface, rect=rect, fill=PANEL, shadow=PANEL_SHADOW, border=ACCENT_DARK)
+
+        # make sure we don't exceed the maximum length reserved for the
+        # turn status text. This does not happen normally, but we cannot
+        # be sure due to variable language.
+        turn_text = self._game_snapshot.turn_prompt[:30]
+        if len(self._game_snapshot.turn_prompt) >= 30:
+            turn_text += "..."
+
+        status = self.title_font.render(turn_text, True, TEXT_PRIMARY)
+        self.surface.blit(status, (rect.left + 10, rect.top + 8))
+
+        timer_rect = pg.Rect(rect.right - 145, rect.top + 8, 130, 50)
+        draw_pixel_rect(surface=self.surface, rect=timer_rect, fill=PANEL_ALT, border=PANEL_SHADOW)
+
+        now = time.time_ns() // 1_000_000
+        turn_end = self._game_snapshot.turn.turn_end_timestamp
+
+        if now > turn_end:
+            timer_content = "00:00"
+        else:
+            timer_content = format_ms_to_clock(turn_end - now)
+
+        timer_text = self.title_font.render(timer_content, True, TEXT_PRIMARY)
+        self.surface.blit(timer_text, (timer_rect.left + 25, timer_rect.top + 7))
+
 
     def _draw_overlay(self, layout: GameBoardLayout) -> None:
         """Hook for subclasses to draw additional overlays on top of the board."""
