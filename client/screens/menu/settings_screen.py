@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Christopher Ionescu
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import pygame as pg
 from client.ui.controls import Checkbox, Slider, Button
 from client.ui.theme import TEXT_PRIMARY, render_text
 from client.screens.menu.menu_screen import MenuScreen
+from client.state.languages import languages as langs
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -54,8 +55,8 @@ class SettingsScreen(MenuScreen):
                 lambda: self._sync_settings(),
         )
 
-        self.english_button = Button(pg.Rect(520, 500, 120, 46), "English", lambda: self.__set_language(0), variant = "primary" if self.language == 0 else "secondary", icon="flag_en")
-        self.german_button =  Button(pg.Rect(660, 500, 120, 46), "German", lambda: self.__set_language(1), variant = "primary" if self.language == 1 else "secondary", icon="flag_de")
+        self.english_button = Button(pg.Rect(520, 500, 120, 46), "English", lambda: self.__set_language(langs.ENGLISH), variant = "primary" if self.language == langs.ENGLISH else "secondary", icon="flag_en")
+        self.german_button =  Button(pg.Rect(660, 500, 120, 46), "German", lambda: self.__set_language(langs.GERMAN), variant = "primary" if self.language == langs.GERMAN else "secondary", icon="flag_de")
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
@@ -135,5 +136,5 @@ class SettingsScreen(MenuScreen):
     #Ändere Sprache
     def __set_language(self, val):
         self.language = val
-        self.english_button.variant = "primary" if self.language == 0 else "secondary"
-        self.german_button.variant = "primary" if self.language == 1 else "secondary"
+        self.english_button.variant = "primary" if self.language == langs.ENGLISH else "secondary"
+        self.german_button.variant = "primary" if self.language == langs.GERMAN else "secondary"

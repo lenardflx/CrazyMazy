@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from client.state.languages import languages as langs
 
 from shared.paths import BASE_DIR
 
@@ -28,8 +29,7 @@ class ClientData:
         self.effects_volume: int = 100
         self.fullscreen: bool = False
         self.name: str = ""
-        #0 für englisch (default), 1 für deutsch
-        self.language: int = 0
+        self.language: langs = langs.ENGLISH
 
         self.tutorial: bool = False
 
@@ -81,7 +81,7 @@ class ClientData:
         self.name = val_name
 
 
-    def set_language(self, val_language: int) -> None:
+    def set_language(self, val_language: langs) -> None:
         """Set the language preference."""
         self.language = val_language
 
@@ -106,7 +106,7 @@ class ClientData:
     def get_name(self) -> str:
         return self.name
 
-    def get_language(self) -> int:
+    def get_language(self) -> langs:
         return self.language
 
     def get_tutorial(self) -> bool:

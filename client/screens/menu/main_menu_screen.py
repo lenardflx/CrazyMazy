@@ -32,10 +32,7 @@ class MainMenuScreen(MenuScreen):
                 ("Quit", self._quit, "secondary"),
             ],
         )
-        #self.language_buttons = [
-        #    Button(pg.Rect(surface.get_width() - 140, 26, 46, 34), "", self._set_english, icon="flag_en"),
-        #    Button(pg.Rect(surface.get_width() - 86, 26, 46, 34), "", self._set_german, icon="flag_de"),
-        #]
+        
         if self.scene_manager.prompt_tutorial_on_main_menu:
             self.scene_manager.prompt_tutorial_on_main_menu = False
             self.show_confirm(
