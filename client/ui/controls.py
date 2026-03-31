@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 """
 This file holds the UI control classes used in the client, such as Button, TextInput, Checkbox and Slider.
@@ -51,6 +51,7 @@ class Button:
         variant: str = "secondary",
         enabled: bool = True,
         icon: ButtonIcon | None = None,
+        abs_rect: pg.Rect | None = None
     ) -> None:
         self.rect = rect
         self.label = label
@@ -58,6 +59,7 @@ class Button:
         self.variant = variant
         self.enabled = enabled
         self.icon = icon
+        self.abs_rect = abs_rect
         self.hovered = False
         self.pressed = False
 
@@ -66,20 +68,26 @@ class Button:
             self.pressed = False
             return False
         if event.type == pg.MOUSEMOTION:
-            self.hovered = self.rect.collidepoint(event.pos)
+            self.hovered = self._collides_with_cursor(event.pos)
             if self.pressed and not self.hovered:
                 self.pressed = False
             return False
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            self.pressed = self.rect.collidepoint(event.pos)
+            self.pressed = self._collides_with_cursor(event.pos)
             return self.pressed
         if event.type == pg.MOUSEBUTTONUP and event.button == 1:
             was_pressed = self.pressed
             self.pressed = False
-            if was_pressed and self.rect.collidepoint(event.pos):
+            if was_pressed and self._collides_with_cursor(event.pos):
                 self.on_click()
                 return True
         return False
+
+    def _collides_with_cursor(self, pos: tuple[float, float]) -> bool:
+        if self.abs_rect is not None:
+            return self.abs_rect.collidepoint(pos)
+        else:
+            return self.rect.collidepoint(pos)
 
     def draw(self, surface: pg.Surface, font: pg.font.Font) -> None:
         if not self.enabled:
