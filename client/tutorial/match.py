@@ -276,9 +276,13 @@ class TutorialMatch:
         state = self._service.get_game_state(self.snapshot_game_id)
         if state is None:
             raise ValueError("Tutorial game not found")
+        if state.board is None:
+            raise ValueError("Tutorial NPC turn requires a board")
         npc = state.npcs[self.npc_id]
         return npc.choose_turn(
-            state,
+            state.board,
+            state.player_position(self.npc_id),
+            state.target_position_for_player(self.npc_id),
             blocked_side=state.game.blocked_insertion_side,
             blocked_index=state.game.blocked_insertion_index,
         )

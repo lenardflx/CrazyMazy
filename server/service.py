@@ -764,8 +764,12 @@ class GameService:
 
         game = state.game
         npc = state.npcs[game.current_player_id]
+        if state.board is None:
+            raise ValueError("NPC turn requires a board")
         turn = npc.choose_turn(
-            state,
+            state.board,
+            state.player_position(npc.player_id),
+            state.target_position_for_player(npc.player_id),
             blocked_side=game.blocked_insertion_side,
             blocked_index=game.blocked_insertion_index,
         )
