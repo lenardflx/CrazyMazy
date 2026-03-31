@@ -31,11 +31,12 @@ from shared.types.enums import (
     PlayerControllerKind,
     TreasureType,
     TurnPhase,
+    PlayerLeaveReason,
 )
 
 from shared.lib.names import generate_display_name
 from shared.protocol import ErrorCode
-from shared.types.data import GameData, PlayerData, TileData, TreasureData, utcnow
+from shared.types.data import GameData, PlayerData, TreasureData, utcnow
 from shared.game.board import Board, is_valid_insertion_index, opposite_side
 from shared.game.helper import assign_treasures, start_position_for_color
 from shared.game.state import GameState
@@ -245,22 +246,30 @@ class GameService:
 
         return ConnectionState(game=game, player=player)
 
-    def leave_game(self, player_id: UUID) -> GameState | None:
+    def leave_game(self, player_id: UUID, reason: PlayerLeaveReason) -> GameState | ErrorCode:
         """Mark a player as departed and apply any resulting game state changes.
 
+        :param reason:
         :param player_id: UUID of the player leaving.
         :return: Updated game state, or ``None`` if the game was deleted (all players left).
         """
         player = self.player_repo.find_by_id(player_id)
         if player is None:
-            return None
+            return ErrorCode.PLAYER_NOT_FOUND
 
         game = self.game_repo.find_by_game_id(player.game_id)
         if game is None:
-            return None
+            return ErrorCode.GAME_NOT_FOUND
 
-        players = self._mark_player_departed(player)
+        if reason == PlayerLeaveReason.LEFT and player.status != PlayerStatus.DEPARTED:
+            player.status = PlayerStatus.DEPARTED
+            player.connection_id = None
+            player.left_at = utcnow()
+            self.player_repo.update_player(player)
+        elif reason == PlayerLeaveReason.KICKED:
+            self.player_repo.delete_player(player.id)
 
+        players = self.player_repo.list_by_game_id(player.game_id)
         return self._after_player_inactivation(game, player, players)
 
     def give_up(self, player_id: UUID) -> GameState | None:

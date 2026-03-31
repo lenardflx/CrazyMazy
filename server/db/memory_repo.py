@@ -82,6 +82,7 @@ class GameRepositoryInMemory(GameRepository):
 
 
 class PlayerRepositoryInMemory(PlayerRepository):
+
     def __init__(self) -> None:
         self._players: dict[UUID, PlayerData] = {}
 
@@ -122,6 +123,9 @@ class PlayerRepositoryInMemory(PlayerRepository):
     def update_player(self, player: PlayerData) -> PlayerData:
         self._players[player.id] = player
         return player
+
+    def delete_player(self, player_id: UUID) -> None:
+        self._players.pop(player_id)
 
 
 class TileRepositoryInMemory(TileRepository):
