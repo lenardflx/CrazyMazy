@@ -64,7 +64,11 @@ class MenuScreen(BaseScreen):
             self.back_button = Button(
                 pg.Rect(42, 34, 120, 46),
                 "Back",
-                lambda: self.scene_manager.go_to(SceneTypes.MAIN_MENU),
+                lambda: self.scene_manager.go_to(
+                    self.scene_manager.settings_return_scene
+                    if self.scene_manager.current_scene == SceneTypes.SETTINGS
+                    else SceneTypes.MAIN_MENU
+                ),
             )
         if buttons:
             self._build_buttons(buttons)
@@ -156,7 +160,7 @@ class MenuScreen(BaseScreen):
         message: str,
         choices: list[tuple[str, Callable[[], None], str]],
         *,
-        cancel_label: str = "Cancel",
+        cancel_label: str | None = "Cancel",
     ) -> None:
         """Open a ChoiceDialog. Each choice auto-closes the dialog before firing its callback."""
         wrapped_choices: list[tuple[str, Callable[[], None], str]] = []

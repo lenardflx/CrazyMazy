@@ -126,9 +126,10 @@ class ChoiceDialog(BaseDialog):
         choices: list[ChoiceSpec],
         on_cancel: Callable[[], None],
         *,
-        cancel_label: str = "Cancel",
+        cancel_label: str | None = "Cancel",
     ) -> None:
-        height = 190 + len(choices) * 54
+        has_cancel = cancel_label is not None
+        height = 190 + len(choices) * 54 - (58 if not has_cancel else 0)
         rect = pg.Rect(surface_rect.centerx - 220, surface_rect.centery - height // 2, self.WIDTH, height)
         super().__init__(surface_rect, title, message, rect)
 
@@ -142,17 +143,19 @@ class ChoiceDialog(BaseDialog):
             )
             self.choice_buttons.append(Button(button_rect, label, on_click, variant=variant))
 
-        self.cancel_button = Button(
+        self.cancel_button = None if cancel_label is None else Button(
             pg.Rect(self.rect.x + 34, self.rect.bottom - 58, self.rect.width - 68, 42),
             cancel_label,
             on_cancel,
         )
 
     def handle_event(self, event: pg.event.Event) -> bool:
-        return self.handle_buttons(event, [*self.choice_buttons, self.cancel_button])
+        buttons = self.choice_buttons if self.cancel_button is None else [*self.choice_buttons, self.cancel_button]
+        return self.handle_buttons(event, buttons)
 
     def draw(self, surface: pg.Surface) -> None:
         self.draw_frame(surface)
         self.draw_text(surface)
         self.draw_buttons(surface, self.choice_buttons)
-        self.cancel_button.draw(surface, self.button_font)
+        if self.cancel_button is not None:
+            self.cancel_button.draw(surface, self.button_font)

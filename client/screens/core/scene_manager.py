@@ -46,6 +46,7 @@ class SceneManager:
         self.runtime_state = RuntimeState()
         self.tutorial_session: TutorialSession | None = None
         self.prompt_tutorial_on_main_menu = not self.client_settings.get_tutorial()
+        self.settings_return_scene = SceneTypes.MAIN_MENU
         self.lobby_service = LobbyService(connection, self.runtime_state)
         self.game_service = GameService(connection)
 
@@ -134,6 +135,10 @@ class SceneManager:
             self.current_screen.error_message = language_service.get_message(error)
         if target is not None:
             self.go_to(target)
+
+    def go_to_settings(self, return_scene: SceneTypes) -> None:
+        self.settings_return_scene = return_scene
+        self.go_to(SceneTypes.SETTINGS)
 
     def _sync_scene_music(self, scene: SceneTypes) -> None:
         if scene == SceneTypes.GAME:

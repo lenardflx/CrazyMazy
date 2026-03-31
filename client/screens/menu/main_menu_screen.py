@@ -42,6 +42,7 @@ class MainMenuScreen(MenuScreen):
                     ("Start", self._start_tutorial, "primary"),
                     ("Skip", self._skip_tutorial, "secondary"),
                 ],
+                cancel_label=None,
             )
 
     def _start_tutorial(self) -> None:

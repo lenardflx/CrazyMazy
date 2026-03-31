@@ -83,7 +83,7 @@ class ClientData:
 
     def set_language(self, val_language: langs) -> None:
         """Set the language preference."""
-        self.language = val_language
+        self.language = val_language if isinstance(val_language, langs) else langs(val_language)
 
 
     def set_tutorial(self, val_tutorial: bool) -> None:
@@ -120,7 +120,7 @@ class ClientData:
             "effects_volume": self.get_effects_volume(),
             "fullscreen": self.get_fullscreen(),
             "name": self.get_name(),
-            "language": str(self.get_language()),
+            "language": self.get_language().value,
             "tutorial": self.get_tutorial(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:
