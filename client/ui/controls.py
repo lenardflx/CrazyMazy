@@ -8,6 +8,7 @@ Each control has a handle_event method that processes relevant pygame events and
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import ClassVar, Literal
 
 import pygame as pg
 
@@ -25,6 +26,8 @@ from client.ui.theme import (
     render_text,
 )
 
+type ButtonIcon = Literal["dice", "flag_de", "flag_en"]
+
 
 class Button:
     """
@@ -32,6 +35,12 @@ class Button:
     The button supports two variants: "primary" and "secondary", which differ in their coloring.
     The button can also be disabled, which changes its appearance and prevents interaction.
     """
+
+    _ICON_RENDERERS: ClassVar[dict[ButtonIcon, str]] = {
+        "dice": "_draw_icon_dice",
+        "flag_de": "_draw_icon_flag_de",
+        "flag_en": "_draw_icon_flag_en",
+    }
 
     def __init__(
         self,
@@ -41,12 +50,14 @@ class Button:
         *,
         variant: str = "secondary",
         enabled: bool = True,
+        icon: ButtonIcon | None = None,
     ) -> None:
         self.rect = rect
         self.label = label
         self.on_click = on_click
         self.variant = variant
         self.enabled = enabled
+        self.icon = icon
         self.hovered = False
 
     def handle_event(self, event: pg.event.Event) -> bool:
@@ -72,8 +83,100 @@ class Button:
             text_color = TEXT_PRIMARY
 
         draw_pixel_rect(surface, self.rect, fill, border=blend_color(fill, ACCENT_DARK, 0.45), shadow=blend_color(fill, ACCENT_DARK, 0.35))
+        if self._draw_icon(surface, text_color):
+            return
         label = render_text(font, self.label, text_color)
         surface.blit(label, label.get_rect(center=self.rect.center))
+
+    def _draw_icon(self, surface: pg.Surface, color: tuple[int, int, int]) -> bool:
+        if self.icon is None:
+            return False
+        renderer_name = self._ICON_RENDERERS.get(self.icon)
+        if renderer_name is None:
+            return False
+        getattr(self, renderer_name)(surface, color)
+        return True
+
+    def _draw_icon_dice(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
+        die_size = min(self.rect.width - 20, self.rect.height - 16)
+        die_rect = pg.Rect(0, 0, die_size, die_size)
+        die_rect.center = self.rect.center
+        pip_size = max(4, die_size // 6)
+        offset = max(6, die_size // 4)
+        centers = (
+            (die_rect.centerx - offset, die_rect.centery - offset),
+            (die_rect.centerx + offset, die_rect.centery - offset),
+            (die_rect.centerx, die_rect.centery),
+            (die_rect.centerx - offset, die_rect.centery + offset),
+            (die_rect.centerx + offset, die_rect.centery + offset),
+        )
+        for center in centers:
+            pip = pg.Rect(0, 0, pip_size, pip_size)
+            pip.center = center
+            pg.draw.rect(surface, color, pip)
+
+    def _icon_rect(self, *, width: int = 28, height: int = 18) -> pg.Rect:
+        icon_rect = pg.Rect(0, 0, width, height)
+        icon_rect.center = self.rect.center
+        return icon_rect
+
+    def _draw_icon_flag_de(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
+        del color
+        flag = self._icon_rect()
+        stripe_height = flag.height // 3
+        pg.draw.rect(surface, (20, 20, 20), pg.Rect(flag.x, flag.y, flag.width, stripe_height))
+        pg.draw.rect(surface, (184, 46, 54), pg.Rect(flag.x, flag.y + stripe_height, flag.width, stripe_height))
+        pg.draw.rect(
+            surface,
+            (232, 190, 36),
+            pg.Rect(flag.x, flag.y + stripe_height * 2, flag.width, flag.height - stripe_height * 2),
+        )
+        pg.draw.rect(surface, blend_color(PANEL_ALT, ACCENT_DARK, 0.4), flag, 2)
+
+    def _draw_icon_flag_en(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
+        del color
+        flag = self._icon_rect()
+        pg.draw.rect(surface, (34, 76, 156), flag)
+
+        diagonal_white = max(4, flag.height // 4)
+        diagonal_red = max(2, diagonal_white // 2)
+        diagonal_inset = 2
+        top_left = (flag.x + diagonal_inset, flag.y + diagonal_inset)
+        top_right = (flag.right - diagonal_inset, flag.y + diagonal_inset)
+        bottom_left = (flag.x + diagonal_inset, flag.bottom - diagonal_inset)
+        bottom_right = (flag.right - diagonal_inset, flag.bottom - diagonal_inset)
+        pg.draw.line(surface, (240, 240, 240), top_left, bottom_right, diagonal_white)
+        pg.draw.line(surface, (240, 240, 240), top_right, bottom_left, diagonal_white)
+        pg.draw.line(surface, (194, 40, 48), top_left, bottom_right, diagonal_red)
+        pg.draw.line(surface, (194, 40, 48), top_right, bottom_left, diagonal_red)
+
+        white_vertical = max(4, flag.width // 5)
+        white_horizontal = max(4, flag.height // 5)
+        pg.draw.rect(
+            surface,
+            (240, 240, 240),
+            pg.Rect(flag.centerx - white_vertical // 2, flag.y, white_vertical, flag.height),
+        )
+        pg.draw.rect(
+            surface,
+            (240, 240, 240),
+            pg.Rect(flag.x, flag.centery - white_horizontal // 2, flag.width, white_horizontal),
+        )
+
+        red_vertical = max(2, white_vertical // 2)
+        red_horizontal = max(2, white_horizontal // 2)
+        pg.draw.rect(
+            surface,
+            (194, 40, 48),
+            pg.Rect(flag.centerx - red_vertical // 2, flag.y, red_vertical, flag.height),
+        )
+        pg.draw.rect(
+            surface,
+            (194, 40, 48),
+            pg.Rect(flag.x, flag.centery - red_horizontal // 2, flag.width, red_horizontal),
+        )
+
+        pg.draw.rect(surface, blend_color(PANEL_ALT, ACCENT_DARK, 0.4), flag, 2)
 
 
 class TextInput:
@@ -140,17 +243,17 @@ class TextInput:
         text_y = self.rect.y + (self.rect.height - text_surf.get_height()) // 2
         surface.blit(text_surf, (text_x, text_y))
 
+        cursor_width = 4
+        cursor_height = max(10, value_font.get_height() - 4)
+        cursor_top = text_y + max(0, (text_surf.get_height() - cursor_height) // 2)
+
         if self.active and self._cursor_visible and self.text:
             cursor_x = text_x + value_font.size(self.text)[0] + 2
-            cursor_top = text_y + 2
-            cursor_bottom = text_y + value_font.get_height() - 2
-            pg.draw.rect(surface, TEXT_PRIMARY, pg.Rect(cursor_x, cursor_top, 2, max(1, cursor_bottom - cursor_top)))
+            pg.draw.rect(surface, TEXT_PRIMARY, pg.Rect(cursor_x, cursor_top, cursor_width, cursor_height))
         elif self.active and self._cursor_visible and not self.text:
             # Cursor at start position when field is empty (skip placeholder offset)
             cursor_x = text_x + 1
-            cursor_top = text_y + 2
-            cursor_bottom = text_y + value_font.get_height() - 2
-            pg.draw.rect(surface, TEXT_MUTED, pg.Rect(cursor_x, cursor_top, 2, max(1, cursor_bottom - cursor_top)))
+            pg.draw.rect(surface, TEXT_MUTED, pg.Rect(cursor_x, cursor_top, cursor_width, cursor_height))
 
 class Checkbox:
     """

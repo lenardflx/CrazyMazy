@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.config import WINDOW_TITLE
+from client.ui.controls import Button
 from client.screens.menu.menu_screen import MenuScreen
 from client.screens.core.scene_types import SceneTypes
 
@@ -31,18 +32,23 @@ class MainMenuScreen(MenuScreen):
                 ("Quit", self._quit, "secondary"),
             ],
         )
+        
         if self.scene_manager.prompt_tutorial_on_main_menu:
             self.scene_manager.prompt_tutorial_on_main_menu = False
-            self.show_confirm(
+            self.show_choice(
                 "Welcome",
                 "Start with the tutorial?",
-                self._start_tutorial,
-                confirm_label="Start",
-                cancel_label="Skip",
+                [
+                    ("Start", self._start_tutorial, "primary"),
+                    ("Skip", self._skip_tutorial, "secondary"),
+                ],
             )
 
     def _start_tutorial(self) -> None:
         self.scene_manager.go_to(SceneTypes.TUTORIAL)
+
+    def _skip_tutorial(self) -> None:
+        self.scene_manager.client_settings.set_tutorial(True)
 
     def _quit(self) -> None:
         """Open a confirmation dialog before quitting the application."""

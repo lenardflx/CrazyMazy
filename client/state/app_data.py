@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from client.state.languages import languages as langs
 
 from shared.paths import BASE_DIR
 
@@ -28,10 +29,9 @@ class ClientData:
         self.effects_volume: int = 100
         self.fullscreen: bool = False
         self.name: str = ""
-        #0 für englisch (default), 1 für deutsch
-        self.language: int = 0
+        self.language: langs = langs.ENGLISH
 
-        self.tutorial_played: bool = False
+        self.tutorial: bool = False
 
         os.makedirs(os.path.dirname(BASE_DIR / "data/app_data.json"), exist_ok=True)
 
@@ -81,14 +81,14 @@ class ClientData:
         self.name = val_name
 
 
-    def set_language(self, val_language: int) -> None:
+    def set_language(self, val_language: langs) -> None:
         """Set the language preference."""
         self.language = val_language
 
 
     def set_tutorial(self, val_tutorial: bool) -> None:
         """Set whether the tutorial_played has been completed."""
-        self.tutorial_played = val_tutorial
+        self.tutorial = val_tutorial
 
 
     def get_master_volume(self) -> int:
@@ -106,11 +106,11 @@ class ClientData:
     def get_name(self) -> str:
         return self.name
 
-    def get_language(self) -> int:
+    def get_language(self) -> langs:
         return self.language
 
     def get_tutorial(self) -> bool:
-        return self.tutorial_played
+        return self.tutorial
 
     def write_JSON(self) -> None:
         """Persist the current settings to data/app_data.json."""
@@ -120,7 +120,7 @@ class ClientData:
             "effects_volume": self.get_effects_volume(),
             "fullscreen": self.get_fullscreen(),
             "name": self.get_name(),
-            "language": self.get_language(),
+            "language": str(self.get_language()),
             "tutorial": self.get_tutorial(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:

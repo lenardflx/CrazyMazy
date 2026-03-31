@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from shared.game.board import Board
+from shared.game.helper import start_position_for_color
 from shared.game.npc import Npc
 from shared.types.data import GameData, PlayerData, TileData, TreasureData
 from shared.types.enums import NpcDifficulty, PlayerControllerKind
@@ -26,6 +27,33 @@ class GameState:
             (t for t in sorted(treasures, key=lambda t: t.order_index) if not t.collected),
             None,
         )
+
+    def player_by_id(self, player_id: UUID) -> PlayerData | None:
+        return next((player for player in self.players if player.id == player_id), None)
+
+    def player_position(self, player_id: UUID) -> tuple[int, int] | None:
+        player = self.player_by_id(player_id)
+        if player is None:
+            raise ValueError(f"Player {player_id} not found in game state")
+        if player.position_x is None or player.position_y is None:
+            return None
+        return player.position_x, player.position_y
+
+    def target_position_for_player(self, player_id: UUID) -> tuple[int, int] | None:
+        player = self.player_by_id(player_id)
+        if player is None:
+            raise ValueError(f"Player {player_id} not found in game state")
+        if self.board is None:
+            raise ValueError("NPC target requires a board")
+
+        target = self.current_treasure(player_id)
+        if target is not None:
+            return next(
+                (position for position, tile in self.board.tiles.items() if tile.treasure == target.treasure_type),
+                None,
+            )
+
+        return start_position_for_color(self.game.board_size, player.piece_color)
 
     @property
     def tiles(self) -> list[TileData]:

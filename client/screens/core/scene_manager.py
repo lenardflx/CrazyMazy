@@ -40,7 +40,7 @@ class SceneManager:
     ) -> None:
         # The SceneManager holds references to the connection, surface and audio manager, which it passes to the screens it creates.
         self.connection = connection
-        self.surface = surface
+        self.surface = surface  # display surface
         self.audio = audio
         self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
@@ -49,11 +49,14 @@ class SceneManager:
         self.lobby_service = LobbyService(connection, self.runtime_state)
         self.game_service = GameService(connection)
 
-        # The current scene and screen. NOTE: Can probably be simplified to a single attribute
+        # Internal render surface (fixed logical resolution)
+        self.render_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT)).convert() #!!!!
+
+        # The current scene and screen.
         self.current_scene: SceneTypes | None = None
         self.current_screen: BaseScreen | None = None
 
-        # The transport sync is responsible for syncing the transport state with the runtime state and determining if a scene change is necessary.
+        # Transport sync
         self._transport_sync = TransportSync(transport_state, self.runtime_state)
 
         # Apply the initial audio settings
@@ -69,28 +72,59 @@ class SceneManager:
             return
         self.current_scene = scene
         self._sync_scene_music(scene)
-        self.current_screen = create_screen(scene, self.surface, self)
+
+        # IMPORTANT: Screens now draw onto render_surface, not the display surface
+        self.current_screen = create_screen(scene, self.render_surface, self) #!!!!!
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Pass a pygame event to the current screen for handling."""
-        if self.current_screen is not None:
+        # if self.current_screen is not None:
+        #     self.current_screen.handle_event(event)
+        if self.current_screen is not None: #!!!!
+            if pygame.display.is_fullscreen():
+                info = pygame.display.Info()
+                mx, my = pygame.mouse.get_pos()
+
+                # Skalierungsfaktoren
+                scale_x = WINDOW_WIDTH / info.current_w
+                scale_y = WINDOW_HEIGHT / info.current_h
+
+                # Umgerechnete Mausposition
+                scaled_pos = (mx * scale_x, my * scale_y)
+
+                # Event patchen
+                if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION):
+                    event.pos = scaled_pos
+
             self.current_screen.handle_event(event)
 
     def tick(self, dt: float) -> None:
-        """Update the current screen and draw it to the surface."""
         if self.current_screen is not None:
             self.current_screen.update(dt)
             self.current_screen.draw()
+
+        screen = pygame.display.get_surface()
+
+        # --- MANUELLES FULLSCREEN-SCALING --- #!!!!
+        if pygame.display.is_fullscreen():
+            info = pygame.display.Info()
+            scaled = pygame.transform.smoothscale(
+                self.render_surface,
+                (info.current_w, info.current_h)
+            )
+            screen.blit(scaled, (0, 0))
+        else:
+            screen.blit(self.render_surface, (0, 0))
+
         pygame.display.flip()
 
     def apply_fullscreen(self, fullscreen: bool) -> None:
         if fullscreen:
-            # TODO: Fix this workaround so Windows also gets scaled
-            if platform == "win32":
-                win_width, win_height = pygame.display.get_desktop_sizes()[0]
-                pygame.display.set_mode((win_width, win_height), pygame.NOFRAME)
-            else:
-                pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+            # if platform == "win32":
+            #     pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            # else:
+            #     pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+            pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         else:
             pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
@@ -102,7 +136,6 @@ class SceneManager:
             self.go_to(target)
 
     def _sync_scene_music(self, scene: SceneTypes) -> None:
-        # TODO: add ingame music here
         if scene == SceneTypes.GAME:
             self.audio.stop_music()
             return
@@ -110,8 +143,4 @@ class SceneManager:
 
     @property
     def game_state(self) -> SnapshotGameState | None:
-        """
-        Since the transport sync is supposed to be private, we expose the game state through a property here for screens that need it.
-        """
-        
         return self._transport_sync.game_state

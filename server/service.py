@@ -33,11 +33,11 @@ from shared.types.enums import (
     TurnPhase,
 )
 
+from shared.lib.names import generate_display_name
 from shared.protocol import ErrorCode
 from shared.types.data import GameData, PlayerData, TileData, TreasureData, utcnow
 from shared.game.board import Board, is_valid_insertion_index, opposite_side
 from shared.game.helper import assign_treasures, start_position_for_color
-from shared.game.npc import Npc
 from shared.game.state import GameState
 
 
@@ -183,7 +183,7 @@ class GameService:
             return ErrorCode.ADD_NPC_ONLY_IN_LOBBY
 
         players = self.player_repo.list_by_game_id(game.id)
-        npc_name = Npc.generate_name({player.display_name for player in players})
+        npc_name = generate_display_name({player.display_name for player in players})
         self._create_player_for_game(
             game=game,
             display_name=npc_name,
@@ -779,8 +779,12 @@ class GameService:
 
         game = state.game
         npc = state.npcs[game.current_player_id]
+        if state.board is None:
+            raise ValueError("NPC turn requires a board")
         turn = npc.choose_turn(
-            state,
+            state.board,
+            state.player_position(npc.player_id),
+            state.target_position_for_player(npc.player_id),
             blocked_side=game.blocked_insertion_side,
             blocked_index=game.blocked_insertion_index,
         )
