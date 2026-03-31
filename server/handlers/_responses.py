@@ -1,6 +1,8 @@
 # Author: Lenard Felix, Raphael Eiden
 from __future__ import annotations
 
+from shared.types.enums import PlayerLeaveReason
+
 """
 This file focuses on the two main types of responses the server can 
 send to a client request (client events such as `ClientJoinGameEvent`). 
@@ -69,6 +71,6 @@ def snapshot_response(state: GameState) -> list[OutgoingMessage]:
     return outgoing
 
 
-def left_response(ctx: RequestContext, reason: str) -> list[OutgoingMessage]:
-    event = ServerGameLeftEvent(payload={"reason": reason})
+def left_response(ctx: RequestContext, reason: PlayerLeaveReason) -> list[OutgoingMessage]:
+    event = ServerGameLeftEvent(reason=reason)
     return [OutgoingMessage(conn=ctx.conn, msg=event.to_message())]

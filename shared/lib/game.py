@@ -19,7 +19,6 @@ from shared.types.payloads import (
     ClientGameMovePlayerPayload,
     ClientGameShiftTilePayload,
     ClientJoinGamePayload,
-    ServerGameLeftPayload,
 )
 
 

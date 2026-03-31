@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from shared.types.payloads import ErrorPayload, GameSnapshotPayload, ServerGameLeftPayload
+from shared.types.enums import PlayerLeaveReason
+from shared.types.payloads import GameSnapshotPayload
 from shared.protocol import ErrorCode
 
 @dataclass(slots=True)
@@ -40,7 +41,7 @@ class ClientState:
     """
     """
 
-    game_left: ServerGameLeftPayload | None = None
+    game_left: PlayerLeaveReason | None = None
 
     error_version: int = 0
     snapshot_version: int = 0

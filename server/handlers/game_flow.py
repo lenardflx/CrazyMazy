@@ -117,7 +117,7 @@ def handle_give_up(ctx: RequestContext, _: ClientGameGiveUpEvent) -> list[Outgoi
 
 @dispatcher.handler(ClientGameLeaveEvent)
 def handle_leave_game(ctx: RequestContext, _: ClientGameLeaveEvent) -> list[OutgoingMessage]:
-    return _handle_departure_game_update(ctx, lambda player_id: game_service.leave_game(player_id), "LEFT_GAME")
+    return _handle_departure_game_update(ctx, lambda player_id: game_service.leave_game(player_id), PlayerLeaveReason.LEFT)
 
 
 def _handle_connection_game_update(
@@ -157,7 +157,7 @@ def _handle_optional_connection_game_update(
 def _handle_departure_game_update(
     ctx: RequestContext,
     fn: Callable[[UUID], GameState | None],
-    reason: str,
+    reason: PlayerLeaveReason,
 ) -> list[OutgoingMessage]:
     state = game_service.get_connection_state(ctx.connection_id)
     if state is None:

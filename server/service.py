@@ -10,6 +10,10 @@ from time import sleep
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
+from server.network.connections import get_connection
+from server.network.models import OutgoingMessage
+from server.network.outgoing import flush_outgoing
+from shared.events import ServerGameLeftEvent
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
 from server.lib.game import can_join_game, is_valid_board_size, is_valid_player_limit, normalize_join_code
 from server.lib.player import (
@@ -267,6 +271,8 @@ class GameService:
             player.left_at = utcnow()
             self.player_repo.update_player(player)
         elif reason == PlayerLeaveReason.KICKED:
+            conn = get_connection(player.connection_id)
+            flush_outgoing([OutgoingMessage(conn=conn, msg=ServerGameLeftEvent(reason=PlayerLeaveReason.KICKED).to_message())])
             self.player_repo.delete_player(player.id)
 
         players = self.player_repo.list_by_game_id(player.game_id)

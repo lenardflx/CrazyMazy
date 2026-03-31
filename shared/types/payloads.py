@@ -143,9 +143,3 @@ class ClientGameAddNpcPayload(TypedDict):
     """Client request payload for adding an NPC-controlled player to the lobby."""
 
     difficulty: NpcDifficulty
-
-
-class ServerGameLeftPayload(TypedDict):
-    """Server payload describing why the client was removed from a game view."""
-
-    reason: str
