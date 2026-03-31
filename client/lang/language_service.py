@@ -1,23 +1,21 @@
 from enum import StrEnum
 from typing import Dict
 
-from shared.protocol import ErrorCode
-
-
-class DisplayMessage(StrEnum):
-    SERVER_NOT_REACHABLE = "common.server_not_reachable"
+from shared.protocol import ErrorCode, DisplayMessage
+from client.state.app_data import ClientData
+from client.lang.messages import messages
 
 
 class LanguageService:
-    # TODO: depends on client settings and message repo
     def __init__(self) -> None:
+        client_data = ClientData()
+        self.language = client_data.get_language()
         self.error_messages: Dict[ErrorCode, str] = {
-            ErrorCode.GAME_NOT_FOUND: "This game does not exist",
-            ErrorCode.NO_PUBLIC_LOBBY: "No public lobby available right now",
+            ErrorCode.GAME_NOT_FOUND: messages[ErrorCode.GAME_NOT_FOUND][self.language],
+            ErrorCode.NO_PUBLIC_LOBBY: messages[ErrorCode.NO_PUBLIC_LOBBY][self.language],
         }
-
         self.general_messages: Dict[DisplayMessage, str] = {
-            DisplayMessage.SERVER_NOT_REACHABLE: "Server not reachable",
+            DisplayMessage.SERVER_NOT_REACHABLE: messages[DisplayMessage.SERVER_NOT_REACHABLE][self.language],
         }
 
     def get_message(self, message: DisplayMessage | ErrorCode) -> str:
@@ -26,4 +24,4 @@ class LanguageService:
         elif isinstance(message, ErrorCode):
             return self.error_messages.get(message, f"err::{str(message)}")
         else:
-            return "Error loading message, unknown message type."
+            return messages[DisplayMessage.UNKNOWN_MESSAGE_TYPE][self.language]
