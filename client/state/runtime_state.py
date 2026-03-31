@@ -4,7 +4,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 
 from shared.types.enums import InsertionSide, TreasureType
-from shared.lib.lobby import VALID_BOARD_SIZES
+from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
+
 
 # TODO: docs after error handling is refactored
 
@@ -24,7 +25,9 @@ class CreateLobbyFormState:
     """Persists form inputs and validation errors for the create-lobby screen across re-renders."""
     player_name: str = ""
     board_size: int = min(VALID_BOARD_SIZES)
-    error_message: str | None = None
+    insert_timeout: int = min(VALID_INSERT_TIMEOUTS)
+    move_timeout: int = min(VALID_MOVE_TIMEOUTS)
+    # error_message: str | None = None todo remove
 
 
 @dataclass(slots=True)
@@ -32,7 +35,7 @@ class JoinLobbyFormState:
     """Persists form inputs and validation errors for the join-lobby screen across re-renders."""
     player_name: str = ""
     join_code: str = ""
-    error_message: str | None = None
+    # error_message: str | None = None todo remove
 
 
 @dataclass(slots=True)
