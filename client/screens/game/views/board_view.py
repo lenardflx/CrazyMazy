@@ -256,6 +256,13 @@ class BoardView:
         surface.blit(self.title_font.render("Current Tile", True, TEXT_PRIMARY), (layout.spare_panel.x + 18, layout.spare_panel.y + 16))
 
         self._draw_tile(surface, layout.spare_tile_rect, tile)
+        self._draw_tile_overlays(
+            surface,
+            layout.spare_tile_rect,
+            [],
+            treasure_type=tile.treasure,
+            home_color=None,
+        )
 
         button_fill = PANEL_ALT if game_state.can_shift else blend_color(PANEL_ALT, DISABLED, 0.7)
         button_text = TEXT_PRIMARY if game_state.can_shift else DISABLED
