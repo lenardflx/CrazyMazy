@@ -121,7 +121,7 @@ class ClientData:
             "fullscreen": self.get_fullscreen(),
             "name": self.get_name(),
             "language": self.get_language(),
-            "tutorial_played": self.get_tutorial(),
+            "tutorial": self.get_tutorial(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
