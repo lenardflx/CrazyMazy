@@ -271,8 +271,9 @@ class GameService:
             player.left_at = utcnow()
             self.player_repo.update_player(player)
         elif reason == PlayerLeaveReason.KICKED:
-            conn = get_connection(player.connection_id)
-            flush_outgoing([OutgoingMessage(conn=conn, msg=ServerGameLeftEvent(reason=PlayerLeaveReason.KICKED).to_message())])
+            if player.controller_kind == PlayerControllerKind.HUMAN:
+                conn = get_connection(player.connection_id)
+                flush_outgoing([OutgoingMessage(conn=conn, msg=ServerGameLeftEvent(reason=PlayerLeaveReason.KICKED).to_message())])
             self.player_repo.delete_player(player.id)
 
         players = self.player_repo.list_by_game_id(player.game_id)

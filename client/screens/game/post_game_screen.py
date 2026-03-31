@@ -24,7 +24,7 @@ class PostGameScreen(MenuScreen):
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Game Over")
-        self.player_panel_view = PlayerPanelView()
+        self.player_panel_view = PlayerPanelView(None, scene_manager.lobby_service)
         self.menu_button = Button(pg.Rect(self.content_rect.x, self.content_rect.bottom - 54, 180, 44), "Main Menu", self._leave_post_game, variant="primary")
         self.play_again_button = Button(
             pg.Rect(self.content_rect.x + 202, self.content_rect.bottom - 54, 180, 44),

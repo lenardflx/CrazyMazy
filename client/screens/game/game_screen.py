@@ -33,7 +33,7 @@ class GameScreen(BaseScreen):
         super().__init__(surface)
         self.scene_manager = scene_manager
         self.board_view = BoardView()
-        self.player_panel_view = PlayerPanelView()
+        self.player_panel_view = PlayerPanelView(None, scene_manager.lobby_service)
         self.title_font = font(28)
         self.small_font = font(15)
         self.button_font = font(18)
