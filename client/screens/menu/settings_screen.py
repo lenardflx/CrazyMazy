@@ -55,8 +55,8 @@ class SettingsScreen(MenuScreen):
                 lambda: self._sync_settings(),
         )
 
-        self.english_button = Button(pg.Rect(520, 500, 120, 46), "English", lambda: self.__set_language(langs.ENGLISH), variant = "primary" if self.language == langs.ENGLISH else "secondary", icon="flag_en")
-        self.german_button =  Button(pg.Rect(660, 500, 120, 46), "German", lambda: self.__set_language(langs.GERMAN), variant = "primary" if self.language == langs.GERMAN else "secondary", icon="flag_de")
+        self.english_button = Button(pg.Rect(520, 500, 120, 46), "English", lambda: self.__set_language(langs.ENGLISH.value), variant = "primary" if self.language == langs.ENGLISH.value else "secondary", icon="flag_en")
+        self.german_button =  Button(pg.Rect(660, 500, 120, 46), "German", lambda: self.__set_language(langs.GERMAN.value), variant = "primary" if self.language == langs.GERMAN.value else "secondary", icon="flag_de")
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
@@ -136,5 +136,5 @@ class SettingsScreen(MenuScreen):
     #Ändere Sprache
     def __set_language(self, val):
         self.language = val
-        self.english_button.variant = "primary" if self.language == langs.ENGLISH else "secondary"
-        self.german_button.variant = "primary" if self.language == langs.GERMAN else "secondary"
+        self.english_button.variant = "primary" if self.language == langs.ENGLISH.value else "secondary"
+        self.german_button.variant = "primary" if self.language == langs.GERMAN.value else "secondary"
