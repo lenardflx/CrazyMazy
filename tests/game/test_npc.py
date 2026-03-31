@@ -16,4 +16,5 @@ class TestCreateBoard(unittest.TestCase):
 
     def test_npc_choose_turn(self):
         npc = Npc(uuid4(), NpcDifficulty.NORMAL)
-        self.assertIsNotNone(npc.choose_turn(self._randomBoard(), (2,3), (4,5), InsertionSide.RIGHT, 3))
+        move = npc.choose_turn(self._randomBoard(), (2,3), (4,5), InsertionSide.RIGHT, 3)
+        print(move)

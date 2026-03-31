@@ -70,23 +70,23 @@ class Npc:
         no need to compute new paths if the insertion doesn't affect the outcome
         """
         # top row
-        for i in range(1,5):
+        for i in range(1,board.width-1):
             if any(coordinate in board.insertion_shift_coordinates((i,0)) for coordinate in expanded_reachable):
                 insertion_tiles += [(i,0)]
 
         # bottom row
-        for i in range(1,5):
+        for i in range(1,board.width-1):
             if any(coordinate in board.insertion_shift_coordinates((i,board.width - 1)) for coordinate in expanded_reachable):
                 insertion_tiles += [(i,board.width - 1)]
 
         # left row
-        for i in range(1, 5):
+        for i in range(1, board.width-1):
             if any(coordinate in board.insertion_shift_coordinates((0,i)) for coordinate in
                    expanded_reachable):
                 insertion_tiles += [(0, 1)]
 
         # right row
-        for i in range(1,5):
+        for i in range(1,board.width-1):
             if any(coordinate in board.insertion_shift_coordinates((board.width - 1, i)) for coordinate in expanded_reachable):
                 insertion_tiles += [(board.width - 1, i)]
 

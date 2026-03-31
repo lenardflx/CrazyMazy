@@ -442,11 +442,11 @@ class Board:
         """
         if x == 0:
             return InsertionSide.LEFT, y
-        if x == self.width:
+        if x == self.width-1:
             return InsertionSide.RIGHT, y
         if y == 0:
             return InsertionSide.TOP, x
-        if y == self.width:
+        if y == self.width-1:
             return InsertionSide.BOTTOM, x
         else:
             raise BoardError("This is not a border coordinate")
