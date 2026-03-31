@@ -54,10 +54,10 @@ class ClientCreateLobbyEvent(Event):
             return None
         return cls(
             message_id=msg["id"],
-            board_size=board_size,
-            player_name=player_name.strip(),
-            insert_timeout=insert_timeout,
-            move_timeout=move_timeout, # replace everything with payload
+            board_size=payload["board_size"],
+            player_name=payload["player_name"].strip(),
+            insert_timeout=payload["insert_timeout"],
+            move_timeout=payload["move_timeout"],
             is_public=payload["is_public"],
             player_limit=payload["player_limit"],
         )
