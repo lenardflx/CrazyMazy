@@ -120,7 +120,7 @@ class ClientData:
             "effects_volume": self.get_effects_volume(),
             "fullscreen": self.get_fullscreen(),
             "name": self.get_name(),
-            "language": self.get_language(),
+            "language": str(self.get_language()),
             "tutorial": self.get_tutorial(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:
