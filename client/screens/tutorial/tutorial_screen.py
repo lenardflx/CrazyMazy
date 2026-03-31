@@ -20,7 +20,7 @@ from client.tutorial import (
 )
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
-from client.ui.theme import ACCENT, PANEL, PANEL_ALT, TEXT_PRIMARY, font
+from client.ui.theme import PANEL, PANEL_ALT, TEXT_PRIMARY, font
 from shared.game.snapshot import SnapshotGameState
 from shared.types.enums import GamePhase
 
@@ -103,15 +103,54 @@ class TutorialScreen(GameScreen):
             self.scene_manager.go_to(SceneTypes.POST_GAME)
 
     def _draw_overlay(self, layout: GameBoardLayout) -> None:
+        self._draw_focus_mask(layout)
         self._draw_step_overlay(layout)
-        self._draw_step_highlight(layout)
+
+    def _step_overlay_rect(self) -> pg.Rect:
+        return pg.Rect(self.surface.get_width() - 444, self.surface.get_height() - 170, 420, 140)
+
+    def _step_target_rect(self, layout: GameBoardLayout) -> pg.Rect | None:
+        step = self.session.current_step
+        if step is None:
+            return None
+
+        if isinstance(step, TutorialRotateStep):
+            target = layout.rotate_right_button if step.direction > 0 else layout.rotate_left_button
+            return target.inflate(18, 18)
+        if isinstance(step, TutorialShiftStep):
+            arrow = next(
+                (arrow.rect for arrow in layout.arrows if arrow.side == step.side and arrow.index == step.index),
+                None,
+            )
+            return None if arrow is None else arrow.inflate(18, 18)
+        if isinstance(step, TutorialMoveStep):
+            cell = layout.cells.get(step.position)
+            return None if cell is None else cell.inflate(18, 18)
+        return None
+
+    def _draw_focus_mask(self, layout: GameBoardLayout) -> None:
+        step = self.session.current_step
+        if step is None:
+            return
+
+        mask = pg.Surface(self.surface.get_size(), pg.SRCALPHA)
+        mask.fill((46, 46, 46, 100))
+
+        overlay_rect = self._step_overlay_rect().inflate(18, 18)
+        pg.draw.rect(mask, (0, 0, 0, 0), overlay_rect, border_radius=20)
+
+        target_rect = self._step_target_rect(layout)
+        if target_rect is not None:
+            pg.draw.rect(mask, (0, 0, 0, 0), target_rect, border_radius=18)
+
+        self.surface.blit(mask, (0, 0))
 
     def _draw_step_overlay(self, layout: GameBoardLayout) -> None:
         step = self.session.current_step
         if step is None:
             return
 
-        overlay = pg.Rect(self.surface.get_width() - 444, self.surface.get_height() - 170, 420, 140)
+        overlay = self._step_overlay_rect()
         pg.draw.rect(self.surface, PANEL, overlay, border_radius=16)
         pg.draw.rect(self.surface, PANEL_ALT, overlay, width=1, border_radius=16)
 
@@ -123,28 +162,6 @@ class TutorialScreen(GameScreen):
         self.continue_button.rect = pg.Rect(overlay.right - 130, overlay.bottom - 52, 110, 36)
         if self.continue_button.enabled:
             self.continue_button.draw(self.surface, self.button_font)
-
-    def _draw_step_highlight(self, layout: GameBoardLayout) -> None:
-        step = self.session.current_step
-        if step is None:
-            return
-
-        target: pg.Rect | None = None
-        if isinstance(step, TutorialRotateStep):
-            target = layout.rotate_right_button if step.direction > 0 else layout.rotate_left_button
-        elif isinstance(step, TutorialShiftStep):
-            target = next(
-                (arrow.rect for arrow in layout.arrows if arrow.side == step.side and arrow.index == step.index),
-                None,
-            )
-        elif isinstance(step, TutorialMoveStep):
-            target = layout.cells.get(step.position)
-
-        if target is None:
-            return
-
-        highlight = target.inflate(12, 12)
-        pg.draw.rect(self.surface, ACCENT, highlight, width=3, border_radius=16)
 
     def _draw_wrapped_text(self, text: str, x: int, y: int, width: int) -> None:
         words = text.split()
