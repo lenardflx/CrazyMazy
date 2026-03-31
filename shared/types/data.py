@@ -133,10 +133,10 @@ class GameData(SQLModel):
     end_reason: Optional[GameEndReason] = Field(default=None)
 
     # the maximum amount of seconds a player has time to insert a tile
-    insert_timeout: int = Field(default=None)
+    insert_timeout: Optional[int] = Field(default=None)
 
     # the maximum amount of seconds a player has time to move
-    move_timeout: int = Field(default=None)
+    move_timeout: Optional[int] = Field(default=None)
 
     # Turn Phase during an active Match
     turn_phase: Optional[TurnPhase] = Field(default=None)

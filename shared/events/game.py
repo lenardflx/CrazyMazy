@@ -32,8 +32,8 @@ class ClientCreateLobbyEvent(Event):
 
     board_size: int
     player_name: str
-    insert_timeout: int
-    move_timeout: int
+    insert_timeout: int | None
+    move_timeout: int | None
     is_public: bool
     player_limit: int
 

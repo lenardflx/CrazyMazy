@@ -15,6 +15,10 @@ class TimeoutScheduler(AsyncScheduler):
     def tick(self):
         active_games = game_service.find_active_games()
         for game in active_games:
+            # we don't want to limit the move duration when this is none
+            if game.turn_end_timestamp is None:
+                continue
+
             now = time.time_ns() // 1_000_000
             if now < game.turn_end_timestamp:
                 continue

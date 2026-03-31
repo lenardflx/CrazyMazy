@@ -23,8 +23,8 @@ class LobbyService:
                      board_size: int, *,
                      is_public: bool,
                      player_limit: int,
-                     insert_timeout: int,
-                     move_timeout: int) -> ErrorCode | None:
+                     insert_timeout: int | None,
+                     move_timeout: int | None) -> ErrorCode | None:
         """Validate the form and request the server to create a new lobby.
 
         :param player_name: The display name the player wants to use.

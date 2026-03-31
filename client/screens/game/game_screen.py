@@ -223,7 +223,9 @@ class GameScreen(BaseScreen):
         now = time.time_ns() // 1_000_000
         turn_end = self._game_snapshot.turn.turn_end_timestamp
 
-        if now > turn_end:
+        if turn_end is None:
+            timer_content = "--:--"
+        elif now > turn_end:
             timer_content = "00:00"
         else:
             timer_content = format_ms_to_clock(turn_end - now)
