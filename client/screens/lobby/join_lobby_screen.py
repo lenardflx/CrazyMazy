@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.lang import language_service
-from client.ui.theme import TEXT_PRIMARY, TEXT_MUTED
+from client.ui.theme import TEXT_MUTED, render_text
 from client.ui.controls import Button, TextInput
 from client.screens.menu.menu_screen import MenuScreen
 
@@ -67,15 +67,19 @@ class JoinLobbyScreen(MenuScreen):
         self.join_button.handle_event(event)
         self.join_public_button.handle_event(event)
 
+    def update_content(self, dt: float) -> None:
+        self.name_input.update(dt)
+        self.code_input.update(dt)
+
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the form controls and any error messages."""
         super().draw_content(rect)
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
         self.code_input.draw(self.surface, self.small_font, self.body_font, "Join Code")
         self.join_button.draw(self.surface, self.button_font)
-        or_label = self.small_font.render("or", True, TEXT_MUTED)
+        or_label = render_text(self.small_font, "or", TEXT_MUTED)
         self.surface.blit(or_label, or_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 338)))
         self.join_public_button.draw(self.surface, self.button_font)
         if self.error_message:
-            error = self.small_font.render(self.error_message, True, (150, 58, 48))
+            error = render_text(self.small_font, self.error_message, (150, 58, 48))
             self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 430)))

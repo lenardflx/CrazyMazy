@@ -11,22 +11,31 @@ import pygame as pg
 
 Color = tuple[int, int, int]
 
-BACKGROUND: Color = (76, 96, 122)
-PANEL: Color = (238, 227, 208)
-PANEL_SHADOW: Color = (58, 74, 97)
-PANEL_ALT: Color = (216, 194, 160)
-TEXT_PRIMARY: Color = (44, 31, 24)
-TEXT_MUTED: Color = (98, 79, 64)
-ACCENT: Color = (176, 92, 46)
-ACCENT_DARK: Color = (132, 100, 80)
-ACCENT_SOFT: Color = (196, 132, 91)
-SUCCESS: Color = (74, 132, 94)
-WARNING: Color = (187, 126, 56)
-DISABLED: Color = (156, 142, 129)
-GRAYED: Color = (173, 173, 173)
-ACTIVE_OUTLINE: Color = (223, 161, 67)
-MOVE_HIGHLIGHT: Color = (104, 177, 113)
-ERROR: Color = (150, 58, 48)
+# Background
+BACKGROUND: Color = (147, 197, 209)
+PANEL: Color = (246, 220, 171)
+PANEL_ALT: Color = (214, 156, 89)
+PANEL_SHADOW: Color = (110, 72, 41)
+
+# Text
+TEXT_PRIMARY: Color = (70, 43, 24)
+TEXT_MUTED: Color = (120, 83, 49)
+
+# Accent (orange-gold family)
+ACCENT: Color = (230, 132, 41)
+ACCENT_DARK: Color = (145, 82, 34)
+ACCENT_SOFT: Color = (247, 182, 94)
+
+# State colors
+DISABLED: Color = (163, 134, 98)
+ACTIVE_OUTLINE: Color = (255, 205, 92)
+MOVE_HIGHLIGHT: Color = (122, 176, 108)
+ERROR: Color = (176, 68, 48)
+
+# Pixel-art panel defaults
+PIXEL_CUT = 7
+PIXEL_BORDER = 3
+PIXEL_SHADOW_OFFSET = 3
 
 
 def _validate_amount(amount: float) -> None:
@@ -71,10 +80,75 @@ def blend_color(start: Color, end: Color, amount: float) -> Color:
     )
 
 
-def font(size: int, *, bold: bool = False) -> pg.font.Font:
-    """
-    Helper function to create a pygame font with the given size and weight.
-    When we wanna switch to a different font, we only need to change it in this function.
-    """
-    # TODO: replace the font
-    return pg.font.SysFont("verdana", size, bold=bold)
+def render_text(font_obj: pg.font.Font, text: str, color: Color) -> pg.Surface:
+    """Render UI text without anti-aliasing so it reads closer to pixel art."""
+    return font_obj.render(text, False, color)
+
+
+def _pixel_cut(rect: pg.Rect) -> int:
+    return max(2, min(PIXEL_CUT, rect.width // 4, rect.height // 4))
+
+
+def _pixel_fill(surface: pg.Surface, rect: pg.Rect, color: Color, *, cut: int | None = None) -> None:
+    """Fill a stepped cut-corner rectangle row-by-row so larger cuts stay stable."""
+    if rect.width <= 0 or rect.height <= 0:
+        return
+
+    resolved_cut = _pixel_cut(rect) if cut is None else max(0, min(cut, rect.width // 2, rect.height // 2))
+    if resolved_cut == 0:
+        pg.draw.rect(surface, color, rect)
+        return
+
+    for y in range(rect.height):
+        top_inset = max(0, resolved_cut - y - 1)
+        bottom_inset = max(0, resolved_cut - (rect.height - y - 1) - 1)
+        inset = max(top_inset, bottom_inset)
+        row_width = rect.width - inset * 2
+        if row_width <= 0:
+            continue
+        pg.draw.line(
+            surface,
+            color,
+            (rect.x + inset, rect.y + y),
+            (rect.x + inset + row_width - 1, rect.y + y),
+        )
+
+
+def draw_pixel_rect(
+    surface: pg.Surface,
+    rect: pg.Rect,
+    fill: Color,
+    *,
+    border: Color,
+    shadow: Color | None = None,
+) -> None:
+    """Draw a filled rectangle with fixed cut-corner pixel borders."""
+    if rect.width <= 0 or rect.height <= 0:
+        return
+
+    border_width = min(PIXEL_BORDER, max(1, min(rect.width, rect.height) // 6))
+    cut = _pixel_cut(rect)
+
+    if shadow is not None:
+        _pixel_fill(surface, rect.move(0, PIXEL_SHADOW_OFFSET), shadow, cut=cut)
+
+    _pixel_fill(surface, rect, border, cut=cut)
+
+    inner = rect.inflate(-border_width * 2, -border_width * 2)
+    inner_cut = max(0, cut - border_width)
+    if inner.width > 0 and inner.height > 0:
+        _pixel_fill(surface, inner, fill, cut=inner_cut)
+
+
+_FONT_PATH = "assets/fonts/editundo.ttf"
+_TITLE_FONT_PATH = "assets/fonts/ka1.ttf"
+
+
+def font(size: int) -> pg.font.Font:
+    """UI font (editundo) — use for all text except the main menu title."""
+    return pg.font.Font(_FONT_PATH, size)
+
+
+def title_font(size: int) -> pg.font.Font:
+    """Display font (ka1) — use only for the main menu title."""
+    return pg.font.Font(_TITLE_FONT_PATH, size)

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.ui.controls import Checkbox, Slider, Button
-from client.ui.theme import TEXT_PRIMARY
+from client.ui.theme import TEXT_PRIMARY, render_text
 from client.screens.menu.menu_screen import MenuScreen
 
 if TYPE_CHECKING:
@@ -120,5 +120,5 @@ class SettingsScreen(MenuScreen):
         :param y: Offset in pixels from the top of the content area.
         """
         header_y = self.content_area.y + y
-        label = self.section_font.render(title, True, TEXT_PRIMARY)
+        label = render_text(self.section_font, title, TEXT_PRIMARY)
         self.surface.blit(label, (self.content_area.x, header_y))

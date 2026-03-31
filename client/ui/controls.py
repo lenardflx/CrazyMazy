@@ -21,6 +21,8 @@ from client.ui.theme import (
     TEXT_MUTED,
     TEXT_PRIMARY,
     blend_color,
+    draw_pixel_rect,
+    render_text,
 )
 
 
@@ -69,11 +71,8 @@ class Button:
             fill = PANEL_ALT if not self.hovered else blend_color(PANEL_ALT, PANEL, 0.35)
             text_color = TEXT_PRIMARY
 
-        shadow = self.rect.move(0, 2)
-        pg.draw.rect(surface, blend_color(fill, ACCENT_DARK, 0.35), shadow, border_radius=18)
-        pg.draw.rect(surface, fill, self.rect, border_radius=18)
-        pg.draw.rect(surface, blend_color(fill, ACCENT_DARK, 0.45), self.rect, width=1, border_radius=18)
-        label = font.render(self.label, True, text_color)
+        draw_pixel_rect(surface, self.rect, fill, border=blend_color(fill, ACCENT_DARK, 0.45), shadow=blend_color(fill, ACCENT_DARK, 0.35))
+        label = render_text(font, self.label, text_color)
         surface.blit(label, label.get_rect(center=self.rect.center))
 
 
@@ -82,7 +81,7 @@ class TextInput:
     A text input field with a label and placeholder text.
     The field can be active (focused) or inactive, which changes its appearance and whether it processes keyboard input.
     The field also has a maximum length for the input text.
-    When active, the field shows a blinking cursor. This cursor needs to be updated each frame by calling the update method with the delta time in milliseconds, which advances the cursor blink timer.
+    When active, the field shows a blinking cursor. This cursor needs to be updated each frame by calling the update method with the frame delta time in seconds, which advances the cursor blink timer.
     """ # TODO. the update is never called yet. should be :D
 
     def __init__(self, rect: pg.Rect, text: str = "", *, placeholder: str = "", max_length: int = 24) -> None:
@@ -115,44 +114,43 @@ class TextInput:
                 return True
         return False
 
-    def update(self, dt: int) -> None:
-        """Call each frame with delta time in milliseconds to advance the cursor blink."""
+    def update(self, dt: float) -> None:
+        """Call each frame with delta time in seconds to advance the cursor blink."""
         if not self.active:
             self._cursor_visible = False
             self._cursor_timer = 0
             return
-        self._cursor_timer += dt
+        self._cursor_timer += int(dt * 1000)
         if self._cursor_timer >= self._cursor_interval:
             self._cursor_timer %= self._cursor_interval
             self._cursor_visible = not self._cursor_visible
 
     def draw(self, surface: pg.Surface, label_font: pg.font.Font, value_font: pg.font.Font, label: str) -> None:
-        caption = label_font.render(label, True, TEXT_PRIMARY)
+        caption = render_text(label_font, label, TEXT_PRIMARY)
         surface.blit(caption, (self.rect.x, self.rect.y - 28))
 
         fill = PANEL if self.active else blend_color(PANEL, PANEL_ALT, 0.2)
         border = ACCENT if self.active else blend_color(PANEL_ALT, ACCENT_DARK, 0.25)
-        pg.draw.rect(surface, fill, self.rect, border_radius=14)
-        pg.draw.rect(surface, border, self.rect, width=1, border_radius=14)
+        draw_pixel_rect(surface, self.rect, fill, border=border, shadow=blend_color(fill, ACCENT_DARK, 0.28))
 
         content = self.text if self.text else self.placeholder
         color = TEXT_PRIMARY if self.text else TEXT_MUTED
-        text_surf = value_font.render(str(content), True, color)
+        text_surf = render_text(value_font, content, color)
         text_x = self.rect.x + 14
-        text_y = self.rect.y + 10
+        text_y = self.rect.y + (self.rect.height - text_surf.get_height()) // 2
         surface.blit(text_surf, (text_x, text_y))
 
         if self.active and self._cursor_visible and self.text:
             cursor_x = text_x + value_font.size(self.text)[0] + 2
             cursor_top = text_y + 2
             cursor_bottom = text_y + value_font.get_height() - 2
-            pg.draw.line(surface, TEXT_PRIMARY, (cursor_x, cursor_top), (cursor_x, cursor_bottom), 1)
+            pg.draw.rect(surface, TEXT_PRIMARY, pg.Rect(cursor_x, cursor_top, 2, max(1, cursor_bottom - cursor_top)))
         elif self.active and self._cursor_visible and not self.text:
             # Cursor at start position when field is empty (skip placeholder offset)
             cursor_x = text_x + 1
             cursor_top = text_y + 2
             cursor_bottom = text_y + value_font.get_height() - 2
-            pg.draw.line(surface, TEXT_MUTED, (cursor_x, cursor_top), (cursor_x, cursor_bottom), 1)
+            pg.draw.rect(surface, TEXT_MUTED, pg.Rect(cursor_x, cursor_top, 2, max(1, cursor_bottom - cursor_top)))
 
 class Checkbox:
     """
@@ -174,12 +172,11 @@ class Checkbox:
 
     def draw(self, surface: pg.Surface, label_font: pg.font.Font) -> None:
         box = pg.Rect(self.rect.x, self.rect.y + 2, 24, 24)
-        pg.draw.rect(surface, blend_color(PANEL_ALT, PANEL, 0.55), box, border_radius=6)
-        pg.draw.rect(surface, blend_color(PANEL_ALT, ACCENT_DARK, 0.4), box, width=1, border_radius=6)
+        draw_pixel_rect(surface, box, blend_color(PANEL_ALT, PANEL, 0.55), border=blend_color(PANEL_ALT, ACCENT_DARK, 0.4))
         if self.value:
             pg.draw.line(surface, ACCENT, (box.x + 5, box.y + 13), (box.x + 10, box.y + 18), 3)
             pg.draw.line(surface, ACCENT, (box.x + 10, box.y + 18), (box.x + 19, box.y + 7), 3)
-        label = label_font.render(self.label, True, TEXT_PRIMARY)
+        label = render_text(label_font, self.label, TEXT_PRIMARY)
         surface.blit(label, (box.right + 16, self.rect.y))
 
 
@@ -218,14 +215,18 @@ class Slider:
         return False
 
     def draw(self, surface: pg.Surface, label_font: pg.font.Font, value_font: pg.font.Font) -> None:
-        label = label_font.render(self.label, True, TEXT_PRIMARY)
+        label = render_text(label_font, self.label, TEXT_PRIMARY)
         surface.blit(label, (self.rect.x, self.rect.y - 32))
-        value = value_font.render(f"{self.value}%", True, TEXT_MUTED)
+        value = render_text(value_font, f"{self.value}%", TEXT_MUTED)
         surface.blit(value, value.get_rect(midright=(self.rect.right, self.rect.y - 16)))
-        pg.draw.line(surface, blend_color(PANEL_ALT, TEXT_MUTED, 0.2), self.rect.midleft, self.rect.midright, 8)
+
+        track = self.rect.inflate(0, 10)
+        draw_pixel_rect(surface, track, blend_color(PANEL_ALT, PANEL, 0.1), border=blend_color(PANEL_ALT, ACCENT_DARK, 0.25))
+
         fill_width = int(self.rect.width * ((self.value - self.minimum) / max(1, self.maximum - self.minimum)))
-        fill_rect = pg.Rect(self.rect.x, self.rect.y, fill_width, self.rect.height)
-        pg.draw.line(surface, ACCENT, fill_rect.midleft, fill_rect.midright, 8)
-        knob_x = max(self.rect.x, min(self.rect.right, self.rect.x + fill_width))
-        pg.draw.circle(surface, PANEL, (knob_x, self.rect.centery), 12)
-        pg.draw.circle(surface, blend_color(PANEL, ACCENT_DARK, 0.45), (knob_x, self.rect.centery), 12, 1)
+        if fill_width > 0:
+            fill_rect = pg.Rect(self.rect.x, self.rect.y - 1, fill_width, self.rect.height + 2)
+            draw_pixel_rect(surface, fill_rect, ACCENT, border=blend_color(ACCENT, ACCENT_DARK, 0.35))
+        knob_x = max(self.rect.x, min(self.rect.right - 18, self.rect.x + fill_width - 9))
+        knob = pg.Rect(knob_x, self.rect.y - 8, 18, self.rect.height + 16)
+        draw_pixel_rect(surface, knob, PANEL, border=blend_color(PANEL, ACCENT_DARK, 0.45), shadow=blend_color(PANEL, ACCENT_DARK, 0.25))

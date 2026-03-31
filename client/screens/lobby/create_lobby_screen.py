@@ -10,7 +10,7 @@ import pygame as pg
 from client.lang import language_service
 from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
 from client.ui.controls import Button, TextInput
-from client.ui.theme import TEXT_PRIMARY
+from client.ui.theme import TEXT_PRIMARY, render_text
 from client.screens.menu.menu_screen import MenuScreen
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -167,23 +167,26 @@ class CreateLobbyScreen(MenuScreen):
             button.handle_event(event)
         self.create_button.handle_event(event)
 
+    def update_content(self, dt: float) -> None:
+        self.name_input.update(dt)
+
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the form controls and any error messages."""
         super().draw_content(rect)
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
-        board_label = self.body_font.render("Board Size", True, TEXT_PRIMARY)
+        board_label = render_text(self.body_font, "Board Size", TEXT_PRIMARY)
         self.surface.blit(board_label, board_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 174)))
         for button in self.size_buttons:
             button.draw(self.surface, self.button_font)
-        type_label = self.body_font.render("Lobby Type", True, TEXT_PRIMARY)
+        type_label = render_text(self.body_font, "Lobby Type", TEXT_PRIMARY)
         self.surface.blit(type_label, type_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 262)))
         self.private_button.draw(self.surface, self.button_font)
         self.public_button.draw(self.surface, self.button_font)
-        limit_label = self.body_font.render("Player Limit", True, TEXT_PRIMARY)
+        limit_label = render_text(self.body_font, "Player Limit", TEXT_PRIMARY)
         self.surface.blit(limit_label, limit_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 348)))
         for button in self.player_limit_buttons:
             button.draw(self.surface, self.button_font)
         self.create_button.draw(self.surface, self.button_font)
         if self.error_message:
-            error = self.small_font.render(self.error_message, True, (150, 58, 48))
+            error = render_text(self.small_font, self.error_message, (150, 58, 48))
             self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 492)))

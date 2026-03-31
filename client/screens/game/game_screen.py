@@ -31,9 +31,9 @@ class GameScreen(BaseScreen):
         self.scene_manager = scene_manager
         self.board_view = BoardView()
         self.player_panel_view = PlayerPanelView()
-        self.title_font = font(28, bold=True)
+        self.title_font = font(28)
         self.small_font = font(15)
-        self.button_font = font(18, bold=True)
+        self.button_font = font(18)
         self.dialog: ConfirmDialog | None = None
         self.give_up_button = Button(pg.Rect(surface.get_width() - 280, 24, 120, 40), "Give Up", self._confirm_give_up)
         self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 120, 40), "Menu", self._confirm_quit)

@@ -60,7 +60,6 @@ class Board:
     @classmethod
     def from_tile_data(cls, game: GameData, tiles: list[TileData]) -> "Board":
         board = cls(game.board_size)
-        board.stack = []
         for entity in tiles:
             tile = Tile.from_tile_data(entity)
             board._tile_entities[id(tile)] = entity
@@ -79,7 +78,6 @@ class Board:
     @classmethod
     def from_payloads(cls, width: int, tiles: list[TilePayload]) -> "Board":
         board = cls(width)
-        board.stack = []
         for payload in tiles:
             tile = Tile.from_payload(payload)
             if payload["is_spare"]:
