@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 
 import pygame as pg
+from pygame_widgets.util import drawText
 
 from client.network.services.lobby_service import LobbyService
 from client.state.runtime_state import TreasureCollectAnimation
@@ -94,13 +95,7 @@ class PlayerPanelView:
             name_y = row_surface.get_rect().centery - name.get_height() // 2
             row_surface.blit(name, (name_x, name_y))
 
-            meta = self._inline_meta(player, game_state) if is_lobby else None
-            if meta:
-                meta_font = font(14)
-                meta_surface = meta_font.render(f"({meta})", True, TEXT_MUTED)
-                meta_x = name_x + name.get_width() + 8
-                row_surface.blit(meta_surface, (meta_x, row_surface.get_rect().centery - meta_surface.get_height() // 2))
-
+            if is_lobby:
                 # only draw kick button when the current player is the leader
                 # and the button is not rendered for themselves
                 if player.id != game_state.leader_player_id and game_state.viewer_id == game_state.leader_player_id:
@@ -109,6 +104,13 @@ class PlayerPanelView:
                                            x_offset=self.container.left,
                                            y_offset=y - row_height - gap,
                                            player=player)
+
+            meta = self._inline_meta(player, game_state) if is_lobby else None
+            if meta:
+                meta_font = font(14)
+                meta_surface = meta_font.render(f"({meta})", True, TEXT_MUTED)
+                meta_x = name_x + name.get_width() + 8
+                row_surface.blit(meta_surface, (meta_x, row_surface.get_rect().centery - meta_surface.get_height() // 2))
 
             elif not is_lobby:
                 self._draw_progress(
