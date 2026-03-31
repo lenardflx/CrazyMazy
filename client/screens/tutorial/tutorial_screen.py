@@ -34,6 +34,12 @@ class TutorialScreen(GameScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager)
         self.give_up_button = None  # No give-up in tutorial
+        self.leave_tutorial_button = Button(
+            pg.Rect(surface.get_width() - 196, 24, 172, 40),
+            "Leave Tutorial",
+            self._confirm_quit,
+            variant="primary",
+        )
         if scene_manager.tutorial_session is None:
             scene_manager.tutorial_session = TutorialSession()
         self.session = scene_manager.tutorial_session
@@ -78,7 +84,7 @@ class TutorialScreen(GameScreen):
             self.dialog.handle_event(event)
             return
 
-        self.menu_button.handle_event(event)
+        self.leave_tutorial_button.handle_event(event)
         self.continue_button.handle_event(event)
 
         snapshot = self._game_snapshot
@@ -105,6 +111,7 @@ class TutorialScreen(GameScreen):
     def _draw_overlay(self, layout: GameBoardLayout) -> None:
         self._draw_focus_mask(layout)
         self._draw_step_overlay(layout)
+        self.leave_tutorial_button.draw(self.surface, self.button_font)
 
     def _step_overlay_rect(self) -> pg.Rect:
         return pg.Rect(self.surface.get_width() - 444, self.surface.get_height() - 170, 420, 140)

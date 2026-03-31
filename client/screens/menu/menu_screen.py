@@ -48,7 +48,7 @@ class MenuScreen(BaseScreen):
         self.dialog: ConfirmDialog | ChoiceDialog | None = None
         self.background_image: pg.Surface | None = UI_IMAGES["TITLE_BACKGROUND"]
 
-        self.title_font = font(42)
+        self.title_font = font(34)
         self.display_title_font = title_font(72)  # ka1 — main menu title only
         self.section_font = font(24)
         self.body_font = font(18)
@@ -56,7 +56,7 @@ class MenuScreen(BaseScreen):
         self.button_font = font(20)
 
         width, height = self.surface.get_size()
-        self.card_rect = pg.Rect(width // 2 - 430, 120, 860, height - 180)
+        self.card_rect = pg.Rect(width // 2 - 430, 104, 860, height - 164)
         self.content_rect = self.card_rect.inflate(-56, -56)
         self.back_button = None
         self.buttons: list[Button] = []

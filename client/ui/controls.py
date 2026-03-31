@@ -291,18 +291,34 @@ class Slider:
     The value is represented as a percentage, and the slider's fill corresponds to the percentage of the value within the defined range.
     """
     
-    def __init__(self, rect: pg.Rect, label: str, value: int, *, minimum: int = 0, maximum: int = 100) -> None:
+    def __init__(
+        self,
+        rect: pg.Rect,
+        label: str,
+        value: int,
+        *,
+        minimum: int = 0,
+        maximum: int = 100,
+        step: int = 1,
+        value_formatter: Callable[[int], str] | None = None,
+        show_steps: bool = False,
+    ) -> None:
         self.rect = rect
         self.label = label
         self.value = value
         self.minimum = minimum
         self.maximum = maximum
+        self.step = max(1, step)
+        self.value_formatter = value_formatter
+        self.show_steps = show_steps
         self.dragging = False
 
     def _set_from_mouse(self, x: int) -> None:
         amount = (x - self.rect.x) / max(1, self.rect.width)
         amount = max(0.0, min(1.0, amount))
-        self.value = int(round(self.minimum + amount * (self.maximum - self.minimum)))
+        raw_value = self.minimum + amount * (self.maximum - self.minimum)
+        stepped_value = int(round(raw_value / self.step) * self.step)
+        self.value = max(self.minimum, min(self.maximum, stepped_value))
 
     def handle_event(self, event: pg.event.Event) -> bool:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.rect.inflate(0, 24).collidepoint(event.pos):
@@ -320,11 +336,22 @@ class Slider:
     def draw(self, surface: pg.Surface, label_font: pg.font.Font, value_font: pg.font.Font) -> None:
         label = render_text(label_font, self.label, TEXT_PRIMARY)
         surface.blit(label, (self.rect.x, self.rect.y - 32))
-        value = render_text(value_font, f"{self.value}%", TEXT_MUTED)
+        value_text = f"{self.value}%" if self.value_formatter is None else self.value_formatter(self.value)
+        value = render_text(value_font, value_text, TEXT_MUTED)
         surface.blit(value, value.get_rect(midright=(self.rect.right, self.rect.y - 16)))
 
         track = self.rect.inflate(0, 10)
         draw_pixel_rect(surface, track, blend_color(PANEL_ALT, PANEL, 0.1), border=blend_color(PANEL_ALT, ACCENT_DARK, 0.25))
+
+        if self.show_steps and self.maximum > self.minimum:
+            step_count = (self.maximum - self.minimum) // self.step
+            dot_size = 4
+            dot_y = track.centery - dot_size // 2
+            dot_color = blend_color(PANEL_ALT, ACCENT_DARK, 0.45)
+            for index in range(1, step_count):
+                ratio = index / max(1, step_count)
+                dot_x = int(round(self.rect.x + ratio * self.rect.width)) - dot_size // 2
+                pg.draw.rect(surface, dot_color, pg.Rect(dot_x, dot_y, dot_size, dot_size))
 
         fill_width = int(self.rect.width * ((self.value - self.minimum) / max(1, self.maximum - self.minimum)))
         if fill_width > 0:

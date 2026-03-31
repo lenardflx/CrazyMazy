@@ -493,7 +493,7 @@ class BoardView:
                 max(1, round(width * scale)),
                 max(1, round(height * scale)),
             )
-            pin = pg.transform.smoothscale(pin, target_size)
+            pin = pg.transform.scale(pin, target_size)
         surface.blit(pin, pin.get_rect(center=center))
 
 
