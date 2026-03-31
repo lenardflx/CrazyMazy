@@ -618,8 +618,6 @@ class GameService:
             game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
         else:
             game.turn_end_timestamp = None
-        game.blocked_insertion_side = None
-        game.blocked_insertion_index = None
         game.last_shift_side = None
         game.last_shift_index = None
         game.last_shift_rotation = None
@@ -799,6 +797,7 @@ class GameService:
             state.target_position_for_player(npc.player_id),
             blocked_side=game.blocked_insertion_side,
             blocked_index=game.blocked_insertion_index,
+            target_on_spare=state.target_on_spare_for_player(npc.player_id),
         )
         updated = self.shift_tile(npc.player_id, turn.shift_side, turn.shift_index, turn.shift_rotation)
         flush_outgoing(snapshot_response(updated))

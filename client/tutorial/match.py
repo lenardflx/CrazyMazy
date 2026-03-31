@@ -320,6 +320,7 @@ class TutorialMatch:
             state.target_position_for_player(self.npc_id),
             blocked_side=state.game.blocked_insertion_side,
             blocked_index=state.game.blocked_insertion_index,
+            target_on_spare=state.target_on_spare_for_player(self.npc_id),
         )
 
     @property
