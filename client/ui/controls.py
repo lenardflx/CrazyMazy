@@ -26,7 +26,7 @@ from client.ui.theme import (
     render_text,
 )
 
-type ButtonIcon = Literal["dice", "flag_de", "flag_en"]
+type ButtonIcon = Literal["dice", "flag_de", "flag_en", "arrow_left", "arrow_right", "arrow_up", "arrow_down"]
 
 
 class Button:
@@ -40,6 +40,10 @@ class Button:
         "dice": "_draw_icon_dice",
         "flag_de": "_draw_icon_flag_de",
         "flag_en": "_draw_icon_flag_en",
+        "arrow_left": "_draw_icon_arrow_left",
+        "arrow_right": "_draw_icon_arrow_right",
+        "arrow_up": "_draw_icon_arrow_up",
+        "arrow_down": "_draw_icon_arrow_down",
     }
 
     def __init__(
@@ -131,6 +135,29 @@ class Button:
         icon_rect = pg.Rect(0, 0, width, height)
         icon_rect.center = rect.center
         return icon_rect
+
+    def _draw_icon_arrow(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect, direction: str) -> None:
+        icon = self._icon_rect(rect, width=22, height=22)
+        cx, cy = icon.center
+        points = {
+            "left": [(cx - 6, cy), (cx + 4, cy - 7), (cx + 4, cy + 7)],
+            "right": [(cx + 6, cy), (cx - 4, cy - 7), (cx - 4, cy + 7)],
+            "up": [(cx, cy - 6), (cx - 7, cy + 4), (cx + 7, cy + 4)],
+            "down": [(cx, cy + 6), (cx - 7, cy - 4), (cx + 7, cy - 4)],
+        }
+        pg.draw.polygon(surface, color, points[direction])
+
+    def _draw_icon_arrow_left(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "left")
+
+    def _draw_icon_arrow_right(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "right")
+
+    def _draw_icon_arrow_up(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "up")
+
+    def _draw_icon_arrow_down(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "down")
 
     def _draw_icon_flag_de(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
         del color

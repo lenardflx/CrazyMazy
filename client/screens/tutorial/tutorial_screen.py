@@ -20,7 +20,7 @@ from client.tutorial import (
 )
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
-from client.ui.theme import PANEL, PANEL_ALT, TEXT_PRIMARY, font
+from client.ui.theme import ACCENT_DARK, PANEL, PANEL_SHADOW, TEXT_PRIMARY, draw_pixel_rect, font, render_text
 from shared.game.snapshot import SnapshotGameState
 from shared.types.enums import GamePhase
 
@@ -148,8 +148,7 @@ class TutorialScreen(GameScreen):
             return
 
         overlay = self._step_overlay_rect()
-        pg.draw.rect(self.surface, PANEL, overlay, border_radius=16)
-        pg.draw.rect(self.surface, PANEL_ALT, overlay, width=1, border_radius=16)
+        draw_pixel_rect(self.surface, overlay, PANEL, border=ACCENT_DARK, shadow=PANEL_SHADOW)
 
         if isinstance(step, (TutorialTextStep, TutorialRotateStep, TutorialShiftStep, TutorialMoveStep, TutorialNpcStep, TutorialFreeplayStep)):
             self._draw_wrapped_text(step.text, overlay.x + 16, overlay.y + 14, overlay.width - 150)
@@ -176,7 +175,7 @@ class TutorialScreen(GameScreen):
             lines.append(line)
 
         for index, current in enumerate(lines):
-            rendered = self.body_font.render(current, True, TEXT_PRIMARY)
+            rendered = render_text(self.body_font, current, TEXT_PRIMARY)
             self.surface.blit(rendered, (x, y + index * (self.body_font.get_height() + 4)))
 
 

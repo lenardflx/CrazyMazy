@@ -39,6 +39,7 @@ class GameScreen(BaseScreen):
         self.button_font = font(18)
         self.dialog: ConfirmDialog | None = None
         self.settings_overlay_open = False
+        self._layout_cache: tuple[tuple[int, int], int, GameBoardLayout] | None = None
         self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), "Give Up", self._confirm_give_up)
         self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), "Options", self._open_settings)
         self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), "Menu", self._confirm_quit)
@@ -146,7 +147,15 @@ class GameScreen(BaseScreen):
         # Resolve the game layout based on the current game state. If we cant resolve a layout, we cant resolve board clicks, so return early.
         game_state = self._game_snapshot
         layout = self._game_layout()
-        if game_state is None or layout is None or event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
+        if game_state is None or layout is None:
+            return
+
+        control_click = self.board_view.handle_control_event(event, layout, game_state)
+        if control_click is not None:
+            self._handle_board_click(control_click)
+            return
+
+        if event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
             return
 
         # Resolve the board click based on the mouse position and the current game state, and handle the click accordingly
@@ -310,7 +319,12 @@ class GameScreen(BaseScreen):
         game_state = self._game_snapshot
         if game_state is None or game_state.phase != GamePhase.GAME or game_state.spare_tile is None:
             return None
-        return self.board_view.layout(self.surface.get_rect(), game_state.board_size)
+        key = (self.surface.get_size(), game_state.board_size)
+        if self._layout_cache is not None and self._layout_cache[0] == key[0] and self._layout_cache[1] == key[1]:
+            return self._layout_cache[2]
+        layout = self.board_view.layout(self.surface.get_rect(), game_state.board_size)
+        self._layout_cache = (key[0], key[1], layout)
+        return layout
 
     def _rotate_spare(self, direction: int) -> None:
         """

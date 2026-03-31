@@ -278,7 +278,7 @@ class GameService:
             return None
 
         players = self._mark_player_observer(player)
-        return self._after_player_inactivation(game, player, players)
+        return self._after_player_inactivation(game, player, players, transfer_leader=False)
 
     def start_game(self, player_id: UUID) -> GameState | ErrorCode:
         """Start (or restart) the game; only the lobby leader may call this.
@@ -302,6 +302,9 @@ class GameService:
             return ErrorCode.GAME_NOT_STARTABLE
 
         players = self.player_repo.list_by_game_id(game.id)
+        if game.game_phase == GamePhase.POSTGAME:
+            return self._reset_to_pregame(game, players)
+
         active = sorted(active_players(players), key=lambda current: current.join_order)
         if len(active) < MIN_STARTABLE_PLAYERS:
             return ErrorCode.PLAYER_COUNT_INSUFFICIENT
@@ -488,6 +491,8 @@ class GameService:
         game: GameData,
         player: PlayerData,
         players: list[PlayerData],
+        *,
+        transfer_leader: bool = True,
     ) -> GameState | None:
         """Handle turn/leader reassignment and end-game checks after a player stops being active."""
         remaining_players = active_players(players)
@@ -495,7 +500,7 @@ class GameService:
 
         # End the game if fewer than 2 players remain during an active game.
         if game.game_phase == GamePhase.GAME and len(remaining_players) < 2:
-            if game.leader_player_id == player.id and remaining_session_players:
+            if transfer_leader and game.leader_player_id == player.id and remaining_session_players:
                 next_leader = self._next_leader(remaining_players, remaining_session_players)
                 game.leader_player_id = next_leader.id
             game.game_phase = GamePhase.POSTGAME
@@ -541,12 +546,52 @@ class GameService:
             game.last_move_collected_treasure_type = None
 
         # Hand the leader role to an active player when possible, otherwise the earliest remaining session player.
-        if game.leader_player_id == player.id:
+        if transfer_leader and game.leader_player_id == player.id:
             next_leader = self._next_leader(remaining_players, remaining_session_players)
             game.leader_player_id = next_leader.id
         game.revision += 1
         game = self.game_repo.update_game(game)
         state = self.get_game_state(game.id)
+        return state
+
+    def _reset_to_pregame(self, game: GameData, players: list[PlayerData]) -> GameState | ErrorCode:
+        """Reset a finished match back into lobby state without changing the current leader."""
+        session = session_players(players)
+        if len(session) < MIN_STARTABLE_PLAYERS:
+            return ErrorCode.PLAYER_COUNT_INSUFFICIENT
+
+        self._clear_game_runtime(game.id, players)
+
+        for current in players:
+            current.position_x = None
+            current.position_y = None
+            current.result = PlayerResult.NONE
+            current.placement = None
+            current.finished_at = None
+            if current.status != PlayerStatus.DEPARTED:
+                current.status = PlayerStatus.ACTIVE
+            self.player_repo.update_player(current)
+
+        game.game_phase = GamePhase.PREGAME
+        game.end_reason = None
+        game.turn_phase = None
+        game.turn_end_timestamp = None
+        game.current_player_id = None
+        game.blocked_insertion_side = None
+        game.blocked_insertion_index = None
+        game.last_shift_side = None
+        game.last_shift_index = None
+        game.last_shift_rotation = None
+        game.last_move_player_id = None
+        game.last_move_path = None
+        game.last_move_collected_treasure_type = None
+        game.started_at = None
+        game.ended_at = None
+        game.revision += 1
+        game = self.game_repo.update_game(game)
+        state = self.get_game_state(game.id)
+        if state is None:
+            return ErrorCode.GAME_NOT_FOUND
         return state
 
     def _mark_player_departed(self, player: PlayerData) -> list[PlayerData]:

@@ -4,7 +4,7 @@ import pygame as pg
 
 from client.state.runtime_state import TreasureCollectAnimation
 from client.textures import PLAYER_IMAGES, TREASURE_IMAGES
-from client.ui.theme import ACTIVE_OUTLINE, DISABLED, PANEL, PANEL_ALT, TEXT_MUTED, TEXT_PRIMARY, blend_color, font
+from client.ui.theme import ACTIVE_OUTLINE, ACCENT_DARK, ACCENT_SOFT, DISABLED, PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, blend_color, draw_pixel_rect, font
 from shared.game.snapshot import SnapshotGameState, SnapshotPlayerState
 from shared.types.enums import GamePhase, PlayerControllerKind, PlayerSkin, TreasureType
 
@@ -55,10 +55,21 @@ class PlayerPanelView:
 
             fill = PANEL if not player.is_inactive else blend_color(PANEL, DISABLED, 0.35)
             if player.id == game_state.current_player_id:
-                fill = blend_color(PANEL, ACTIVE_OUTLINE, 0.18)
+                fill = blend_color(PANEL, ACCENT_SOFT, 0.52)
             elif player.id == game_state.viewer_id:
-                fill = blend_color(PANEL, PANEL_ALT, 0.22)
-            pg.draw.rect(row_surface, fill, row_surface.get_rect(), border_radius=16)
+                fill = blend_color(PANEL, PANEL_ALT, 0.34)
+            border = blend_color(fill, ACCENT_DARK, 0.32)
+            shadow = blend_color(fill, PANEL_SHADOW, 0.22)
+            if player.id == game_state.current_player_id:
+                border = blend_color(ACTIVE_OUTLINE, ACCENT_DARK, 0.4)
+                shadow = blend_color(fill, ACCENT_DARK, 0.18)
+            draw_pixel_rect(
+                row_surface,
+                row_surface.get_rect(),
+                fill,
+                border=border,
+                shadow=shadow,
+            )
 
             pin = PLAYER_IMAGES[PlayerSkin.DEFAULT][player.piece_color]
             pin_rect = pin.get_rect(midleft=(14, row_surface.get_rect().centery))
@@ -148,9 +159,9 @@ class PlayerPanelView:
         flip_progress: float,
     ) -> None:
         card_rect = rect.copy()
-        outline_color = blend_color(PANEL_ALT, TEXT_PRIMARY, 0.2)
+        outline_color = blend_color(PANEL_ALT, TEXT_PRIMARY, 0.14)
         face_fill = PANEL
-        back_fill = blend_color(PANEL_ALT, PANEL, 0.08)
+        back_fill = blend_color(PANEL_ALT, PANEL, 0.3)
 
         if is_flipping:
             scale = abs(1.0 - 2.0 * flip_progress)
@@ -161,14 +172,22 @@ class PlayerPanelView:
             showing_front = treasure_type is not None
 
         fill = face_fill if showing_front and treasure_type is not None else back_fill
-        shadow = blend_color(fill, (76, 58, 42), 0.12)
-        pg.draw.rect(surface, shadow, card_rect.move(0, 2), border_radius=5)
-        pg.draw.rect(surface, fill if not is_inactive else blend_color(fill, DISABLED, 0.45), card_rect, border_radius=5)
-        pg.draw.rect(surface, outline_color if not is_inactive else DISABLED, card_rect, width=1, border_radius=5)
+        draw_pixel_rect(
+            surface,
+            card_rect,
+            fill if not is_inactive else blend_color(fill, DISABLED, 0.45),
+            border=outline_color if not is_inactive else DISABLED,
+            shadow=blend_color(fill, PANEL_SHADOW, 0.08),
+        )
 
         if not showing_front or treasure_type is None:
             inset = card_rect.inflate(-4, -6)
-            pg.draw.rect(surface, blend_color(PANEL_ALT, TEXT_PRIMARY, 0.08), inset, border_radius=3)
+            draw_pixel_rect(
+                surface,
+                inset,
+                blend_color(PANEL_ALT, PANEL, 0.46),
+                border=blend_color(PANEL_ALT, TEXT_PRIMARY, 0.12),
+            )
             return
 
         icon_width = max(2, card_rect.width - 10)
