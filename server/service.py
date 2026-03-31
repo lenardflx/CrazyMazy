@@ -67,6 +67,9 @@ class GameService:
         self._running_npc_games: set[UUID] = set()
         self._running_npc_games_lock = Lock()
 
+    def find_active_games(self) -> list[GameData]:
+        return self.game_repo.find_active_games()
+
     def create_lobby(
         self,
         board_size: int,
