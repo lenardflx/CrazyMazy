@@ -112,6 +112,8 @@ class ClientCreateLobbyPayload(TypedDict):
     player_name: str
     is_public: bool
     player_limit: int
+    insert_timeout: int
+    move_timeout: int
 
 
 class ClientJoinGamePayload(TypedDict):
