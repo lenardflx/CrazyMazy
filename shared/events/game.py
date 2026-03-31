@@ -8,11 +8,12 @@ from typing import Any, Mapping, Self
 from shared.events.event import Event
 from shared.lib.game import (
     parse_client_game_add_npc_payload,
+    parse_client_game_create_lobby_payload,
+    parse_client_game_join_payload,
     parse_client_game_move_player_payload,
     parse_client_game_shift_tile_payload,
     parse_server_game_left_payload,
 )
-from shared.lib.parse import parse_int, parse_str
 from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
 from shared.types.enums import NpcDifficulty
@@ -30,24 +31,29 @@ class ClientCreateLobbyEvent(Event):
 
     board_size: int
     player_name: str
+    is_public: bool
+    player_limit: int
 
     def to_payload(self) -> Mapping[str, Any]:
         payload: ClientCreateLobbyPayload = {
             "board_size": self.board_size,
             "player_name": self.player_name,
+            "is_public": self.is_public,
+            "player_limit": self.player_limit,
         }
         return payload
 
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
-        board_size = parse_int(msg["payload"].get("board_size"))
-        player_name = parse_str(msg["payload"].get("player_name"))
-        if board_size is None or player_name is None or not player_name.strip():
+        payload = parse_client_game_create_lobby_payload(msg["payload"])
+        if payload is None:
             return None
         return cls(
             message_id=msg["id"],
-            board_size=board_size,
-            player_name=player_name.strip(),
+            board_size=payload["board_size"],
+            player_name=payload["player_name"].strip(),
+            is_public=payload["is_public"],
+            player_limit=payload["player_limit"],
         )
 
 
@@ -62,24 +68,26 @@ class ClientJoinGameEvent(Event):
 
     join_code: str
     player_name: str
+    join_public: bool
 
     def to_payload(self) -> Mapping[str, Any]:
         payload: ClientJoinGamePayload = {
-            "join_code": self.join_code,
+            "join_code": self.join_code if self.join_code else None,
             "player_name": self.player_name,
+            "join_public": self.join_public,
         }
         return payload
 
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
-        join_code = parse_str(msg["payload"].get("join_code"))
-        player_name = parse_str(msg["payload"].get("player_name"))
-        if join_code is None or not join_code.strip() or player_name is None or not player_name.strip():
+        payload = parse_client_game_join_payload(msg["payload"])
+        if payload is None:
             return None
         return cls(
             message_id=msg["id"],
-            join_code=join_code.strip(),
-            player_name=player_name.strip(),
+            join_code="" if payload["join_code"] is None else payload["join_code"].strip(),
+            player_name=payload["player_name"].strip(),
+            join_public=payload["join_public"],
         )
 
 

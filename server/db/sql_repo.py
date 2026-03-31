@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlmodel import SQLModel, Session, select
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
+from shared.types.enums import GamePhase
 from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind
 from shared.types.data import GameData, PlayerData, TileData, TreasureData
 from shared.table_models import GameTable, PlayerTable, TileTable, TreasureTable
@@ -51,13 +52,32 @@ class GameRepositorySQL(SQLRepository, GameRepository):
             ).first()
         )
 
-    def create_game(self, board_size: int, leader_player_id: UUID | None = None) -> GameData:
+    def list_public_games(self) -> list[GameData]:
+        return self.read(
+            lambda session: list(self.session.exec(
+                select(GameTable)
+                .where(GameTable.is_public == True)  # noqa: E712
+                .where(GameTable.game_phase == GamePhase.PREGAME)
+                .order_by(GameTable.created_at)
+            ).all())
+        )
+
+    def create_game(
+        self,
+        board_size: int,
+        leader_player_id: UUID | None = None,
+        *,
+        is_public: bool = False,
+        player_limit: int = 4,
+    ) -> GameData:
         """Creates an instance of the table Game and returns it."""
         def op(session: Session) -> GameData:
             game = GameTable(
                 code="0000",
                 leader_player_id=leader_player_id,
                 board_size=board_size,
+                is_public=is_public,
+                player_limit=player_limit,
             )
             self.session.add(game)
             self.session.flush()

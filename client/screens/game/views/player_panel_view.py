@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pygame as pg
 
-from client.textures import PLAYER_IMAGES
+from client.state.runtime_state import TreasureCollectAnimation
+from client.textures import PLAYER_IMAGES, TREASURE_IMAGES
 from client.ui.theme import ACTIVE_OUTLINE, DISABLED, PANEL, PANEL_ALT, TEXT_MUTED, TEXT_PRIMARY, blend_color, font
 from shared.game.snapshot import SnapshotGameState, SnapshotPlayerState
-from shared.types.enums import GamePhase, PlayerControllerKind, PlayerSkin
+from shared.types.enums import GamePhase, PlayerControllerKind, PlayerSkin, TreasureType
 
 
 class PlayerPanelView:
@@ -14,6 +15,9 @@ class PlayerPanelView:
     Used both during the game (sidebar) and on the post-game screen.
     """
 
+    def __init__(self) -> None:
+        pass
+
     def draw(
         self,
         surface: pg.Surface,
@@ -21,6 +25,8 @@ class PlayerPanelView:
         game_state: SnapshotGameState,
         *,
         post_game: bool = False,
+        treasure_animation: TreasureCollectAnimation | None = None,
+        pending_collect: tuple[str, TreasureType] | None = None,
     ) -> None: # TODO: better docs
         """Draw one row per player inside the given rect.
 
@@ -34,9 +40,12 @@ class PlayerPanelView:
             return
 
         is_lobby = game_state.phase == GamePhase.PREGAME
-        gap = 12
-        # Calculate a row height that fits all players into the available rect without overflowing, clamped to a readable range.
-        row_height = min(68, max(48, (rect.height - gap * max(0, len(players) - 1)) // len(players)))
+        gap = 10
+        preferred_row_height = 58
+        min_row_height = 48
+        max_fit_height = (rect.height - gap * max(0, len(players) - 1)) // len(players)
+        # Keep row sizing stable across 2-4 players and only shrink when the panel would overflow.
+        row_height = max(min_row_height, min(preferred_row_height, max_fit_height))
         y = rect.y
 
         for player in players:
@@ -76,29 +85,98 @@ class PlayerPanelView:
                 meta_x = name_x + name.get_width() + 8
                 row_surface.blit(meta_surface, (meta_x, row_surface.get_rect().centery - meta_surface.get_height() // 2))
             elif not is_lobby:
-                self._draw_progress(row_surface, player, row_surface.get_width() - 14, row_surface.get_rect())
+                self._draw_progress(
+                    row_surface,
+                    player,
+                    row_surface.get_width() - 14,
+                    row_surface.get_rect(),
+                    treasure_animation=treasure_animation,
+                    pending_collect=pending_collect,
+                )
 
             if player.is_inactive:
                 row_surface.set_alpha(128)
             surface.blit(row_surface, row.topleft)
 
-    def _draw_progress(self, surface: pg.Surface, player: SnapshotPlayerState, right: int, row: pg.Rect) -> None:
-        """Draw a row of six treasure-card indicators, filled for each treasure the player has collected.
+    def _draw_progress(
+        self,
+        surface: pg.Surface,
+        player: SnapshotPlayerState,
+        right: int,
+        row: pg.Rect,
+        *,
+        treasure_animation: TreasureCollectAnimation | None,
+        pending_collect: tuple[str, TreasureType] | None,
+    ) -> None:
+        """Draw a row of six treasure cards, revealing collected treasure icons.
 
         :param right: The right edge x-coordinate to align the card strip against.
         :param row: The full player row rect, used to vertically center the cards.
         """
         unlocked = player.collected_treasure_count
-        card_w = 18
-        gap = 8
+        animated_index = _animated_collect_index(player, treasure_animation)
+        pending_index = _pending_collect_index(player, pending_collect)
+        flip_progress = 0.0 if treasure_animation is None else treasure_animation.eased_progress
+        card_h = row.height - 18
+        card_w = max(12, int(round(card_h * 0.68)))
+        gap = 4
         total_w = card_w * 6 + gap * 5
         card_x = max(row.x + 170, right - total_w)
         for card_index in range(6):
-            card = pg.Rect(card_x + card_index * (card_w + gap), row.y + 14, card_w, row.height - 28)
-            color = (230, 205, 130) if card_index < unlocked else (155, 120, 92)
-            if player.is_inactive:
-                color = DISABLED
-            pg.draw.rect(surface, color, card, border_radius=5)
+            card = pg.Rect(card_x + card_index * (card_w + gap), row.y + (row.height - card_h) // 2, card_w, card_h)
+            collected_treasure = player.collected_treasures[card_index] if card_index < unlocked else None
+            is_flipping = animated_index == card_index
+            if pending_index == card_index and animated_index is None:
+                collected_treasure = None
+            self._draw_progress_card(
+                surface,
+                card,
+                treasure_type=collected_treasure,
+                is_inactive=player.is_inactive,
+                is_flipping=is_flipping,
+                flip_progress=flip_progress,
+            )
+
+    def _draw_progress_card(
+        self,
+        surface: pg.Surface,
+        rect: pg.Rect,
+        *,
+        treasure_type: TreasureType | None,
+        is_inactive: bool,
+        is_flipping: bool,
+        flip_progress: float,
+    ) -> None:
+        card_rect = rect.copy()
+        outline_color = blend_color(PANEL_ALT, TEXT_PRIMARY, 0.2)
+        face_fill = PANEL
+        back_fill = blend_color(PANEL_ALT, PANEL, 0.08)
+
+        if is_flipping:
+            scale = abs(1.0 - 2.0 * flip_progress)
+            card_rect.width = max(2, round(rect.width * max(0.08, scale)))
+            card_rect.center = rect.center
+            showing_front = flip_progress >= 0.5
+        else:
+            showing_front = treasure_type is not None
+
+        fill = face_fill if showing_front and treasure_type is not None else back_fill
+        shadow = blend_color(fill, (76, 58, 42), 0.12)
+        pg.draw.rect(surface, shadow, card_rect.move(0, 2), border_radius=5)
+        pg.draw.rect(surface, fill if not is_inactive else blend_color(fill, DISABLED, 0.45), card_rect, border_radius=5)
+        pg.draw.rect(surface, outline_color if not is_inactive else DISABLED, card_rect, width=1, border_radius=5)
+
+        if not showing_front or treasure_type is None:
+            inset = card_rect.inflate(-4, -6)
+            pg.draw.rect(surface, blend_color(PANEL_ALT, TEXT_PRIMARY, 0.08), inset, border_radius=3)
+            return
+
+        icon_width = max(2, card_rect.width - 10)
+        icon_height = max(8, min(card_rect.height - 12, rect.width - 6))
+        icon = _treasure_icon(treasure_type, (icon_width, icon_height))
+        if icon is not None:
+            icon_rect = icon.get_rect(center=card_rect.center)
+            surface.blit(icon, icon_rect)
 
     def _inline_meta(self, player: SnapshotPlayerState, game_state: SnapshotGameState) -> str | None:
         """Build a short parenthetical tag string for the lobby player row (e.g. "You, Leader", "Hard NPC").
@@ -112,3 +190,33 @@ class PlayerPanelView:
         if player.id == (game_state.leader_player_id or ""):
             tags.append("Leader")
         return ", ".join(tags) if tags else None
+
+
+def _treasure_icon(treasure_type: TreasureType | None, size: tuple[int, int]) -> pg.Surface | None:
+    if treasure_type is None:
+        return None
+    return pg.transform.scale(TREASURE_IMAGES[treasure_type.value], size)
+
+
+def _animated_collect_index(
+    player: SnapshotPlayerState,
+    treasure_animation: TreasureCollectAnimation | None,
+) -> int | None:
+    if treasure_animation is None or treasure_animation.player_id != player.id:
+        return None
+    try:
+        return player.collected_treasures.index(treasure_animation.treasure_type)
+    except ValueError:
+        return None
+
+
+def _pending_collect_index(
+    player: SnapshotPlayerState,
+    pending_collect: tuple[str, TreasureType] | None,
+) -> int | None:
+    if pending_collect is None or pending_collect[0] != player.id:
+        return None
+    try:
+        return player.collected_treasures.index(pending_collect[1])
+    except ValueError:
+        return None

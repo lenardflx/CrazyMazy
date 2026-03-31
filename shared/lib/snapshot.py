@@ -232,6 +232,8 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
     phase = parse_enum(payload.get("phase"), GamePhase)
     revision = parse_int(payload.get("revision"))
     board_size = parse_int(payload.get("board_size"))
+    is_public = parse_bool(payload.get("is_public"))
+    player_limit = parse_int(payload.get("player_limit"))
     leader_player_id = parse_optional_str(payload.get("leader_player_id"))
     turn = _parse_turn_payload(payload.get("turn"))
     tiles_raw = payload.get("tiles")
@@ -241,7 +243,16 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
     last_shift = _parse_last_shift_payload(payload.get("last_shift"))
     last_move = _parse_last_move_payload(payload.get("last_move"))
 
-    if game_id is None or code is None or phase is None or turn is None or revision is None or board_size is None:
+    if (
+        game_id is None
+        or code is None
+        or phase is None
+        or turn is None
+        or revision is None
+        or board_size is None
+        or is_public is None
+        or player_limit is None
+    ):
         return None
     if not isinstance(tiles_raw, list) or not isinstance(players_raw, list):
         return None
@@ -276,6 +287,8 @@ def parse_game_snapshot_payload(payload: Mapping[str, Any]) -> GameSnapshotPaylo
         "phase": phase,
         "revision": revision,
         "board_size": board_size,
+        "is_public": is_public,
+        "player_limit": player_limit,
         "leader_player_id": leader_player_id,
         "turn": turn,
         "tiles": tiles,
@@ -313,6 +326,8 @@ def make_game_snapshot_payload(
         "phase": game.game_phase,
         "revision": game.revision,
         "board_size": game.board_size,
+        "is_public": game.is_public,
+        "player_limit": game.player_limit,
         "leader_player_id": str(game.leader_player_id) if game.leader_player_id is not None else None,
         "turn": {
             "current_player_id": str(game.current_player_id) if game.current_player_id is not None else None,

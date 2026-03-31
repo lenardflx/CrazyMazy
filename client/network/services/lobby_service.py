@@ -18,7 +18,7 @@ class LobbyService:
         self._connection = connection
         self._runtime = runtime
 
-    def create_lobby(self, player_name: str, board_size: int) -> ErrorCode | None:
+    def create_lobby(self, player_name: str, board_size: int, *, is_public: bool, player_limit: int) -> ErrorCode | None:
         """Validate the form and request the server to create a new lobby.
 
         :param player_name: The display name the player wants to use.
@@ -26,18 +26,25 @@ class LobbyService:
         """
         name = player_name.strip()
         self._runtime.create_lobby.player_name = name
+        self._runtime.create_lobby.is_public = is_public
+        self._runtime.create_lobby.player_limit = player_limit
 
         # Client-side validation before sending to the server
         if not name:
             return ErrorCode.DISPLAY_NAME_NOT_ENTERED
 
         sent = self._connection.send_event(
-            ClientCreateLobbyEvent(board_size=board_size, player_name=name)
+            ClientCreateLobbyEvent(
+                board_size=board_size,
+                player_name=name,
+                is_public=is_public,
+                player_limit=player_limit,
+            )
         )
 
         return None if sent else ErrorCode.CONNECTION_ERROR
 
-    def join_lobby(self, player_name: str, join_code: str) -> ErrorCode | None:
+    def join_lobby(self, player_name: str, join_code: str, *, join_public: bool = False) -> ErrorCode | None:
         """Validate the form and request the server to join an existing lobby.
 
         :param player_name: The display name the player wants to use.
@@ -47,15 +54,20 @@ class LobbyService:
         code = join_code.strip().upper()
         self._runtime.join_lobby.player_name = name
         self._runtime.join_lobby.join_code = code
+        self._runtime.join_lobby.join_public = join_public
 
         # Client-side validation before sending to the server
         if not name:
             return ErrorCode.DISPLAY_NAME_NOT_ENTERED
-        if not code:
+        if not join_public and not code:
             return ErrorCode.JOIN_CODE_NOT_ENTERED
 
         sent = self._connection.send_event(
-            ClientJoinGameEvent(join_code=code, player_name=name)
+            ClientJoinGameEvent(
+                join_code=code,
+                player_name=name,
+                join_public=join_public,
+            )
         )
 
         return None if sent else ErrorCode.CONNECTION_ERROR

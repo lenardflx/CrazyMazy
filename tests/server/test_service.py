@@ -9,6 +9,7 @@ from server.db.memory_repo import (
     TreasureRepositoryInMemory,
 )
 from server.service import GameService
+from shared.protocol import ErrorCode
 from shared.types.enums import GameEndReason, GamePhase, InsertionSide, PlayerResult, PlayerStatus, TurnPhase
 
 
@@ -57,6 +58,52 @@ def test_join_game_assigns_next_slot_automatically() -> None:
     assert joined.player.display_name == "Bob"
     assert joined.player.join_order == 1
     assert joined.player.piece_color.value == "YELLOW"
+
+
+def test_create_lobby_persists_public_flag_and_player_limit() -> None:
+    service = make_service()
+
+    state = service.create_lobby(
+        board_size=7,
+        leader_display_name="Ada",
+        connection_id="conn_1",
+        is_public=True,
+        player_limit=3,
+    )
+
+    assert state.game.is_public is True
+    assert state.game.player_limit == 3
+
+
+def test_join_game_respects_player_limit() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1", player_limit=2)
+    assert not isinstance(created, Exception)
+
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    assert joined.player.join_order == 1
+
+    rejected = service.join_game(created.game.code, "Cara", "conn_3")
+    assert rejected == ErrorCode.GAME_NOT_JOINABLE
+
+
+def test_join_public_picks_first_joinable_public_lobby() -> None:
+    service = make_service()
+    first = service.create_lobby(7, "Ada", "conn_1", is_public=True, player_limit=2)
+    second = service.create_lobby(7, "Bea", "conn_2", is_public=True, player_limit=4)
+
+    service.join_game(first.game.code, "Bob", "conn_3")
+    joined = service.join_game(None, "Cara", "conn_4", join_public=True)
+
+    assert joined.game.id == second.game.id
+
+
+def test_join_public_returns_no_public_lobby_when_none_available() -> None:
+    service = make_service()
+
+    rejected = service.join_game(None, "Cara", "conn_4", join_public=True)
+
+    assert rejected == ErrorCode.NO_PUBLIC_LOBBY
 
 
 def test_join_game_rejects_taken_display_name() -> None:
