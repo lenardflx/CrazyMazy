@@ -1,11 +1,10 @@
+# Author: Lenard Felix, Raphael Eiden
+
 from __future__ import annotations
 
-from uuid import UUID
-
 import pygame as pg
-from pygame import Surface
-from pygame.draw_py import draw_pixel
 
+from client.network.services.lobby_service import LobbyService
 from client.state.runtime_state import TreasureCollectAnimation
 from client.textures import PLAYER_IMAGES, TREASURE_IMAGES
 from client.ui import Button
@@ -20,10 +19,10 @@ class PlayerPanelView:
     Used both during the game (sidebar) and on the post-game screen.
     """
 
-    def __init__(self, container: pg.Rect, total_surface: Surface) -> None:
+    def __init__(self, container: pg.Rect, lobby_service: LobbyService) -> None:
         # each button is reserved for a specific player
         self.container = container
-        self.total_surface = total_surface
+        self.lobby_service = lobby_service
         self.kick_buttons: dict[str, Button] = {}
 
     def handle_player_panel_event(self, event: pg.event.Event):
@@ -128,10 +127,9 @@ class PlayerPanelView:
                           player: SnapshotPlayerState):
         if player.id not in self.kick_buttons:
             kick_button_height = 29
-            #rect = pg.Rect(row.right + x_offset - 100, y_offset + row.centery - kick_button_height // 2, 80, kick_button_height)
             rect = pg.Rect(row.right - 100, row.centery - kick_button_height // 2, 80, kick_button_height)
             abs_rect = pg.Rect(row.right + x_offset - 100, y_offset + row.centery - kick_button_height // 2, 80, kick_button_height)
-            button = Button(rect=rect, label="KICK", on_click=lambda: print("Kick player " + player.id), variant="primary", abs_rect=abs_rect)
+            button = Button(rect=rect, label="KICK", on_click=lambda: self.lobby_service.kick_player(player.id), variant="primary", abs_rect=abs_rect)
             self.kick_buttons[player.id] = button
         self.kick_buttons[player.id].draw(surface, font(20))
 

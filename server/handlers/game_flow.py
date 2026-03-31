@@ -23,6 +23,7 @@ from shared.events import (
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
     ClientJoinGameEvent,
+    ClientKickPlayerEvent
 )
 from shared.types.enums import InsertionSide
 from shared.protocol import ErrorCode
@@ -61,6 +62,18 @@ def handle_join_game(ctx: RequestContext, event: ClientJoinGameEvent) -> list[Ou
     if game_state is None:
         return error_response(ctx, ErrorCode.GAME_NOT_FOUND)
     return snapshot_response(game_state)
+
+
+@dispatcher.handler(ClientKickPlayerEvent)
+def handle_kick_player(ctx: RequestContext, event: ClientKickPlayerEvent) -> list[OutgoingMessage]:
+    try:
+        player_id = UUID(event.player_id, version=4)
+        state = game_service.leave_game(player_id)
+        if isinstance(state, ErrorCode):
+            return error_response(ctx, state)
+        return snapshot_response(state)
+    except ValueError:
+        return error_response(ctx, ErrorCode.PLAYER_NOT_FOUND)
 
 
 @dispatcher.handler(ClientGameStartEvent)

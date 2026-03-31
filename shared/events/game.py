@@ -99,6 +99,28 @@ class ClientJoinGameEvent(Event):
 
 
 @dataclass(frozen=True)
+class ClientKickPlayerEvent(Event):
+    message_type = "client.player.kick"
+
+    player_id: str
+
+    def to_payload(self) -> Mapping[str, Any]:
+        return {
+            "player_id": self.player_id
+        }
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        payload = msg["payload"]
+        if payload is None:
+            return None
+        return cls(
+            message_id=msg["id"],
+            player_id=payload["player_id"]
+        )
+
+
+@dataclass(frozen=True)
 class ServerGameSnapshotEvent(Event):
     message_type = "game.snapshot"
 

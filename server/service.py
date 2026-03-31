@@ -76,8 +76,8 @@ class GameService:
         *,
         is_public: bool = False,
         player_limit: int = 4,
-        insert_timeout: int,
-        move_timeout: int,
+        insert_timeout: int | None,
+        move_timeout: int | None,
     ) -> ConnectionState | ErrorCode:
         """Create a new game lobby and register the creating player as leader.
 

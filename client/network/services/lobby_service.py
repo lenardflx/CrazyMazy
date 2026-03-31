@@ -9,6 +9,7 @@ from client.network.client_connection import ClientConnection
 from shared.events import ClientCreateLobbyEvent, ClientJoinGameEvent
 
 from client.state.runtime_state import RuntimeState
+from shared.events.game import ClientKickPlayerEvent
 from shared.protocol import ErrorCode
 
 
@@ -86,3 +87,6 @@ class LobbyService:
         )
 
         return None if sent else ErrorCode.CONNECTION_ERROR
+
+    def kick_player(self, player_id: str):
+        self._connection.send_event(ClientKickPlayerEvent(player_id=player_id))

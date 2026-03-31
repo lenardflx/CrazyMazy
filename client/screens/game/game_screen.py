@@ -11,6 +11,7 @@ from client.screens.core.base_screen import BaseScreen
 from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout
 from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
+from client.textures import UI_IMAGES
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.helper import format_ms_to_clock
@@ -155,7 +156,9 @@ class GameScreen(BaseScreen):
         """Draw the game screen."""
 
         # Fill the background
-        self.surface.fill(BACKGROUND)
+        #self.surface.fill(BACKGROUND)
+        scaled = pg.transform.scale(UI_IMAGES["SPACE_BACKGROUND"], self.surface.get_size())
+        self.surface.blit(scaled, (0, 0))
 
         # Resolve the game layout based on the current game state
         game_state = self._game_snapshot
