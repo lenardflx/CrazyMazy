@@ -104,6 +104,7 @@ class Npc:
         for insertion in insertion_tiles:
             # get treasure coordinates after insertion
             current_treasure_coordinates = board.position_after_insert(target_position, insertion)
+            current_position_after_insert = board.position_after_insert(current_position, insertion)
 
             # check if treasure is the spare
             if current_treasure_coordinates is not None:
@@ -112,7 +113,7 @@ class Npc:
                 board_copy.insert_tile(insertion[0], insertion[1])
 
                 # compute all tiles that are reachable after the insertion
-                reachable_tiles = board_copy.reachable_positions(current_position)
+                reachable_tiles = board_copy.reachable_positions(current_position_after_insert)
 
                 # check if insertion lead to a direct path to the treasure
                 if current_treasure_coordinates in reachable_tiles:
