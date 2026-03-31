@@ -14,6 +14,7 @@ from shared.lib.game import (
     parse_client_game_shift_tile_payload,
     parse_server_game_left_payload,
 )
+from shared.lib.parse import parse_int
 from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
 from shared.types.enums import NpcDifficulty

@@ -142,7 +142,7 @@ class GameData(SQLModel):
     turn_phase: Optional[TurnPhase] = Field(default=None)
 
     # The timestamp at which the current move started
-    turn_start_timestamp: Optional[int] = Field(default=None)
+    turn_end_timestamp: Optional[int] = Field(default=None)
 
     # Current active player during the running match. Random pick at match start
     current_player_id: Optional[UUID] = Field(default=None, foreign_key="player.id", index=True)
