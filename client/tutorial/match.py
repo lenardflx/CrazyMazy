@@ -159,7 +159,7 @@ class TutorialMatch:
             self._scripted_npc_turn_done = True
 
     def _bootstrap(self) -> None:
-        created = self._service.create_lobby(board_size=7, leader_display_name="You", connection_id="tutorial")
+        created = self._service.create_lobby(board_size=7, leader_display_name="You", connection_id="tutorial", insert_timeout=None, move_timeout=None)
         if isinstance(created, ErrorCode):
             raise RuntimeError(f"Tutorial lobby creation failed: {created}")
         self._player_id = created.player.id
