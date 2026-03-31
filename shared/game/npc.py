@@ -47,22 +47,16 @@ class Npc:
         """returns the distance from start to finish"""
         return abs(finish[0]-start[0]) + abs(finish[1]-start[1])
 
-    def choose_turn(self, board: Board, current_position: tuple[int, int], target_position : tuple[int, int], blocked_side: InsertionSide | None = None, blocked_index: int | None = None,) -> NpcTurn:
-        """Choose a full deterministic turn plan for the current board state."""
-
-        # check if the board is valid
-        if board is None:
-            raise ValueError("NPC cannot choose a turn without a board")
-
+    def _get_expanded_reachable(self, board: Board, current_position: tuple[int, int]) -> list[tuple[int, int]]:
         # generate currently reachable tiles
         reachable_tiles = board.reachable_positions(current_position)
 
         # expand reachable tiles
-        expanded_reachable = self.expand_reachable(board, reachable_tiles)
+        return self.expand_reachable(board, reachable_tiles)
 
+    def _collect_insertion_tiles(self, board: Board, expanded_reachable: list[tuple[int, int]]) -> list[tuple[int, int]]:
         # check for which insertion a path has to be computed
         insertion_tiles = [] # coordinates of every tile where an insertion has an effect
-
 
         """
         get the coordinates of every insertion that makes a difference to the reachable tiles
@@ -90,11 +84,73 @@ class Npc:
             if any(coordinate in board.insertion_shift_coordinates((board.width - 1, i)) for coordinate in expanded_reachable):
                 insertion_tiles += [(board.width - 1, i)]
 
+        return insertion_tiles
+
+    def _remove_blocked_insertion(
+        self,
+        board: Board,
+        insertion_tiles: list[tuple[int, int]],
+        blocked_side: InsertionSide | None,
+        blocked_index: int | None,
+    ) -> None:
         # remove blocked insertion
         blocked_tile = board.insertion_coordinates(blocked_side, blocked_index)
         if blocked_tile in insertion_tiles:
             insertion_tiles.remove(blocked_tile)
 
+    def _evaluate_insertion(
+        self,
+        board: Board,
+        board_copy: Board,
+        layout,
+        insertion: tuple[int, int],
+        current_position: tuple[int, int],
+        target_position: tuple[int, int],
+        best_so_far: tuple[int, int] | None,
+        best_value: int,
+        best_insertion: tuple[int, int] | None,
+    ) -> tuple[tuple[int, int] | None, int, tuple[int, int] | None, bool]:
+        # get treasure coordinates after insertion
+        current_treasure_coordinates = board.position_after_insert(target_position, insertion)
+        current_position_after_insert = board.position_after_insert(current_position, insertion)
+
+        # check if treasure is the spare
+        if current_treasure_coordinates is not None:
+
+            # make an insertion
+            board_copy.insert_tile(insertion[0], insertion[1])
+
+            # compute all tiles that are reachable after the insertion
+            reachable_tiles = board_copy.reachable_positions(current_position_after_insert)
+
+            # check if insertion lead to a direct path to the treasure
+            if current_treasure_coordinates in reachable_tiles:
+                best_insertion = insertion
+                best_so_far = current_treasure_coordinates
+                return best_so_far, best_value, best_insertion, True
+
+            # get the closest to the treasure
+            else:
+                # check distance to the treasure of every reachable tile and change best_so_far if there is a closer tile
+                for position in reachable_tiles:
+                    distance = self.get_distance(position, current_treasure_coordinates)
+                    if distance < best_value:
+                        best_so_far = position
+                        best_value = distance
+                        best_insertion = insertion
+
+            # undo last insertion
+            board_copy.change_board(layout)
+
+        return best_so_far, best_value, best_insertion, False
+
+    def _find_best_move(
+        self,
+        board: Board,
+        insertion_tiles: list[tuple[int, int]],
+        current_position: tuple[int, int],
+        target_position: tuple[int, int],
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         board_copy : Board = deepcopy(board) # copy board to make non-permanent insertions
         layout = board_copy.tiles # copy board layout to test several insertion on the same board
         best_so_far = None # best coordinates so far
@@ -102,43 +158,45 @@ class Npc:
         best_insertion = None # insertion that was done to get the best_value
 
         for insertion in insertion_tiles:
-            # get treasure coordinates after insertion
-            current_treasure_coordinates = board.position_after_insert(target_position, insertion)
-            current_position_after_insert = board.position_after_insert(current_position, insertion)
+            best_so_far, best_value, best_insertion, found_direct_path = self._evaluate_insertion(
+                board,
+                board_copy,
+                layout,
+                insertion,
+                current_position,
+                target_position,
+                best_so_far,
+                best_value,
+                best_insertion,
+            )
+            if found_direct_path:
+                break # no need to finish the algorithm
 
-            # check if treasure is the spare
-            if current_treasure_coordinates is not None:
+        return best_so_far, best_insertion
 
-                # make an insertion
-                board_copy.insert_tile(insertion[0], insertion[1])
-
-                # compute all tiles that are reachable after the insertion
-                reachable_tiles = board_copy.reachable_positions(current_position_after_insert)
-
-                # check if insertion lead to a direct path to the treasure
-                if current_treasure_coordinates in reachable_tiles:
-                    best_insertion = insertion
-                    best_so_far = current_treasure_coordinates
-                    break # no need to finish the algorithm
-
-                # get the closest to the treasure
-                else:
-                    # check distance to the treasure of every reachable tile and change best_so_far if there is a closer tile
-                    for position in reachable_tiles:
-                        distance = self.get_distance(position, current_treasure_coordinates)
-                        if distance < best_value:
-                            best_so_far = position
-                            best_value = distance
-                            best_insertion = insertion
-
-                # undo last insertion
-                board_copy.change_board(layout)
-
-
-
+    def _build_turn(
+        self,
+        board: Board,
+        best_insertion: tuple[int, int],
+        best_so_far: tuple[int, int],
+    ) -> NpcTurn:
         return NpcTurn(
             shift_side=board.convert_insertion(best_insertion[0], best_insertion[1])[0],
             shift_index=board.convert_insertion(best_insertion[0], best_insertion[1])[1],
             shift_rotation=0,
             move_to=(best_so_far[0], best_so_far[1]),
         )
+
+    def choose_turn(self, board: Board, current_position: tuple[int, int], target_position : tuple[int, int], blocked_side: InsertionSide | None = None, blocked_index: int | None = None,) -> NpcTurn:
+        """Choose a full deterministic turn plan for the current board state."""
+
+        expanded_reachable = self._get_expanded_reachable(board, current_position)
+        insertion_tiles = self._collect_insertion_tiles(board, expanded_reachable)
+        self._remove_blocked_insertion(board, insertion_tiles, blocked_side, blocked_index)
+        best_so_far, best_insertion = self._find_best_move(
+            board,
+            insertion_tiles,
+            current_position,
+            target_position,
+        )
+        return self._build_turn(board, best_insertion, best_so_far)
