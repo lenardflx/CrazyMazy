@@ -14,6 +14,7 @@ from client.screens.menu.menu_screen import MenuScreen
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
+PLACEHOLDER_NAME = "Enter your Name"
 
 class JoinLobbyScreen(MenuScreen):
     """
@@ -25,7 +26,8 @@ class JoinLobbyScreen(MenuScreen):
         super().__init__(surface, scene_manager, title="Join Lobby")
         form = self.scene_manager.runtime_state.join_lobby
         center_x = self.content_rect.centerx
-        self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name, placeholder="Your name")
+        self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name  if scene_manager.client_settings.get_name() == "" else scene_manager.client_settings.get_name(),
+                                    placeholder=PLACEHOLDER_NAME if scene_manager.client_settings.get_name() == "" else scene_manager.client_settings.get_name())
         self.code_input = TextInput(pg.Rect(center_x - 110, self.content_rect.y + 216, 220, 46), form.join_code, placeholder="AB12", max_length=8)
         self.join_button = Button(
             pg.Rect(center_x - 90, self.content_rect.y + 274, 180, 48),

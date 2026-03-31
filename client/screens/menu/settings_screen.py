@@ -38,8 +38,8 @@ class SettingsScreen(MenuScreen):
         self.content_area = pg.Rect(self.content_rect.x, self.content_rect.y + 64, self.content_rect.width, self.content_rect.height - 84)
         control_width = self.content_area.width
 
-        # Volume sliders for master, music, and effects channels
-        self.volume_sliders = [
+        # Sliders for master, music, effects and language channels
+        self.control_sliders = [
             Slider(pg.Rect(0, 92, control_width, 12), "Master Volume", settings.get_master_volume()),
             Slider(pg.Rect(0, 166, control_width, 12), "Music Volume", settings.get_music_volume()),
             Slider(pg.Rect(0, 240, control_width, 12), "Effects Volume", settings.get_effects_volume()),
@@ -51,20 +51,28 @@ class SettingsScreen(MenuScreen):
                 "Apply",
                 lambda: self._sync_settings(),
 )
+        #FIXME: Language Buttons umgehen akzeptanz der Einstellung von apply_settings() -> schickt direkt an app_data, vielleicht ändern?
+        self.english_language_button = Button(pg.Rect(100, 700, 120, 46), "english", lambda: self.scene_manager.client_settings.set_language(0))
+        self.german_language_button = Button(pg.Rect(300, 700, 120, 46), "german", lambda: self.scene_manager.client_settings.set_language(1))
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
         settings = self.scene_manager.client_settings
-        settings.set_master_volume(self.volume_sliders[0].value)
-        settings.set_music_volume(self.volume_sliders[1].value)
-        settings.set_effects_volume(self.volume_sliders[2].value)
+        settings.set_master_volume(self.control_sliders[0].value)
+        settings.set_music_volume(self.control_sliders[1].value)
+        settings.set_effects_volume(self.control_sliders[2].value)
         settings.set_fullscreen(self.fullscreen_checkbox.value)
         self.scene_manager.apply_fullscreen(self.fullscreen_checkbox.value)
 
     def _apply_layout(self) -> None:
         """Position all controls according to CONTROL_LAYOUT. Called each frame so the layout stays correct after window resize."""
         left = self.content_area.x
-        controls: list[Slider | Checkbox | Button] = [*self.volume_sliders, self.fullscreen_checkbox, self.apply_button]
+        controls: list[Slider | Checkbox | Button] = [*self.control_sliders,
+                                                        self.fullscreen_checkbox,
+                                                        self.apply_button,
+                                                        self.german_language_button,
+                                                        self.english_language_button]
+        
         for control, y in zip(controls, self.CONTROL_LAYOUT, strict=False):
             control.rect.x = left
             control.rect.y = self.content_area.y + y
@@ -74,7 +82,7 @@ class SettingsScreen(MenuScreen):
         self._apply_layout()
         changed = False
         pointer_in_content = self.content_area.inflate(0, 20).collidepoint(getattr(event, "pos", (-1, -1)))
-        for slider in self.volume_sliders:
+        for slider in self.control_sliders:
             if pointer_in_content:
                 changed = slider.handle_event(event) or changed
         if pointer_in_content:
@@ -99,10 +107,12 @@ class SettingsScreen(MenuScreen):
         self._apply_layout()
         for title, y in self.SECTION_LAYOUT:
             self._draw_section_header(title, y)
-        for slider in self.volume_sliders:
+        for slider in self.control_sliders:
             slider.draw(self.surface, self.body_font, self.small_font)
         self.fullscreen_checkbox.draw(self.surface, self.body_font)
         self.apply_button.draw(self.surface, self.button_font)
+        self.english_language_button.draw(self.surface, self.button_font)
+        self.german_language_button.draw(self.surface, self.button_font)
 
     def _draw_section_header(self, title: str, y: int) -> None:
         """Render a bold section label at the given vertical offset within the content area.

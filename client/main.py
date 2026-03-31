@@ -65,6 +65,8 @@ def main() -> None:
 
         # Run the renderer for the current screen
         scene_manager.tick(dt)
+    
+    scene_manager.client_settings.write_JSON()
 
     conn.disconnect()
     pygame.quit()
