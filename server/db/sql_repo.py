@@ -53,11 +53,22 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         )
 
     def list_public_games(self) -> list[GameData]:
+        """Returns all instances of the table Game that are set to public and in the pregame phase."""
         return self.read(
             lambda session: list(self.session.exec(
                 select(GameTable)
                 .where(GameTable.is_public == True)  # noqa: E712
                 .where(GameTable.game_phase == GamePhase.PREGAME)
+                .order_by(GameTable.created_at)
+            ).all())
+        )
+
+    def find_active_games(self) -> list[GameData]:
+        """Returns all instances of the table Game that are in the game phase."""
+        return self.read(
+            lambda session: list(self.session.exec(
+                select(GameTable)
+                .where(GameTable.game_phase == GamePhase.GAME)
                 .order_by(GameTable.created_at)
             ).all())
         )
