@@ -12,7 +12,7 @@ import pygame as pg
 Color = tuple[int, int, int]
 
 # Background
-BACKGROUND: Color = (147, 197, 209)
+BACKGROUND: Color = (39, 66, 84)
 PANEL: Color = (246, 220, 171)
 PANEL_ALT: Color = (214, 156, 89)
 PANEL_SHADOW: Color = (110, 72, 41)

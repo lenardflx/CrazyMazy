@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
+from client.config import MENU_BACKGROUND_ANIMATION_FRAMES
 from client.textures import UI_IMAGES
 from client.ui.controls import Button
 from client.ui.dialogs import ChoiceDialog, ConfirmDialog
@@ -47,6 +48,7 @@ class MenuScreen(BaseScreen):
         self.message = message
         self.dialog: ConfirmDialog | ChoiceDialog | None = None
         self.background_image: pg.Surface | None = UI_IMAGES["TITLE_BACKGROUND"]
+        self.animation_state: int = 0
 
         self.title_font = font(34)
         self.display_title_font = title_font(72)  # ka1 — main menu title only
@@ -128,7 +130,12 @@ class MenuScreen(BaseScreen):
         if self.background_image is None:
             self.surface.fill(BACKGROUND_COLOR)
             return
-        scaled = pg.transform.scale(self.background_image, self.surface.get_size())
+        # total time passed since the game loop started
+        ms = pg.time.get_ticks()
+        frame_duration = 200
+        frame_index = (ms // frame_duration) % MENU_BACKGROUND_ANIMATION_FRAMES
+        current_image = UI_IMAGES["TITLE_ANIMATION_" + str(frame_index)]
+        scaled = pg.transform.scale(current_image, self.surface.get_size())
         self.surface.blit(scaled, (0, 0))
 
     def handle_content_event(self, event: pg.event.Event) -> None:
