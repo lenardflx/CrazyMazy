@@ -122,7 +122,7 @@ def handle_leave_game(ctx: RequestContext, _: ClientGameLeaveEvent) -> list[Outg
 
 def _handle_connection_game_update(
     ctx: RequestContext,
-    fn: Callable[[UUID], GameState],
+    fn: Callable[[UUID], GameState | ErrorCode],
 ) -> list[OutgoingMessage]:
     state = game_service.get_connection_state(ctx.connection_id)
     if state is None:
@@ -139,7 +139,7 @@ def _handle_connection_game_update(
 
 def _handle_optional_connection_game_update(
     ctx: RequestContext,
-    fn: Callable[[UUID], GameState | None],
+    fn: Callable[[UUID], GameState | ErrorCode | None],
 ) -> list[OutgoingMessage]:
     state = game_service.get_connection_state(ctx.connection_id)
     if state is None:
@@ -156,7 +156,7 @@ def _handle_optional_connection_game_update(
 
 def _handle_departure_game_update(
     ctx: RequestContext,
-    fn: Callable[[UUID], GameState | None],
+    fn: Callable[[UUID], GameState | ErrorCode | None],
     reason: PlayerLeaveReason,
 ) -> list[OutgoingMessage]:
     state = game_service.get_connection_state(ctx.connection_id)

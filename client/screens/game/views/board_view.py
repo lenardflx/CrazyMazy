@@ -7,7 +7,8 @@ import pygame as pg
 
 from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation
 from client.textures import PLAYER_IMAGES, TILE_IMAGES, TREASURE_IMAGES
-from client.ui.theme import DISABLED, PANEL, PANEL_ALT, TEXT_MUTED, TEXT_PRIMARY, MOVE_HIGHLIGHT, blend_color, font
+from client.ui.controls import Button
+from client.ui.theme import ACCENT_DARK, DISABLED, PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, MOVE_HIGHLIGHT, blend_color, draw_pixel_rect, font
 from shared.types.enums import InsertionSide, PlayerColor, PlayerSkin, TreasureType
 from shared.game.tile import Tile
 from shared.game.snapshot import SnapshotGameState
@@ -70,6 +71,13 @@ class BoardView:
         self.title_font = font(18)
         self.small_font = font(14)
         self.xs_font = font(12)
+        self._rotate_left_button: Button | None = None
+        self._rotate_right_button: Button | None = None
+        self._arrow_buttons: dict[tuple[InsertionSide, int], Button] = {}
+        self._pending_click: BoardClick = None
+        self._tile_surface_cache: dict[tuple[str, int, tuple[int, int], bool], pg.Surface] = {}
+        self._tile_mask_cache: dict[tuple[int, int], pg.Surface] = {}
+        self._tile_shadow_cache: dict[tuple[int, int], pg.Surface] = {}
 
     def layout(self, surface_rect: pg.Rect, board_size: int) -> GameBoardLayout:
         """Calculate the layout of the game board and related UI elements based on the surface size and board size."""
@@ -131,19 +139,6 @@ class BoardView:
         Returns a BoardClick indicating whether the player clicked on a rotate button, an arrow to shift.
         This is done by checking the collision of the click position with the elements on the board.
         """
-        # If we currently shift, then our rotation buttons and arrows are the only clickable elements.
-        if game_state.can_shift:
-            # Rotation buttons
-            if layout.rotate_left_button.collidepoint(pos):
-                return "rotate", -1
-            if layout.rotate_right_button.collidepoint(pos):
-                return "rotate", 1
-            
-            # Check every arrow and if it was clicked.
-            for arrow in layout.arrows:
-                if arrow.rect.collidepoint(pos) and self._is_arrow_clickable(game_state, arrow):
-                    return "shift", arrow.side, arrow.index
-
         # If we currently move, the only clickable elements are the reachable cells on the board.
         if game_state.can_move:
             # Check every cell and if it was clicked and is reachable.
@@ -151,6 +146,21 @@ class BoardView:
                 if cell.collidepoint(pos) and game_state.is_position_reachable((x, y)):
                     return "move", x, y
         return None
+
+    def handle_control_event(self, event: pg.event.Event, layout: GameBoardLayout, game_state: SnapshotGameState) -> BoardClick:
+        self._sync_control_buttons(layout, game_state)
+        self._pending_click = None
+
+        if self._rotate_left_button is not None:
+            self._rotate_left_button.handle_event(event)
+        if self._rotate_right_button is not None:
+            self._rotate_right_button.handle_event(event)
+        for button in self._arrow_buttons.values():
+            button.handle_event(event)
+
+        click = self._pending_click
+        self._pending_click = None
+        return click
 
     def _build_arrows(self, board_rect: pg.Rect, cell_size: int, board_size: int) -> list[ArrowTarget]:
         """Build the list of ArrowTargets for the given board layout. Arrows are placed on every odd index along the edges of the board."""
@@ -192,8 +202,13 @@ class BoardView:
         move_animation: PlayerMoveAnimation | None,
     ) -> None:
         """Draw the game board, including the tiles, players, and arrows. Takes into account the current animations for shifting and moving."""
-        pg.draw.rect(surface, PANEL_ALT, layout.board_rect.inflate(20, 20), border_radius=20)
-        pg.draw.rect(surface, PANEL, layout.board_rect, border_radius=16)
+        draw_pixel_rect(
+            surface,
+            layout.board_rect.inflate(24, 24),
+            PANEL,
+            border=ACCENT_DARK,
+            shadow=PANEL_SHADOW,
+        )
 
         players_by_position: dict[tuple[int, int], list[PlayerColor]] = {}
         for player in game_state.ordered_players:
@@ -251,8 +266,8 @@ class BoardView:
         game_state: SnapshotGameState,
     ) -> None:
         """Draw the spare tile panel, including the current spare tile and the rotate buttons. The rotate buttons are only enabled when the player can shift."""
-        # TODO: replace the buttons with our button component.
-        pg.draw.rect(surface, PANEL, layout.spare_panel, border_radius=20)
+        self._sync_control_buttons(layout, game_state)
+        draw_pixel_rect(surface, layout.spare_panel, PANEL, border=ACCENT_DARK, shadow=PANEL_SHADOW)
         surface.blit(self.title_font.render("Current Tile", True, TEXT_PRIMARY), (layout.spare_panel.x + 18, layout.spare_panel.y + 16))
 
         self._draw_tile(surface, layout.spare_tile_rect, tile)
@@ -264,11 +279,10 @@ class BoardView:
             home_color=None,
         )
 
-        button_fill = PANEL_ALT if game_state.can_shift else blend_color(PANEL_ALT, DISABLED, 0.7)
-        button_text = TEXT_PRIMARY if game_state.can_shift else DISABLED
-        for rect, label in ((layout.rotate_left_button, "<"), (layout.rotate_right_button, ">")):
-            pg.draw.rect(surface, button_fill, rect, border_radius=12)
-            surface.blit(self.title_font.render(label, True, button_text), self.title_font.render(label, True, button_text).get_rect(center=rect.center))
+        if self._rotate_left_button is not None:
+            self._rotate_left_button.draw(surface, self.title_font)
+        if self._rotate_right_button is not None:
+            self._rotate_right_button.draw(surface, self.title_font)
         self._draw_treasure_stack(surface, layout.treasure_stack_rect, game_state)
 
     def _draw_treasure_stack(self, surface: pg.Surface, rect: pg.Rect, game_state: SnapshotGameState) -> None:
@@ -294,16 +308,24 @@ class BoardView:
     def _draw_stack_card(self, surface: pg.Surface, rect: pg.Rect, *, face_up: bool) -> None:
         outline_color = blend_color(PANEL_ALT, TEXT_PRIMARY, 0.2)
         fill = PANEL if face_up else blend_color(PANEL_ALT, PANEL, 0.08)
-        shadow = blend_color(fill, (76, 58, 42), 0.12)
-        pg.draw.rect(surface, shadow, rect.move(0, 2), border_radius=12)
-        pg.draw.rect(surface, fill, rect, border_radius=12)
-        pg.draw.rect(surface, outline_color, rect, width=1, border_radius=12)
+        draw_pixel_rect(
+            surface,
+            rect,
+            fill,
+            border=outline_color,
+            shadow=blend_color(fill, PANEL_SHADOW, 0.2),
+        )
 
         if face_up:
             return
 
         inset = rect.inflate(-10, -14)
-        pg.draw.rect(surface, blend_color(PANEL_ALT, TEXT_PRIMARY, 0.08), inset, border_radius=8)
+        draw_pixel_rect(
+            surface,
+            inset,
+            blend_color(PANEL_ALT, TEXT_PRIMARY, 0.08),
+            border=blend_color(PANEL_ALT, TEXT_PRIMARY, 0.16),
+        )
 
     def _draw_stack_count(self, surface: pg.Surface, rect: pg.Rect, remaining: int) -> None:
         label = self.xs_font.render("Cards left", True, TEXT_MUTED)
@@ -334,21 +356,8 @@ class BoardView:
         highlight: bool = False,
     ) -> None:
         """Draw a single tile at the given rect, with optional highlights for the home player and reachable positions."""
-        radius = max(6, min(14, min(rect.size) // 7))
-        pg.draw.rect(surface, (77, 62, 48, 40), rect.move(0, 2), border_radius=radius)
-
-        tile_image = pg.transform.scale(_tile_surface(tile), rect.size)
-        clipped = pg.Surface(rect.size, pg.SRCALPHA)
-        clipped.blit(tile_image, (0, 0))
-        if highlight:
-            highlight_surface = pg.Surface(rect.size, pg.SRCALPHA)
-            highlight_surface.fill((*MOVE_HIGHLIGHT, 70))
-            clipped.blit(highlight_surface, (0, 0))
-
-        mask = pg.Surface(rect.size, pg.SRCALPHA)
-        pg.draw.rect(mask, (255, 255, 255, 255), mask.get_rect(), border_radius=radius)
-        clipped.blit(mask, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
-        surface.blit(clipped, rect)
+        surface.blit(self._tile_shadow_surface(rect.size), rect.move(0, 3))
+        surface.blit(self._tile_visual(tile, rect.size, highlight=highlight), rect)
 
     def _draw_tile_overlays(
         self,
@@ -376,19 +385,100 @@ class BoardView:
             self._draw_player_pin(surface, piece_color, center, max_size=max(14, rect.width // 4))
 
     def _draw_arrow(self, surface: pg.Surface, arrow: ArrowTarget, *, enabled: bool) -> None:
-        fill = (214, 186, 144) if enabled else blend_color(PANEL_ALT, DISABLED, 0.7)
-        pg.draw.rect(surface, blend_color(fill, (88, 72, 58), 0.35), arrow.rect.move(0, 2), border_radius=12)
-        pg.draw.rect(surface, fill, arrow.rect, border_radius=12)
+        button = self._arrow_buttons.get((arrow.side, arrow.index))
+        if button is None:
+            return
+        button.enabled = enabled
+        button.draw(surface, self.small_font)
 
-        cx, cy = arrow.rect.center
-        color = (52, 41, 33) if enabled else (118, 112, 106)
-        points = {
-            InsertionSide.TOP: [(cx - 7, cy - 2), (cx + 7, cy - 2), (cx, cy + 7)],
-            InsertionSide.BOTTOM: [(cx - 7, cy + 2), (cx + 7, cy + 2), (cx, cy - 7)],
-            InsertionSide.LEFT: [(cx + 7, cy), (cx - 2, cy - 7), (cx - 2, cy + 7)],
-            InsertionSide.RIGHT: [(cx - 7, cy), (cx + 2, cy - 7), (cx + 2, cy + 7)],
-        }
-        pg.draw.polygon(surface, color, points[arrow.side])
+    def _sync_control_buttons(self, layout: GameBoardLayout, game_state: SnapshotGameState) -> None:
+        can_shift = game_state.can_shift
+
+        if self._rotate_left_button is None:
+            self._rotate_left_button = Button(
+                layout.rotate_left_button.copy(),
+                "",
+                lambda: self._set_pending_click(("rotate", -1)),
+                icon="arrow_left",
+            )
+        else:
+            self._rotate_left_button.rect = layout.rotate_left_button.copy()
+        self._rotate_left_button.enabled = can_shift
+
+        if self._rotate_right_button is None:
+            self._rotate_right_button = Button(
+                layout.rotate_right_button.copy(),
+                "",
+                lambda: self._set_pending_click(("rotate", 1)),
+                icon="arrow_right",
+            )
+        else:
+            self._rotate_right_button.rect = layout.rotate_right_button.copy()
+        self._rotate_right_button.enabled = can_shift
+
+        synced: dict[tuple[InsertionSide, int], Button] = {}
+        for arrow in layout.arrows:
+            key = (arrow.side, arrow.index)
+            button = self._arrow_buttons.get(key)
+            if button is None:
+                button = Button(
+                    arrow.rect.copy(),
+                    "",
+                    lambda side=arrow.side, index=arrow.index: self._set_pending_click(("shift", side, index)),
+                    icon={
+                        InsertionSide.TOP: "arrow_down",
+                        InsertionSide.BOTTOM: "arrow_up",
+                        InsertionSide.LEFT: "arrow_right",
+                        InsertionSide.RIGHT: "arrow_left",
+                    }[arrow.side],
+                )
+            else:
+                button.rect = arrow.rect.copy()
+            button.enabled = self._is_arrow_clickable(game_state, arrow)
+            synced[key] = button
+        self._arrow_buttons = synced
+
+    def _set_pending_click(self, click: BoardClick) -> None:
+        self._pending_click = click
+
+    def _tile_visual(self, tile: Tile, size: tuple[int, int], *, highlight: bool) -> pg.Surface:
+        key = (tile.type.value, tile.orientation.value, size, highlight)
+        cached = self._tile_surface_cache.get(key)
+        if cached is not None:
+            return cached
+
+        tile_image = pg.transform.scale(_tile_surface(tile), size)
+        clipped = pg.Surface(size, pg.SRCALPHA)
+        clipped.blit(tile_image, (0, 0))
+        if highlight:
+            highlight_surface = pg.Surface(size, pg.SRCALPHA)
+            highlight_surface.fill((*MOVE_HIGHLIGHT, 70))
+            clipped.blit(highlight_surface, (0, 0))
+
+        clipped.blit(self._tile_mask_surface(size), (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        self._tile_surface_cache[key] = clipped
+        return clipped
+
+    def _tile_mask_surface(self, size: tuple[int, int]) -> pg.Surface:
+        cached = self._tile_mask_cache.get(size)
+        if cached is not None:
+            return cached
+
+        mask = pg.Surface(size, pg.SRCALPHA)
+        draw_pixel_rect(mask, mask.get_rect(), (255, 255, 255), border=(255, 255, 255))
+        self._tile_mask_cache[size] = mask
+        return mask
+
+    def _tile_shadow_surface(self, size: tuple[int, int]) -> pg.Surface:
+        cached = self._tile_shadow_cache.get(size)
+        if cached is not None:
+            return cached
+
+        shadow = pg.Surface(size, pg.SRCALPHA)
+        shadow_color = blend_color(PANEL_SHADOW, PANEL, 0.15)
+        draw_pixel_rect(shadow, shadow.get_rect(), shadow_color, border=shadow_color)
+        self._tile_shadow_cache[size] = shadow
+        return shadow
 
     def _animated_rect(
         self,

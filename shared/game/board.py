@@ -518,7 +518,7 @@ class Board:
         """
 
         # is the tile affected by an insertion
-        if position in self.insertion_shift_coordinates(position):
+        if position in self.insertion_shift_coordinates(insert_coordinates):
             x, y = insert_coordinates
 
             # --- Horizontal insertion from the left ---

@@ -48,12 +48,28 @@ class GameState:
 
         target = self.current_treasure(player_id)
         if target is not None:
-            return next(
+            position = next(
                 (position for position, tile in self.board.tiles.items() if tile.treasure == target.treasure_type),
                 None,
             )
+            if position is not None:
+                return position
+            if self.board.spare is not None and self.board.spare.treasure == target.treasure_type:
+                return None
+            raise ValueError(f"Target treasure {target.treasure_type} is missing from board and spare tile")
 
         return start_position_for_color(self.game.board_size, player.piece_color)
+
+    def target_on_spare_for_player(self, player_id: UUID) -> bool:
+        if self.board is None:
+            raise ValueError("NPC target requires a board")
+
+        target = self.current_treasure(player_id)
+        if target is None:
+            return False
+        if self.board.spare is None:
+            raise ValueError("Board has no spare tile")
+        return self.board.spare.treasure == target.treasure_type
 
     @property
     def tiles(self) -> list[TileData]:

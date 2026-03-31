@@ -34,6 +34,7 @@ ERROR: Color = (176, 68, 48)
 
 # Pixel-art panel defaults
 PIXEL_CUT = 7
+PIXEL_STEP = 3
 PIXEL_BORDER = 3
 PIXEL_SHADOW_OFFSET = 3
 
@@ -99,9 +100,10 @@ def _pixel_fill(surface: pg.Surface, rect: pg.Rect, color: Color, *, cut: int | 
         pg.draw.rect(surface, color, rect)
         return
 
+    step = max(1, PIXEL_STEP)
     for y in range(rect.height):
-        top_inset = max(0, resolved_cut - y - 1)
-        bottom_inset = max(0, resolved_cut - (rect.height - y - 1) - 1)
+        top_inset = max(0, ((max(0, resolved_cut - y - 1) + step - 1) // step) * step)
+        bottom_inset = max(0, ((max(0, resolved_cut - (rect.height - y - 1) - 1) + step - 1) // step) * step)
         inset = max(top_inset, bottom_inset)
         row_width = rect.width - inset * 2
         if row_width <= 0:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from client.state.runtime_state import BoardShiftAnimation, GameRuntimeState, PlayerMoveAnimation
+from client.state.runtime_state import BoardShiftAnimation, GameRuntimeState, PlayerMoveAnimation, TreasureCollectAnimation
 from server.db.memory_repo import (
     GameRepositoryInMemory,
     PlayerRepositoryInMemory,
@@ -289,7 +289,18 @@ class TutorialMatch:
         if move_animation is not None:
             move_animation.advance(dt)
             if move_animation.is_finished:
+                if move_animation.collected_treasure_type is not None:
+                    self.runtime.treasure_collect_animation = TreasureCollectAnimation(
+                        player_id=move_animation.player_id,
+                        treasure_type=move_animation.collected_treasure_type,
+                    )
                 self.runtime.move_animation = None
+
+        treasure_animation = self.runtime.treasure_collect_animation
+        if treasure_animation is not None:
+            treasure_animation.advance(dt)
+            if treasure_animation.is_finished:
+                self.runtime.treasure_collect_animation = None
 
     def _is_npc_turn(self) -> bool:
         return (
@@ -320,6 +331,7 @@ class TutorialMatch:
             state.target_position_for_player(self.npc_id),
             blocked_side=state.game.blocked_insertion_side,
             blocked_index=state.game.blocked_insertion_index,
+            target_on_spare=state.target_on_spare_for_player(self.npc_id),
         )
 
     @property
