@@ -26,7 +26,7 @@ class Npc:
         self,
         board: Board,
         current_position: Position | None,
-        target_position: Position,
+        target_position: Position | None,
         blocked_side: InsertionSide | None = None,
         blocked_index: int | None = None,
     ) -> NpcTurn:

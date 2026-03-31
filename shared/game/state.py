@@ -39,7 +39,7 @@ class GameState:
             return None
         return player.position_x, player.position_y
 
-    def target_position_for_player(self, player_id: UUID) -> tuple[int, int]:
+    def target_position_for_player(self, player_id: UUID) -> tuple[int, int] | None:
         player = self.player_by_id(player_id)
         if player is None:
             raise ValueError(f"Player {player_id} not found in game state")
@@ -48,13 +48,10 @@ class GameState:
 
         target = self.current_treasure(player_id)
         if target is not None:
-            position = next(
+            return next(
                 (position for position, tile in self.board.tiles.items() if tile.treasure == target.treasure_type),
                 None,
             )
-            if position is None:
-                raise ValueError(f"Treasure {target.treasure_type} not found on board")
-            return position
 
         return start_position_for_color(self.game.board_size, player.piece_color)
 
