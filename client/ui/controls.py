@@ -59,16 +59,26 @@ class Button:
         self.enabled = enabled
         self.icon = icon
         self.hovered = False
+        self.pressed = False
 
     def handle_event(self, event: pg.event.Event) -> bool:
         if not self.enabled:
+            self.pressed = False
             return False
         if event.type == pg.MOUSEMOTION:
             self.hovered = self.rect.collidepoint(event.pos)
+            if self.pressed and not self.hovered:
+                self.pressed = False
             return False
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos):
-            self.on_click()
-            return True
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            self.pressed = self.rect.collidepoint(event.pos)
+            return self.pressed
+        if event.type == pg.MOUSEBUTTONUP and event.button == 1:
+            was_pressed = self.pressed
+            self.pressed = False
+            if was_pressed and self.rect.collidepoint(event.pos):
+                self.on_click()
+                return True
         return False
 
     def draw(self, surface: pg.Surface, font: pg.font.Font) -> None:
@@ -82,25 +92,27 @@ class Button:
             fill = PANEL_ALT if not self.hovered else blend_color(PANEL_ALT, PANEL, 0.35)
             text_color = TEXT_PRIMARY
 
-        draw_pixel_rect(surface, self.rect, fill, border=blend_color(fill, ACCENT_DARK, 0.45), shadow=blend_color(fill, ACCENT_DARK, 0.35))
-        if self._draw_icon(surface, text_color):
+        shadow = None if self.pressed else blend_color(fill, ACCENT_DARK, 0.35)
+        draw_rect = self.rect.move(0, 2) if self.pressed else self.rect
+        draw_pixel_rect(surface, draw_rect, fill, border=blend_color(fill, ACCENT_DARK, 0.45), shadow=shadow)
+        if self._draw_icon(surface, text_color, draw_rect):
             return
         label = render_text(font, self.label, text_color)
-        surface.blit(label, label.get_rect(center=self.rect.center))
+        surface.blit(label, label.get_rect(center=draw_rect.center))
 
-    def _draw_icon(self, surface: pg.Surface, color: tuple[int, int, int]) -> bool:
+    def _draw_icon(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> bool:
         if self.icon is None:
             return False
         renderer_name = self._ICON_RENDERERS.get(self.icon)
         if renderer_name is None:
             return False
-        getattr(self, renderer_name)(surface, color)
+        getattr(self, renderer_name)(surface, color, rect)
         return True
 
-    def _draw_icon_dice(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
-        die_size = min(self.rect.width - 20, self.rect.height - 16)
+    def _draw_icon_dice(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        die_size = min(rect.width - 20, rect.height - 16)
         die_rect = pg.Rect(0, 0, die_size, die_size)
-        die_rect.center = self.rect.center
+        die_rect.center = rect.center
         pip_size = max(4, die_size // 6)
         offset = max(6, die_size // 4)
         centers = (
@@ -115,14 +127,14 @@ class Button:
             pip.center = center
             pg.draw.rect(surface, color, pip)
 
-    def _icon_rect(self, *, width: int = 28, height: int = 18) -> pg.Rect:
+    def _icon_rect(self, rect: pg.Rect, *, width: int = 28, height: int = 18) -> pg.Rect:
         icon_rect = pg.Rect(0, 0, width, height)
-        icon_rect.center = self.rect.center
+        icon_rect.center = rect.center
         return icon_rect
 
-    def _draw_icon_flag_de(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
+    def _draw_icon_flag_de(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
         del color
-        flag = self._icon_rect()
+        flag = self._icon_rect(rect)
         stripe_height = flag.height // 3
         pg.draw.rect(surface, (20, 20, 20), pg.Rect(flag.x, flag.y, flag.width, stripe_height))
         pg.draw.rect(surface, (184, 46, 54), pg.Rect(flag.x, flag.y + stripe_height, flag.width, stripe_height))
@@ -133,9 +145,9 @@ class Button:
         )
         pg.draw.rect(surface, blend_color(PANEL_ALT, ACCENT_DARK, 0.4), flag, 2)
 
-    def _draw_icon_flag_en(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
+    def _draw_icon_flag_en(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
         del color
-        flag = self._icon_rect()
+        flag = self._icon_rect(rect)
         pg.draw.rect(surface, (34, 76, 156), flag)
 
         diagonal_white = max(4, flag.height // 4)
