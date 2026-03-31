@@ -18,7 +18,7 @@ corresponding events.
 
 from server.network.connections import get_connection
 from server.network.models import OutgoingMessage, RequestContext
-from shared.events import ServerGameSnapshotEvent, ServerResponseErrorEvent
+from shared.events import ServerGameSnapshotEvent, ServerResponseErrorEvent, ServerGameLeftEvent
 from shared.lib.snapshot import make_game_snapshot_payload
 from shared.protocol import ErrorCode
 from shared.game.state import GameState
@@ -67,3 +67,8 @@ def snapshot_response(state: GameState) -> list[OutgoingMessage]:
         )
         outgoing.append(OutgoingMessage(conn=conn, msg=ServerGameSnapshotEvent(payload=snapshot).to_message()))
     return outgoing
+
+
+def left_response(ctx: RequestContext, reason: str) -> list[OutgoingMessage]:
+    event = ServerGameLeftEvent(payload={"reason": reason})
+    return [OutgoingMessage(conn=ctx.conn, msg=event.to_message())]

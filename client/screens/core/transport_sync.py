@@ -53,7 +53,6 @@ class TransportSync:
                 self._start_animations(self._game_state)
                 target_scene = self._scene_from_snapshot()
 
-        # TODO: remove when the new error handling is in place
         if self._transport.game_left_version != self._seen_game_left_version:
             self._seen_game_left_version = self._transport.game_left_version
             self._game_state = None
@@ -62,7 +61,6 @@ class TransportSync:
             self._runtime.game.move_animation = None
             target_scene = SceneTypes.MAIN_MENU
 
-        # TODO: remove when the new error handling is in place (shouldnt be needed anymore)
         if self._transport.error_version != self._seen_error_version:
             self._seen_error_version = self._transport.error_version
             error = self._transport.last_error

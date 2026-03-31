@@ -9,7 +9,7 @@ from collections.abc import Callable
 from uuid import UUID
 
 from server.db.runtime import game_service
-from server.handlers._responses import error_response, snapshot_response
+from server.handlers._responses import error_response, snapshot_response, left_response
 from server.network.dispatch import dispatcher
 from server.network.models import OutgoingMessage, RequestContext
 from shared.game.state import GameState
@@ -152,9 +152,8 @@ def _handle_departure_game_update(
     game_state = fn(state.player.id)
     if isinstance(game_state, ErrorCode):
         return error_response(ctx, game_state)
-    # outgoing = left_response(ctx, reason)
-    # if game_state is not None:
-    #     outgoing.extend(snapshot_response(game_state))
-    #     game_service.schedule_npc_turns(game_state)
-    # return outgoing
-    return []
+    outgoing = left_response(ctx, reason)
+    if game_state is not None:
+        outgoing.extend(snapshot_response(game_state))
+        game_service.schedule_npc_turns(game_state)
+    return outgoing
