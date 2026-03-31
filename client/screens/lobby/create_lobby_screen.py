@@ -148,8 +148,8 @@ class CreateLobbyScreen(MenuScreen):
             self.scene_manager.runtime_state.create_lobby.board_size,
             is_public=self.scene_manager.runtime_state.create_lobby.is_public,
             player_limit=self.scene_manager.runtime_state.create_lobby.player_limit,
-            insert_timeout=10,
-            move_timeout=5
+            insert_timeout=30,
+            move_timeout=15
         )
         self.scene_manager.client_settings.set_name(self.name_input.text)
         self.scene_manager.client_settings.write_JSON()
