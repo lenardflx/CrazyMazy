@@ -65,7 +65,7 @@ class PlayerPanelView:
             row_surface.blit(pin, pin_rect)
 
             if player.placement is not None:
-                placement_font = font(18, bold=True)
+                placement_font = font(18)
                 placement = placement_font.render(f"{player.placement}.", True, TEXT_MUTED)
                 placement_y = row_surface.get_rect().centery - placement.get_height() // 2
                 row_surface.blit(placement, (pin_rect.right + 10, placement_y))
@@ -73,7 +73,7 @@ class PlayerPanelView:
             else:
                 name_x = pin_rect.right + 12
 
-            name_font = font(17, bold=True)
+            name_font = font(17)
             name = name_font.render(player.display_name, True, TEXT_PRIMARY if not player.is_departed else TEXT_MUTED)
             name_y = row_surface.get_rect().centery - name.get_height() // 2
             row_surface.blit(name, (name_x, name_y))

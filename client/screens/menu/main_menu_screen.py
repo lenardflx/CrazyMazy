@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.config import WINDOW_TITLE
+from client.ui.controls import Button
 from client.screens.menu.menu_screen import MenuScreen
 from client.screens.core.scene_types import SceneTypes
 
@@ -31,6 +32,10 @@ class MainMenuScreen(MenuScreen):
                 ("Quit", self._quit, "secondary"),
             ],
         )
+        self.language_buttons = [
+            Button(pg.Rect(surface.get_width() - 140, 26, 46, 34), "", self._set_english, icon="flag_en"),
+            Button(pg.Rect(surface.get_width() - 86, 26, 46, 34), "", self._set_german, icon="flag_de"),
+        ]
         if self.scene_manager.prompt_tutorial_on_main_menu:
             self.scene_manager.prompt_tutorial_on_main_menu = False
             self.show_confirm(

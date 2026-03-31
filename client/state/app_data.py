@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 from shared.paths import BASE_DIR
 
@@ -32,6 +33,7 @@ class ClientData:
 
         self.tutorial_played: bool = False
 
+        os.makedirs(os.path.dirname(BASE_DIR / "data/app_data.json"), exist_ok=True)
 
         # Load the last saved settings from disk, overwriting the defaults above.
         self.read_JSON()
@@ -119,7 +121,7 @@ class ClientData:
             "fullscreen": self.get_fullscreen(),
             "name": self.get_name(),
             "language": self.get_language(),
-            "tutorial_played": self.get_tutorial(),
+            "tutorial": self.get_tutorial(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:
             json.dump(setting_values, f)
@@ -145,7 +147,7 @@ class ClientData:
                     self.set_name(val)
                 case "language":
                     self.set_language(val)
-                case "tutorial_played":
+                case "tutorial":
                     self.set_tutorial(val)
-                case _:
-                    raise NotImplementedError("attribute not implemented in json")
+                case other:
+                    raise NotImplementedError("attribute not implemented in json: " + other)

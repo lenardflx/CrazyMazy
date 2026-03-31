@@ -10,7 +10,7 @@ import pygame as pg
 from client.textures import UI_IMAGES
 from client.ui.controls import Button
 from client.ui.dialogs import ChoiceDialog, ConfirmDialog
-from client.ui.theme import PANEL, TEXT_MUTED, TEXT_PRIMARY
+from client.ui.theme import PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, draw_pixel_rect, font, render_text, title_font
 from client.screens.core.base_screen import BaseScreen
 from client.screens.core.scene_types import SceneTypes
 
@@ -48,11 +48,12 @@ class MenuScreen(BaseScreen):
         self.dialog: ConfirmDialog | ChoiceDialog | None = None
         self.background_image: pg.Surface | None = UI_IMAGES["TITLE_BACKGROUND"]
 
-        self.title_font = pg.font.SysFont("verdana", 42, bold=True)
-        self.section_font = pg.font.SysFont("verdana", 24, bold=True)
-        self.body_font = pg.font.SysFont("verdana", 18)
-        self.small_font = pg.font.SysFont("verdana", 16)
-        self.button_font = pg.font.SysFont("verdana", 20, bold=True)
+        self.title_font = font(42)
+        self.display_title_font = title_font(72)  # ka1 — main menu title only
+        self.section_font = font(24)
+        self.body_font = font(18)
+        self.small_font = font(16)
+        self.button_font = font(20)
 
         width, height = self.surface.get_size()
         self.card_rect = pg.Rect(width // 2 - 430, 120, 860, height - 180)
@@ -98,6 +99,9 @@ class MenuScreen(BaseScreen):
         self.handle_content_event(event)
 
     def update(self, dt: float) -> None:
+        self.update_content(dt)
+
+    def update_content(self, dt: float) -> None:
         del dt
 
     def draw(self) -> None:
@@ -108,10 +112,7 @@ class MenuScreen(BaseScreen):
             self.back_button.draw(self.surface, self.button_font)
 
         if not self.is_main_menu:
-            shadow_rect = self.card_rect.move(0, 4)
-            pg.draw.rect(self.surface, (64, 81, 104), shadow_rect, border_radius=28)
-            pg.draw.rect(self.surface, PANEL, self.card_rect, border_radius=28)
-            pg.draw.rect(self.surface, (196, 202, 210), self.card_rect, width=1, border_radius=28)
+            draw_pixel_rect(self.surface, self.card_rect, PANEL, border=PANEL_ALT, shadow=PANEL_SHADOW)
             self.draw_content(self.content_rect)
         else:
             self.draw_content(self.surface.get_rect())
@@ -181,14 +182,14 @@ class MenuScreen(BaseScreen):
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the screen title, optional message, and any configured nav buttons. Subclasses call super() then add their own elements."""
         if self.is_main_menu:
-            title = self.title_font.render(self.title, True, TEXT_PRIMARY)
+            title = render_text(self.display_title_font, self.title, TEXT_PRIMARY)
             self.surface.blit(title, title.get_rect(center=(rect.centerx, 130)))
         else:
-            title = self.title_font.render(self.title, True, TEXT_PRIMARY)
+            title = render_text(self.title_font, self.title, TEXT_PRIMARY)
             self.surface.blit(title, (self.content_rect.x, self.content_rect.y))
 
         if self.message:
-            text = self.body_font.render(self.message, True, TEXT_MUTED)
+            text = render_text(self.body_font, self.message, TEXT_MUTED)
             if self.is_main_menu:
                 self.surface.blit(text, text.get_rect(center=(rect.centerx, rect.centery + 18)))
             else:

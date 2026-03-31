@@ -8,9 +8,10 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.lang import language_service
-from shared.lib.lobby import VALID_BOARD_SIZES
+from shared.lib.names import generate_display_name
+from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
 from client.ui.controls import Button, TextInput
-from client.ui.theme import TEXT_PRIMARY
+from client.ui.theme import TEXT_PRIMARY, render_text
 from client.screens.menu.menu_screen import MenuScreen
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -28,9 +29,24 @@ class CreateLobbyScreen(MenuScreen):
         super().__init__(surface, scene_manager, title="Create Lobby")
         form = self.scene_manager.runtime_state.create_lobby
         center_x = self.content_rect.centerx
-        self.name_input = TextInput(pg.Rect(center_x - 180, self.content_rect.y + 96, 360, 46), form.player_name if scene_manager.client_settings.get_name() == "" else scene_manager.client_settings.get_name(),
-                                    placeholder=PLACEHOLDER_NAME if scene_manager.client_settings.get_name() == "" else scene_manager.client_settings.get_name())
+        stored_name = scene_manager.client_settings.get_name()
+        self.name_input = TextInput(
+            pg.Rect(center_x - 186, self.content_rect.y + 96, 300, 46),
+            form.player_name if stored_name == "" else stored_name,
+            placeholder=PLACEHOLDER_NAME if stored_name == "" else stored_name,
+        )
+        self.random_name_button = Button(
+            pg.Rect(self.name_input.rect.right + 12, self.name_input.rect.y, 60, 46),
+            "",
+            self._roll_name,
+            icon="dice",
+        )
         sizes = tuple(sorted(VALID_BOARD_SIZES))
+        insert_timeouts = tuple(sorted(VALID_INSERT_TIMEOUTS))
+        move_timeouts = tuple(sorted(VALID_MOVE_TIMEOUTS))
+
+        self.board_size_y = self.content_rect.y + 192
+
         self.size_buttons = []
         for index, size in enumerate(sizes):
             button = Button(
@@ -61,6 +77,37 @@ class CreateLobbyScreen(MenuScreen):
                 variant="primary" if form.player_limit == limit else "secondary",
             )
             self.player_limit_buttons.append(button)
+
+        self.insert_timeout_buttons = []
+        self.insert_timeout_y = self.size_buttons[-1].rect.bottom + 20
+        for index, timeout in enumerate(insert_timeouts):
+            button = Button(
+                pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + index * 94, self.insert_timeout_y, 86, 42),
+                str(timeout),
+                self._set_board_size_action(timeout),
+                variant="primary" if form.insert_timeout == timeout else "secondary",
+            )
+            self.insert_timeout_buttons.append(button)
+        self.insert_timeout_buttons.append(Button(
+            pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + len(insert_timeouts) * 94, self.insert_timeout_y, 86, 42),
+            str("∞"),
+            self._set_board_size_action(-1),
+            variant="primary" if form.insert_timeout == -1 else "secondary",
+        ))
+
+        self.move_timeout_buttons = []
+        # self.move_timeout_y = self.insert_timeout_buttons[-1] + 20
+        for index, timeout in enumerate(move_timeouts):
+            button = Button(
+                pg.Rect(center_x - ((len(move_timeouts) * 86 + (len(move_timeouts) - 1) * 8) // 2) + index * 94,
+                        self.insert_timeout_y, 86, 42),
+                str(timeout),
+                self._set_board_size_action(timeout),
+                variant="primary" if form.insert_timeout == timeout else "secondary",
+            )
+            self.move_timeout_buttons.append(button)
+
+
         self.create_button = Button(
             pg.Rect(center_x - 100, self.content_rect.y + 430, 200, 48),
             "Create Lobby",
@@ -112,6 +159,8 @@ class CreateLobbyScreen(MenuScreen):
             self.scene_manager.runtime_state.create_lobby.board_size,
             is_public=self.scene_manager.runtime_state.create_lobby.is_public,
             player_limit=self.scene_manager.runtime_state.create_lobby.player_limit,
+            insert_timeout=10,
+            move_timeout=5
         )
         self.scene_manager.client_settings.set_name(self.name_input.text)
         self.scene_manager.client_settings.write_JSON()
@@ -119,10 +168,15 @@ class CreateLobbyScreen(MenuScreen):
         if error:
             self.error_message = language_service.get_message(error)
 
+    def _roll_name(self) -> None:
+        self.name_input.text = generate_display_name()
+        self.name_input.active = False
+
     def handle_content_event(self, event: pg.event.Event) -> None:
         """Handle input events for the form controls."""
         super().handle_content_event(event)
         self.name_input.handle_event(event)
+        self.random_name_button.handle_event(event)
         for button in self.size_buttons:
             button.handle_event(event)
         self.private_button.handle_event(event)
@@ -131,23 +185,27 @@ class CreateLobbyScreen(MenuScreen):
             button.handle_event(event)
         self.create_button.handle_event(event)
 
+    def update_content(self, dt: float) -> None:
+        self.name_input.update(dt)
+
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the form controls and any error messages."""
         super().draw_content(rect)
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
-        board_label = self.body_font.render("Board Size", True, TEXT_PRIMARY)
+        self.random_name_button.draw(self.surface, self.button_font)
+        board_label = render_text(self.body_font, "Board Size", TEXT_PRIMARY)
         self.surface.blit(board_label, board_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 174)))
         for button in self.size_buttons:
             button.draw(self.surface, self.button_font)
-        type_label = self.body_font.render("Lobby Type", True, TEXT_PRIMARY)
+        type_label = render_text(self.body_font, "Lobby Type", TEXT_PRIMARY)
         self.surface.blit(type_label, type_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 262)))
         self.private_button.draw(self.surface, self.button_font)
         self.public_button.draw(self.surface, self.button_font)
-        limit_label = self.body_font.render("Player Limit", True, TEXT_PRIMARY)
+        limit_label = render_text(self.body_font, "Player Limit", TEXT_PRIMARY)
         self.surface.blit(limit_label, limit_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 348)))
         for button in self.player_limit_buttons:
             button.draw(self.surface, self.button_font)
         self.create_button.draw(self.surface, self.button_font)
         if self.error_message:
-            error = self.small_font.render(self.error_message, True, (150, 58, 48))
+            error = render_text(self.small_font, self.error_message, (150, 58, 48))
             self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 492)))

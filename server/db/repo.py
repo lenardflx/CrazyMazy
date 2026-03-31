@@ -33,6 +33,16 @@ class GameRepository(ABC):
     def find_by_join_code(self, join_code: str) -> GameData | None: ...
 
     @abstractmethod
+    def find_active_games(self) -> list[GameData]:
+        """
+        Find all games currently active, so all games with game phase
+        `GAME`. This method is used by the `GameService`
+        :return: A list of all games that are currently in the in-game phase.
+                 If there is no active game, an empty list is returned.
+        """
+        ...
+
+    @abstractmethod
     def list_public_games(self) -> list[GameData]: ...
 
     @abstractmethod

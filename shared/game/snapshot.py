@@ -105,6 +105,7 @@ class SnapshotViewerState:
 @dataclass(slots=True)
 class SnapshotTurnState:
     current_player_id: str | None
+    turn_start_timestamp: int
     phase: TurnPhase | None
     blocked_insertion_side: InsertionSide | None = None
     blocked_insertion_index: int | None = None
@@ -254,6 +255,7 @@ class SnapshotGameState:
             leader_player_id=snapshot["leader_player_id"],
             turn=SnapshotTurnState(
                 current_player_id=snapshot["turn"]["current_player_id"],
+                turn_start_timestamp=snapshot["turn"]["turn_start_timestamp"],
                 phase=None if turn_phase is None else TurnPhase(turn_phase),
                 blocked_insertion_side=(
                     None

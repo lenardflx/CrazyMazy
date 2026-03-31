@@ -18,11 +18,21 @@ class LobbyService:
         self._connection = connection
         self._runtime = runtime
 
-    def create_lobby(self, player_name: str, board_size: int, *, is_public: bool, player_limit: int) -> ErrorCode | None:
+    def create_lobby(self,
+                     player_name: str,
+                     board_size: int, *,
+                     is_public: bool,
+                     player_limit: int,
+                     insert_timeout: int,
+                     move_timeout: int) -> ErrorCode | None:
         """Validate the form and request the server to create a new lobby.
 
         :param player_name: The display name the player wants to use.
         :param board_size: The desired board size for the new game.
+        :param is_public:
+        :param player_limit:
+        :param insert_timeout:
+        :param move_timeout:
         """
         name = player_name.strip()
         self._runtime.create_lobby.player_name = name
@@ -39,6 +49,8 @@ class LobbyService:
                 player_name=name,
                 is_public=is_public,
                 player_limit=player_limit,
+                insert_timeout=insert_timeout,
+                move_timeout=move_timeout
             )
         )
 

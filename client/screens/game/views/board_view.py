@@ -67,7 +67,7 @@ class BoardView:
     It draws the current state and is responsible for determining what the player has clicked on when they interact with the board.
     """
     def __init__(self) -> None:
-        self.title_font = font(18, bold=True)
+        self.title_font = font(18)
         self.small_font = font(14)
         self.xs_font = font(12)
 

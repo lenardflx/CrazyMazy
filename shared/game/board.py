@@ -60,7 +60,6 @@ class Board:
     @classmethod
     def from_tile_data(cls, game: GameData, tiles: list[TileData]) -> "Board":
         board = cls(game.board_size)
-        board.stack = []
         for entity in tiles:
             tile = Tile.from_tile_data(entity)
             board._tile_entities[id(tile)] = entity
@@ -79,7 +78,6 @@ class Board:
     @classmethod
     def from_payloads(cls, width: int, tiles: list[TilePayload]) -> "Board":
         board = cls(width)
-        board.stack = []
         for payload in tiles:
             tile = Tile.from_payload(payload)
             if payload["is_spare"]:
@@ -187,7 +185,8 @@ class Board:
     # -------------------------------------------------------------------------
 
     def reachable_positions(self, start: Position) -> set[Position]:
-        return set(self.pathfind(start))
+        positions, _ = self.pathfind(start)
+        return set(positions)
 
     def can_reach(self, start: Position, destination: Position) -> bool:
         return destination in self.reachable_positions(start)
@@ -195,30 +194,43 @@ class Board:
     def path_to(self, start: Position, destination: Position) -> list[Position] | None:
         if not self.can_reach(start, destination):
             return None
-        # TODO: Replace this placeholder with the real path reconstruction algorithm.
-        return [start, destination]
 
-    def pathfind(self, position: Position, visited: list[Position] | None = None) -> list[Position]:
-        """
-        Depth‑first search to find all reachable tiles from a starting position.
-        """
+        _, parent = self.pathfind(start)
+
+        if destination not in parent:
+            return None
+
+        # Pfad rekonstruieren
+        path = [destination]
+        while path[-1] != start:
+            path.append(parent[path[-1]])
+        path.reverse()
+        return path
+
+    def pathfind(self, position: Position,
+                 visited: list[Position] | None = None,
+                 parent: dict[Position, Position] | None = None
+                 ) -> tuple[list[Position], dict[Position, Position]]:
+
         if visited is None:
             visited = []
+        if parent is None:
+            parent = {}
+            parent[position] = position
 
         visited.append(position)
+
 
         # Explore all 4 directions
         for d in range(4):
             direction = TileOrientation(d)
             neighbour = self.get_neighbour(position, direction)
-
-            # can I move to this neighbour?
             if neighbour and neighbour not in visited:
                 if self.move_possible(position, direction):
-                    self.pathfind(neighbour, visited)
+                    parent[neighbour] = position
+                    self.pathfind(neighbour, visited, parent)
 
-        # return all visited (which means all reachable) tiles
-        return visited
+        return visited, parent
 
     # -------------------------------------------------------------------------
     # Board construction
@@ -413,6 +425,9 @@ class Board:
         return tile.treasure
 
     def _insertion_coordinates(self, side: InsertionSide, index: int) -> Position:
+        """
+        converts an insertion that uses insertion.side and insertion_index to a position tuple that can be used by the insert_tile method
+        """
         if side == InsertionSide.LEFT:
             return 0, index
         if side == InsertionSide.RIGHT:
@@ -420,6 +435,21 @@ class Board:
         if side == InsertionSide.TOP:
             return index, 0
         return index, self.width - 1
+
+    def convert_insertion(self,x : int, y : int) -> tuple[InsertionSide, int]:
+        """
+        convert coordinates to a tuple of InsertionSide and an InsertionIndex
+        """
+        if x == 0:
+            return InsertionSide.LEFT, y
+        if x == self.width:
+            return InsertionSide.RIGHT, y
+        if y == 0:
+            return InsertionSide.TOP, x
+        if y == self.width:
+            return InsertionSide.BOTTOM, x
+        else:
+            raise BoardError("This is not a border coordinate")
 
     def _initialize_tile_entities(self, game_id: UUID) -> None:
         self._tile_entities = {}
@@ -441,9 +471,7 @@ class Board:
         return 0 in position or self.width in position
 
     def insertion_shift_coordinates(self, position : tuple[int, int]) -> list[tuple[int,int]]:
-        '''
-        returns a list with the coordinates of all tiles that move after an insertion
-        '''
+        '''returns a list with the coordinates of all tiles that move after an insertion'''
 
         x,y = position
         moved_tiles = []
@@ -481,3 +509,11 @@ class Board:
                 moved_tiles += [(x, i)]
 
         return moved_tiles
+
+    def change_board(self, new_board: dict):
+        """
+        change all tiles from the board
+
+        is used by the npc to test several insertion for the same board
+        """
+        self.tiles = new_board

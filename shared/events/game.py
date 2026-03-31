@@ -31,6 +31,8 @@ class ClientCreateLobbyEvent(Event):
 
     board_size: int
     player_name: str
+    insert_timeout: int
+    move_timeout: int
     is_public: bool
     player_limit: int
 
@@ -40,6 +42,8 @@ class ClientCreateLobbyEvent(Event):
             "player_name": self.player_name,
             "is_public": self.is_public,
             "player_limit": self.player_limit,
+            "insert_timeout": self.insert_timeout,
+            "move_timeout": self.move_timeout,
         }
         return payload
 
@@ -52,6 +56,8 @@ class ClientCreateLobbyEvent(Event):
             message_id=msg["id"],
             board_size=payload["board_size"],
             player_name=payload["player_name"].strip(),
+            insert_timeout=payload["insert_timeout"],
+            move_timeout=payload["move_timeout"],
             is_public=payload["is_public"],
             player_limit=payload["player_limit"],
         )

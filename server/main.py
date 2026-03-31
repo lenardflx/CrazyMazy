@@ -9,6 +9,7 @@ from server.network.connections import register_connection, unregister_connectio
 from server.network.dispatch import dispatcher
 from server.network.models import RequestContext
 from server.network.outgoing import flush_outgoing
+from server.schedule.timeout_scheduler import TimeoutScheduler
 from shared.events import parse_event
 from shared.network import recv_line
 from shared.utils.ids import new_connection_id
@@ -40,6 +41,9 @@ def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:
 
 
 def main() -> None:
+    timeout_scheduler = TimeoutScheduler()
+    timeout_scheduler.start(interval=1)
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, PORT))

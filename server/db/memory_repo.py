@@ -16,7 +16,7 @@ import random
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
-from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind
+from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind, GamePhase
 from shared.types.data import GameData, PlayerData, TileData, TreasureData
 
 
@@ -39,13 +39,20 @@ class GameRepositoryInMemory(GameRepository):
         candidates.sort(key=lambda game: game.created_at)
         return candidates
 
-    def create_game(
-        self,
-        board_size: int,
-        leader_player_id: UUID | None = None,
-        *,
-        is_public: bool = False,
-        player_limit: int = 4,
+    def find_active_games(self) -> list[GameData]:
+        return [x for x in self._games.values() if x.game_phase == GamePhase.GAME]
+
+    def delete_game(self, game_id: UUID) -> None:
+        game = self._games.pop(game_id, None)
+        if game is not None:
+            self._game_ids_by_code.pop(game.code, None)
+
+    def create_game(self,
+                    board_size: int,
+                    leader_player_id: UUID | None = None,
+                    *,
+                    is_public: bool = False,
+                    player_limit: int = 4,
     ) -> GameData:
         game = GameData(
             code=self._new_code(),
@@ -57,11 +64,6 @@ class GameRepositoryInMemory(GameRepository):
         self._games[game.id] = game
         self._game_ids_by_code[game.code] = game.id
         return game
-
-    def delete_game(self, game_id: UUID) -> None:
-        game = self._games.pop(game_id, None)
-        if game is not None:
-            self._game_ids_by_code.pop(game.code, None)
 
     def update_game(self, new_game: GameData) -> GameData:
         existing = self._games.get(new_game.id)

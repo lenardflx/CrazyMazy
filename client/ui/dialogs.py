@@ -12,7 +12,7 @@ from collections.abc import Callable
 import pygame as pg
 
 from client.ui.controls import Button
-from client.ui.theme import PANEL, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, font
+from client.ui.theme import PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, draw_pixel_rect, font, render_text
 
 ChoiceSpec = tuple[str, Callable[[], None], str]
 
@@ -41,9 +41,9 @@ class BaseDialog:
         self.message = message
         self.rect = rect
 
-        self.title_font = font(28, bold=True)
+        self.title_font = font(28)
         self.body_font = font(18)
-        self.button_font = font(18, bold=True)
+        self.button_font = font(18)
 
     def handle_buttons(self, event: pg.event.Event, buttons: list[Button]) -> bool:
         handled = False
@@ -56,13 +56,11 @@ class BaseDialog:
         overlay.fill(self.OVERLAY_COLOR)
         surface.blit(overlay, (0, 0))
 
-        shadow = self.rect.move(0, self.SHADOW_OFFSET_Y)
-        pg.draw.rect(surface, PANEL_SHADOW, shadow, border_radius=self.BORDER_RADIUS)
-        pg.draw.rect(surface, PANEL, self.rect, border_radius=self.BORDER_RADIUS)
+        draw_pixel_rect(surface, self.rect, PANEL, border=PANEL_ALT, shadow=PANEL_SHADOW)
 
     def draw_text(self, surface: pg.Surface, *, body_y: int | None = None) -> None:
-        title = self.title_font.render(self.title, True, TEXT_PRIMARY)
-        body = self.body_font.render(self.message, True, TEXT_MUTED)
+        title = render_text(self.title_font, self.title, TEXT_PRIMARY)
+        body = render_text(self.body_font, self.message, TEXT_MUTED)
 
         surface.blit(title, (self.rect.x + self.TITLE_X, self.rect.y + self.TITLE_Y))
         surface.blit(body, (self.rect.x + self.BODY_X, self.rect.y + (body_y if body_y is not None else self.BODY_Y)))
