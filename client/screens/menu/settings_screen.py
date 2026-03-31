@@ -54,8 +54,8 @@ class SettingsScreen(MenuScreen):
                 lambda: self._sync_settings(),
         )
 
-        self.english_button = Button(pg.Rect(520, 500, 120, 46), "English", lambda: self.__set_language(0), variant = "primary" if self.language == 0 else "secondary")
-        self.german_button =  Button(pg.Rect(660, 500, 120, 46), "German", lambda: self.__set_language(1), variant = "primary" if self.language == 1 else "secondary")
+        self.english_button = Button(pg.Rect(520, 500, 120, 46), "English", lambda: self.__set_language(0), variant = "primary" if self.language == 0 else "secondary", icon="flag_en")
+        self.german_button =  Button(pg.Rect(660, 500, 120, 46), "German", lambda: self.__set_language(1), variant = "primary" if self.language == 1 else "secondary", icon="flag_de")
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""

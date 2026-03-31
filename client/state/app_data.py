@@ -31,7 +31,7 @@ class ClientData:
         #0 für englisch (default), 1 für deutsch
         self.language: int = 0
 
-        self.tutorial_played: bool = False
+        self.tutorial: bool = False
 
         os.makedirs(os.path.dirname(BASE_DIR / "data/app_data.json"), exist_ok=True)
 
@@ -88,7 +88,7 @@ class ClientData:
 
     def set_tutorial(self, val_tutorial: bool) -> None:
         """Set whether the tutorial_played has been completed."""
-        self.tutorial_played = val_tutorial
+        self.tutorial = val_tutorial
 
 
     def get_master_volume(self) -> int:
@@ -110,7 +110,7 @@ class ClientData:
         return self.language
 
     def get_tutorial(self) -> bool:
-        return self.tutorial_played
+        return self.tutorial
 
     def write_JSON(self) -> None:
         """Persist the current settings to data/app_data.json."""
