@@ -147,7 +147,7 @@ class ClientData:
                     self.set_name(val)
                 case "language":
                     self.set_language(val)
-                case "tutorial_played":
+                case "tutorial":
                     self.set_tutorial(val)
-                case _:
-                    raise NotImplementedError("attribute not implemented in json")
+                case other:
+                    raise NotImplementedError("attribute not implemented in json: " + other)
