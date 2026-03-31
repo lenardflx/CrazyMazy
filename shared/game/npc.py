@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from random import shuffle
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from shared.types.enums import InsertionSide, NpcDifficulty
@@ -25,55 +24,6 @@ class Npc:
 
     player_id: UUID
     difficulty: NpcDifficulty = NpcDifficulty.NORMAL
-
-    # A Name is generated from a combination of a prefix and suffix TODO: other names, they are AI generated slop
-    _NAME_PREFIXES: ClassVar[tuple[str, ...]] = (
-        "Amber",
-        "Brass",
-        "Cinder",
-        "Copper",
-        "Ember",
-        "Flint",
-        "Ivy",
-        "Moss",
-        "River",
-        "Sable",
-    )
-    _NAME_SUFFIXES: ClassVar[tuple[str, ...]] = (
-        "Badger",
-        "Fox",
-        "Hawk",
-        "Lynx",
-        "Otter",
-        "Raven",
-        "Stoat",
-        "Viper",
-        "Wolf",
-        "Wren",
-    )
-
-    @classmethod
-    def generate_name(cls, taken_names: set[str] | None = None) -> str:
-        """Return a deterministic generated name that avoids already used ones."""
-
-        # If taken_names is None, any combination is available.
-        if taken_names is None:
-            taken_names = set()
-
-        # To add some variability, we shuffle the order of combinations
-        shuffled_prefixes = list(cls._NAME_PREFIXES)
-        shuffled_suffixes = list(cls._NAME_SUFFIXES)
-        shuffle(shuffled_prefixes)
-        shuffle(shuffled_suffixes)
-
-
-        for prefix in shuffled_prefixes:
-            for suffix in shuffled_suffixes:
-                name = f"{prefix} {suffix}"
-                if name not in taken_names:
-                    return name
-
-        raise ValueError("No unique names available")
 
     def choose_turn(
         self,
