@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+
 import pygame as pg
 
 from client.network.services.lobby_service import LobbyService
@@ -59,7 +61,10 @@ class PlayerPanelView:
         row_height = max(min_row_height, min(preferred_row_height, max_fit_height))
         y = rect.y
 
+        inactive_players = list(self.kick_buttons.keys())
         for player in players:
+            if str(player.id) in inactive_players: inactive_players.remove(str(player.id))
+
             row = pg.Rect(rect.x, y, rect.width, row_height)
             y += row_height + gap
             row_surface = pg.Surface(row.size, pg.SRCALPHA)
@@ -119,6 +124,9 @@ class PlayerPanelView:
                 row_surface.set_alpha(128)
             surface.blit(row_surface, row.topleft)
 
+        if len(inactive_players) > 0: self.kick_buttons.clear()
+
+
     def _draw_kick_button(self,
                           surface: pg.Surface,
                           row: pg.Rect,
@@ -132,7 +140,6 @@ class PlayerPanelView:
             button = Button(rect=rect, label="KICK", on_click=lambda: self.lobby_service.kick_player(player.id), variant="primary", abs_rect=abs_rect)
             self.kick_buttons[player.id] = button
         self.kick_buttons[player.id].draw(surface, font(20))
-
 
     def _draw_progress(
         self,
