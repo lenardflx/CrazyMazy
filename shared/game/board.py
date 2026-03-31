@@ -399,7 +399,7 @@ class Board:
             raise ValueError("Board has no spare tile")
         self.spare.orientation = TileOrientation((self.spare.orientation.value + rotation) % 4)
         self.spare.set_paths()
-        x, y = self._insertion_coordinates(side, index)
+        x, y = self.insertion_coordinates(side, index)
         self.insert_tile(x, y)
 
     def shift_player_position(self, position: Position | None, side: InsertionSide, index: int) -> Position | None:
@@ -424,7 +424,7 @@ class Board:
             return None
         return tile.treasure
 
-    def _insertion_coordinates(self, side: InsertionSide, index: int) -> Position:
+    def insertion_coordinates(self, side: InsertionSide, index: int) -> Position:
         """
         converts an insertion that uses insertion.side and insertion_index to a position tuple that can be used by the insert_tile method
         """
@@ -519,10 +519,11 @@ class Board:
 
         # is the tile affected by an insertion
         if position in self.insertion_shift_coordinates(position):
-            x, y = position
+            x, y = insert_coordinates
 
             # --- Horizontal insertion from the left ---
             if x == 0:
+                # will the tile be moved out of the board
                 if position[0] != self.width-1:
                     return position[0]+1,position[1]
                 return None
