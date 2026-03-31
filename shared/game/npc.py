@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 from uuid import UUID
 
+from shared.game.board import Board, Position
 from shared.types.enums import InsertionSide, NpcDifficulty
-
-if TYPE_CHECKING:
-    from shared.game.state import GameState
 
 
 @dataclass(slots=True, frozen=True)
@@ -27,14 +24,13 @@ class Npc:
 
     def choose_turn(
         self,
-        game_state: "GameState",
+        board: Board,
+        current_position: Position | None,
+        target_position: Position,
         blocked_side: InsertionSide | None = None,
         blocked_index: int | None = None,
     ) -> NpcTurn:
         """Choose a full deterministic turn plan for the current board state."""
-
-        if game_state.board is None:
-            raise ValueError("NPC cannot choose a turn without a board")
         
         # for now its dumb. TODO: make it smart :D
         insert_index = 3 if blocked_index != 3 else 1
