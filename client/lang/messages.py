@@ -2,21 +2,24 @@
 from client.state.languages import languages as langs
 from shared.protocol import ErrorCode, DisplayMessage
 
+english = langs.ENGLISH.value
+german  = langs.GERMAN.value
+
 messages = {
     ErrorCode.GAME_NOT_FOUND: {
-        langs.ENGLISH: "This game does not exist.",
-        langs.GERMAN: "Dieses Spiel existiert nicht."
+        english: "This game does not exist.",
+        german: "Dieses Spiel existiert nicht."
     },
     ErrorCode.NO_PUBLIC_LOBBY: {
-        langs.ENGLISH: "No public lobby available right now.",
-        langs.GERMAN: "Keine öffentliche Lobby ist zurzeit verfügbar."
+        english: "No public lobby available right now.",
+        german: "Derzeit ist keine öffentliche Lobby verfügbar."
     },
     DisplayMessage.SERVER_NOT_REACHABLE: {
-        langs.ENGLISH: "Server not reachable.",
-        langs.GERMAN: "Server kann icht erreicht werden."
+        english: "Server not reachable.",
+        german: "Server kann nicht erreicht werden."
     },
     DisplayMessage.UNKNOWN_MESSAGE_TYPE: {
-        langs.ENGLISH: "Error loading message, unknown message type.",
-        langs.GERMAN: "Fehler beim laden der Nachricht. Unbekannter Nachrichtentyp."
+        english: "Error loading message, unknown message type.",
+        german: "Fehler beim Laden der Nachricht. Unbekannter Nachrichtentyp."
     },
 }
