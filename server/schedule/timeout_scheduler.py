@@ -1,4 +1,4 @@
-from server.db import game_service
+from server.db.runtime import game_service
 from shared.async_scheduler import AsyncScheduler
 
 
