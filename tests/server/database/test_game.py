@@ -2,6 +2,7 @@
 
 from server.db.sql_repo import GameRepositorySQL
 from server.db.engine import create_engine_for_environment
+from shared.types.enums import GamePhase
 from uuid import uuid4
 
 def test_create_game_and_find_game_by_id():
@@ -11,6 +12,15 @@ def test_create_game_and_find_game_by_id():
     result = game_repository_sql.find_by_game_id(game.id)
     assert result is not None
     assert game.id == result.id
+
+def test_find_active_games():
+    """Create an instance of the table Game, set the game phase to game and raise an AssertionError if the row is not found by looking for active games"""
+    game_repository_sql = GameRepositorySQL(create_engine_for_environment("test"))
+    game = game_repository_sql.create_game(7, uuid4())
+    game.game_phase = GamePhase.GAME
+    game_repository_sql.update_game(game)
+    results = game_repository_sql.find_active_games()
+    assert game in results
 
 def test_update_game():
     """Create and update an instance of the table Game and raise an AssertionError if the row was not updated in the table"""
