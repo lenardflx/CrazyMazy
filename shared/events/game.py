@@ -30,11 +30,15 @@ class ClientCreateLobbyEvent(Event):
 
     board_size: int
     player_name: str
+    insert_timeout: int
+    move_timeout: int
 
     def to_payload(self) -> Mapping[str, Any]:
         payload: ClientCreateLobbyPayload = {
             "board_size": self.board_size,
             "player_name": self.player_name,
+            "insert_timeout": self.insert_timeout,
+            "move_timeout": self.move_timeout,
         }
         return payload
 
@@ -42,12 +46,16 @@ class ClientCreateLobbyEvent(Event):
     def from_message(cls, msg: Message) -> Self | None:
         board_size = parse_int(msg["payload"].get("board_size"))
         player_name = parse_str(msg["payload"].get("player_name"))
+        insert_timeout = parse_int(msg["payload"].get("insert_timeout"))
+        move_timeout = parse_int(msg["payload"].get("move_timeout"))
         if board_size is None or player_name is None or not player_name.strip():
             return None
         return cls(
             message_id=msg["id"],
             board_size=board_size,
             player_name=player_name.strip(),
+            insert_timeout=insert_timeout,
+            move_timeout=move_timeout,
         )
 
 
