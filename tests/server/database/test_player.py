@@ -13,7 +13,7 @@ def test_create_player_and_find_by_id():
     assert result is not None
     assert player.id == result.id
 
-def list_by_game_id(self, game_id: UUID) -> list[PlayerData]:
+def list_by_game_id():
     """Create an instance of the table Player and raise an AssertionError if the row is not found using game_id"""
     player_repository_sql = PlayerRepositorySQL(create_engine_for_environment("test"))
     player = player_repository_sql.create_player("Name", f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
