@@ -22,8 +22,8 @@ class SettingsScreen(MenuScreen):
 
     SECTION_LAYOUT: list[tuple[str, int, int]] = [
         ("Sound", 0, 0),
-        ("Graphics", 0, 232),
-        ("Language", 420, 232),
+        ("Graphics", 0, 240),
+        ("Language", 280, 240),
     ]
 
     CONTROL_LAYOUT: list[int] = [60, 136, 208, 294]
@@ -38,6 +38,7 @@ class SettingsScreen(MenuScreen):
         settings = self.scene_manager.client_settings
         self.content_area = pg.Rect(self.content_rect.x, self.content_rect.y + 64, self.content_rect.width, self.content_rect.height - 84)
         control_width = self.content_area.width
+        self.language = settings.get_language()
 
         # Sliders for master, music, effects and language channels
         self.control_sliders = [
@@ -45,16 +46,16 @@ class SettingsScreen(MenuScreen):
             Slider(pg.Rect(0, 166, control_width, 12), "Music Volume", settings.get_music_volume()),
             Slider(pg.Rect(0, 240, control_width, 12), "Effects Volume", settings.get_effects_volume()),
         ]
-        self.fullscreen_checkbox = Checkbox(pg.Rect(0, 320, 128, 32), "Fullscreen", settings.fullscreen)
+        self.fullscreen_checkbox = Checkbox(pg.Rect(0, 324, 128, 32), "Fullscreen", settings.fullscreen)
         # Apply button to explicitly save settings (live changes also auto-save, this makes the intention explicit)
         self.apply_button = Button(
-                pg.Rect(800, 566, 120, 46),
+                pg.Rect(860, 580, 120, 46),
                 "Apply",
                 lambda: self._sync_settings(),
-)
-        #FIXME: Language Buttons umgehen akzeptanz der Einstellung von apply_settings() -> schickt direkt an app_data, vielleicht ändern?
-        self.english_language_button = Button(pg.Rect(660, 496, 120, 46), "english", lambda: self.scene_manager.client_settings.set_language(0))
-        self.german_language_button = Button(pg.Rect(860, 496, 120, 46), "german", lambda: self.scene_manager.client_settings.set_language(1))
+        )
+
+        self.english_button = Button(pg.Rect(520, 500, 120, 46), "English", lambda: self.__set_language(0), variant = "primary" if self.language == 0 else "secondary")
+        self.german_button =  Button(pg.Rect(660, 500, 120, 46), "German", lambda: self.__set_language(1), variant = "primary" if self.language == 1 else "secondary")
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
@@ -62,6 +63,7 @@ class SettingsScreen(MenuScreen):
         settings.set_master_volume(self.control_sliders[0].value)
         settings.set_music_volume(self.control_sliders[1].value)
         settings.set_effects_volume(self.control_sliders[2].value)
+        settings.set_language(self.language)
         settings.set_fullscreen(self.fullscreen_checkbox.value)
         self.scene_manager.apply_fullscreen(self.fullscreen_checkbox.value)
 
@@ -71,8 +73,8 @@ class SettingsScreen(MenuScreen):
         controls: list[Slider | Checkbox | Button] = [*self.control_sliders,
                                                         self.fullscreen_checkbox,
                                                         self.apply_button,
-                                                        self.german_language_button,
-                                                        self.english_language_button]
+                                                        self.english_button,
+                                                        self.german_button,]
         
         for control, y in zip(controls, self.CONTROL_LAYOUT, strict=False):
             control.rect.x = left
@@ -83,6 +85,7 @@ class SettingsScreen(MenuScreen):
         self._apply_layout()
         changed = False
         pointer_in_content = self.content_area.inflate(0, 20).collidepoint(getattr(event, "pos", (-1, -1)))
+        
         for slider in self.control_sliders:
             if pointer_in_content:
                 changed = slider.handle_event(event) or changed
@@ -90,6 +93,10 @@ class SettingsScreen(MenuScreen):
             changed = self.fullscreen_checkbox.handle_event(event) or changed
 
         self.apply_button.handle_event(event)
+
+        self.english_button.handle_event(event)
+        self.german_button.handle_event(event)
+
         if changed:
             prev_fullscreen = self.scene_manager.client_settings.fullscreen
             settings = self.scene_manager.client_settings
@@ -112,8 +119,8 @@ class SettingsScreen(MenuScreen):
             slider.draw(self.surface, self.body_font, self.small_font)
         self.fullscreen_checkbox.draw(self.surface, self.body_font)
         self.apply_button.draw(self.surface, self.button_font)
-        self.english_language_button.draw(self.surface, self.button_font)
-        self.german_language_button.draw(self.surface, self.button_font)
+        self.english_button.draw(self.surface, self.button_font)
+        self.german_button.draw(self.surface, self.button_font)
 
     def _draw_section_header(self, title: str, x: int, y: int) -> None:
         """Render a bold section label at the given vertical offset within the content area.
@@ -124,3 +131,9 @@ class SettingsScreen(MenuScreen):
         header_y = self.content_area.y + y
         label = self.section_font.render(title, True, TEXT_PRIMARY)
         self.surface.blit(label, (header_x, header_y))
+
+    #Ändere Sprache
+    def __set_language(self, val):
+        self.language = val
+        self.english_button.variant = "primary" if self.language == 0 else "secondary"
+        self.german_button.variant = "primary" if self.language == 1 else "secondary"
