@@ -56,8 +56,8 @@ class CreateLobbyScreen(MenuScreen):
         sizes = tuple(sorted(VALID_BOARD_SIZES))
         insert_timeouts = tuple(sorted(VALID_INSERT_TIMEOUTS))
         move_timeouts = tuple(sorted(VALID_MOVE_TIMEOUTS))
-        self._insert_timeout_values = insert_timeouts + (-1,)
-        self._move_timeout_values = move_timeouts + (-1,)
+        self._insert_timeout_values = insert_timeouts + (None,)
+        self._move_timeout_values = move_timeouts + (None,)
         self.size_buttons = self._build_option_buttons(
             center_x,
             board_size_row_y,
@@ -193,11 +193,12 @@ class CreateLobbyScreen(MenuScreen):
         return self._move_timeout_values.index(timeout)
 
     def _format_timeout(self, timeout: int) -> str:
-        return "Off" if timeout == -1 else f"{timeout} Sec"
+        return "Off" if timeout is None else f"{timeout} Sec"
 
     def _create_lobby(self) -> None:
         """Submit the form and request the server to create a new lobby with the entered name and selected board size."""
         form = self.scene_manager.runtime_state.create_lobby
+        print(f"creating lobby with {form.insert_timeout}, {form.move_timeout}")
         error = self.scene_manager.lobby_service.create_lobby(
             self.name_input.text,
             form.board_size,

@@ -217,15 +217,16 @@ class GameScreen(BaseScreen):
         status = self.title_font.render(turn_text, True, TEXT_PRIMARY)
         self.surface.blit(status, (rect.left + 10, rect.top + 8))
 
+        turn_end = self._game_snapshot.turn.turn_end_timestamp
+        if turn_end is None:
+            return
+
         timer_rect = pg.Rect(rect.right - 145, rect.top + 8, 130, 50)
         draw_pixel_rect(surface=self.surface, rect=timer_rect, fill=PANEL_ALT, border=PANEL_SHADOW)
 
         now = time.time_ns() // 1_000_000
-        turn_end = self._game_snapshot.turn.turn_end_timestamp
 
-        if turn_end is None:
-            timer_content = "--:--"
-        elif now > turn_end:
+        if now > turn_end:
             timer_content = "00:00"
         else:
             timer_content = format_ms_to_clock(turn_end - now)
