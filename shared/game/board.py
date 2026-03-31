@@ -471,7 +471,9 @@ class Board:
         return 0 in position or self.width in position
 
     def insertion_shift_coordinates(self, position : tuple[int, int]) -> list[tuple[int,int]]:
-        '''returns a list with the coordinates of all tiles that move after an insertion'''
+        '''
+        returns a list with the coordinates of all tiles that move after an insertion
+        '''
 
         x,y = position
         moved_tiles = []
@@ -509,6 +511,41 @@ class Board:
                 moved_tiles += [(x, i)]
 
         return moved_tiles
+
+    def position_after_insert(self, position: Position, insert_coordinates : Position) -> Position | None:
+        """
+        return the position of a tile at "position" after an insertion at insert_coordinates
+        """
+
+        # is the tile affected by an insertion
+        if position in self.insertion_shift_coordinates(position):
+            x, y = position
+
+            # --- Horizontal insertion from the left ---
+            if x == 0:
+                if position[0] != self.width-1:
+                    return position[0]+1,position[1]
+                return None
+
+            # --- Horizontal insertion from the right ---
+            if x == self.width - 1:
+                if position[0] != 0:
+                    return position[0]-1, position[1]
+                return None
+
+            # --- Vertical insertion from the top ---
+            if y == 0:
+                if position[1] != self.width-1:
+                    return position[0], position[1]+1
+                return None
+
+            # --- Vertical insertion from the bottom ---
+            if y == self.width - 1:
+                if position[1] != 0:
+                    return position[0],position[1]-1
+                return None
+
+        return position
 
     def change_board(self, new_board: dict):
         """
