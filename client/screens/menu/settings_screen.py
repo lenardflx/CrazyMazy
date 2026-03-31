@@ -20,9 +20,10 @@ class SettingsScreen(MenuScreen):
     Changes are applied live to the audio manager and persisted immediately to the JSON settings file.
     """
 
-    SECTION_LAYOUT: list[tuple[str, int]] = [
-        ("Sound", 0),
-        ("Graphics", 232),
+    SECTION_LAYOUT: list[tuple[str, int, int]] = [
+        ("Sound", 0, 0),
+        ("Graphics", 0, 232),
+        ("Language", 420, 232),
     ]
 
     CONTROL_LAYOUT: list[int] = [60, 136, 208, 294]
@@ -47,13 +48,13 @@ class SettingsScreen(MenuScreen):
         self.fullscreen_checkbox = Checkbox(pg.Rect(0, 320, 128, 32), "Fullscreen", settings.fullscreen)
         # Apply button to explicitly save settings (live changes also auto-save, this makes the intention explicit)
         self.apply_button = Button(
-                pg.Rect(720, 500, 120, 46),
+                pg.Rect(800, 566, 120, 46),
                 "Apply",
                 lambda: self._sync_settings(),
 )
         #FIXME: Language Buttons umgehen akzeptanz der Einstellung von apply_settings() -> schickt direkt an app_data, vielleicht ändern?
-        self.english_language_button = Button(pg.Rect(100, 700, 120, 46), "english", lambda: self.scene_manager.client_settings.set_language(0))
-        self.german_language_button = Button(pg.Rect(300, 700, 120, 46), "german", lambda: self.scene_manager.client_settings.set_language(1))
+        self.english_language_button = Button(pg.Rect(660, 496, 120, 46), "english", lambda: self.scene_manager.client_settings.set_language(0))
+        self.german_language_button = Button(pg.Rect(860, 496, 120, 46), "german", lambda: self.scene_manager.client_settings.set_language(1))
 
     def _sync_settings(self) -> None:
         """Read all control values, write them to ClientData, and apply audio and fullscreen changes."""
@@ -105,8 +106,8 @@ class SettingsScreen(MenuScreen):
         """Draw section headers and all controls."""
         super().draw_content(rect)
         self._apply_layout()
-        for title, y in self.SECTION_LAYOUT:
-            self._draw_section_header(title, y)
+        for title, x, y in self.SECTION_LAYOUT:
+            self._draw_section_header(title, x, y)
         for slider in self.control_sliders:
             slider.draw(self.surface, self.body_font, self.small_font)
         self.fullscreen_checkbox.draw(self.surface, self.body_font)
@@ -114,11 +115,12 @@ class SettingsScreen(MenuScreen):
         self.english_language_button.draw(self.surface, self.button_font)
         self.german_language_button.draw(self.surface, self.button_font)
 
-    def _draw_section_header(self, title: str, y: int) -> None:
+    def _draw_section_header(self, title: str, x: int, y: int) -> None:
         """Render a bold section label at the given vertical offset within the content area.
 
         :param y: Offset in pixels from the top of the content area.
         """
+        header_x = self.content_area.x + x
         header_y = self.content_area.y + y
         label = self.section_font.render(title, True, TEXT_PRIMARY)
-        self.surface.blit(label, (self.content_area.x, header_y))
+        self.surface.blit(label, (header_x, header_y))
