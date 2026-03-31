@@ -185,7 +185,8 @@ class Board:
     # -------------------------------------------------------------------------
 
     def reachable_positions(self, start: Position) -> set[Position]:
-        return set(self.pathfind(start))
+        positions, _ = self.pathfind(start)
+        return set(positions)
 
     def can_reach(self, start: Position, destination: Position) -> bool:
         return destination in self.reachable_positions(start)
@@ -193,30 +194,43 @@ class Board:
     def path_to(self, start: Position, destination: Position) -> list[Position] | None:
         if not self.can_reach(start, destination):
             return None
-        # TODO: Replace this placeholder with the real path reconstruction algorithm.
-        return [start, destination]
 
-    def pathfind(self, position: Position, visited: list[Position] | None = None) -> list[Position]:
-        """
-        Depth‑first search to find all reachable tiles from a starting position.
-        """
+        _, parent = self.pathfind(start)
+
+        if destination not in parent:
+            return None
+
+        # Pfad rekonstruieren
+        path = [destination]
+        while path[-1] != start:
+            path.append(parent[path[-1]])
+        path.reverse()
+        return path
+
+    def pathfind(self, position: Position,
+                 visited: list[Position] | None = None,
+                 parent: dict[Position, Position] | None = None
+                 ) -> tuple[list[Position], dict[Position, Position]]:
+
         if visited is None:
             visited = []
+        if parent is None:
+            parent = {}
+            parent[position] = position
 
         visited.append(position)
+
 
         # Explore all 4 directions
         for d in range(4):
             direction = TileOrientation(d)
             neighbour = self.get_neighbour(position, direction)
-
-            # can I move to this neighbour?
             if neighbour and neighbour not in visited:
                 if self.move_possible(position, direction):
-                    self.pathfind(neighbour, visited)
+                    parent[neighbour] = position
+                    self.pathfind(neighbour, visited, parent)
 
-        # return all visited (which means all reachable) tiles
-        return visited
+        return visited, parent
 
     # -------------------------------------------------------------------------
     # Board construction
