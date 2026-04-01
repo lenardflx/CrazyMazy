@@ -10,7 +10,7 @@ from server.db.memory_repo import (
 )
 from server.service import GameService
 from shared.protocol import ErrorCode
-from shared.types.enums import GameEndReason, GamePhase, InsertionSide, PlayerResult, PlayerStatus, TurnPhase
+from shared.types.enums import GameEndReason, GamePhase, InsertionSide, PlayerLeaveReason, PlayerResult, PlayerStatus, TurnPhase
 
 
 def make_service() -> GameService:
@@ -141,6 +141,32 @@ def test_get_connection_state_returns_game_and_player() -> None:
     assert state is not None
     assert state.game.id == created.game.id
     assert state.player.id == created.player.id
+
+
+def test_get_connection_state_prefers_newest_session_when_connection_id_is_duplicated() -> None:
+    service = make_service()
+    old = service.create_lobby(7, "Ada", "conn_1")
+    new = service.create_lobby(7, "Bea", "conn_1")
+
+    state = service.get_connection_state("conn_1")
+
+    assert state is not None
+    assert state.game.id == new.game.id
+    assert state.player.id == new.player.id
+    assert state.game.id != old.game.id
+
+
+def test_leave_game_clears_connection_id_even_when_player_was_already_departed() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    created.player.status = PlayerStatus.DEPARTED
+    service.player_repo.update_player(created.player)
+
+    state = service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
+
+    assert state is None
+    player = service.player_repo.find_by_id(created.player.id)
+    assert player is None or player.connection_id is None
 
 
 def test_leave_game_transfers_leadership_to_next_active_player() -> None:

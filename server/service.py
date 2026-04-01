@@ -265,10 +265,12 @@ class GameService:
         if game is None:
             return ErrorCode.GAME_NOT_FOUND
 
-        if reason == PlayerLeaveReason.LEFT and player.status != PlayerStatus.DEPARTED:
-            player.status = PlayerStatus.DEPARTED
-            player.connection_id = None
-            player.left_at = utcnow()
+        if reason == PlayerLeaveReason.LEFT:
+            if player.status != PlayerStatus.DEPARTED:
+                player.status = PlayerStatus.DEPARTED
+                player.left_at = utcnow()
+            if player.connection_id is not None:
+                player.connection_id = None
             self.player_repo.update_player(player)
         elif reason == PlayerLeaveReason.KICKED:
             if player.controller_kind == PlayerControllerKind.HUMAN:

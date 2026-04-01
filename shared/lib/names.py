@@ -10,6 +10,22 @@ DISPLAY_NAMES: tuple[str, ...] = (
     "Orange Man",
     "Sleepy Joe",
     "Mama Merkel",
+    "GEGEN MERKEL",
+    "Scheiß AfD",
+    "GommeHD",
+    "Bayrischer Foodblogger",
+    "Linksgrün versifft",
+    "UwU",
+    "FotzenFritz",
+    "Obamna",
+    "Furry Fox",
+    "Männer in die Küche",
+    "ROOOOBERT",
+    "161 Alerta",
+    "Skibidi Toilet",
+    "Amogus",
+    "Charlie Kirkie",
+    "FRANZOSEN GRRR"
 )
 
 
