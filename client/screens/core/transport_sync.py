@@ -96,7 +96,7 @@ class TransportSync:
         move = game_state.last_move
         self._runtime.game.move_animation = (
             None
-            if move is None or len(move.path) < 2
+            if move is None or (len(move.path) < 2 and move.collected_treasure_type is None)
             else PlayerMoveAnimation(
                 player_id=move.player_id,
                 path=move.path,
