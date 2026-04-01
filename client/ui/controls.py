@@ -392,6 +392,7 @@ class Slider:
         self.value_formatter = value_formatter
         self.show_steps = show_steps
         self.dragging = False
+        self._drag_value_changed = False
 
     def _set_from_mouse(self, x: int) -> bool:
         previous_value = self.value
@@ -406,18 +407,23 @@ class Slider:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.rect.inflate(0, 24).collidepoint(event.pos):
             self.dragging = True
             changed = self._set_from_mouse(event.pos[0])
-            if changed:
+            self._drag_value_changed = changed
+            if changed and self.show_steps:
                 _play_ui_sfx("button_click")
             return True
         if event.type == pg.MOUSEBUTTONUP and event.button == 1:
+            if self.dragging and self._drag_value_changed and not self.show_steps:
+                _play_ui_sfx("button_click")
             self.dragging = False
+            self._drag_value_changed = False
             return False
         if event.type == pg.MOUSEMOTION and self.dragging:
             changed = self._set_from_mouse(event.pos[0])
-            if changed:
+            self._drag_value_changed = self._drag_value_changed or changed
+            if changed and self.show_steps:
                 _play_ui_sfx("button_click")
                 return True
-            return False
+            return changed
         return False
 
     def draw(self, surface: pg.Surface, label_font: pg.font.Font, value_font: pg.font.Font) -> None:
