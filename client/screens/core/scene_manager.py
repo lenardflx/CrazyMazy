@@ -45,8 +45,6 @@ class SceneManager:
         self.audio = audio
         self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
-        self.runtime_state.create_lobby.insert_timeout = 60 if 60 in VALID_INSERT_TIMEOUTS else VALID_INSERT_TIMEOUTS[0]
-        self.runtime_state.create_lobby.move_timeout = 60 if 60 in VALID_MOVE_TIMEOUTS else VALID_MOVE_TIMEOUTS[0]
         self.tutorial_session: TutorialSession | None = None
         self.prompt_tutorial_on_main_menu = not self.client_settings.get_tutorial()
         self.settings_return_scene = SceneTypes.MAIN_MENU
@@ -135,7 +133,7 @@ class SceneManager:
     def sync_transport(self) -> None:
         target, error = self._transport_sync.sync()
         if error is not None:
-            self.current_screen.error_message = language_service.get_message(error)
+            self.current_screen.set_error_message(language_service.get_message(error))
         if target is not None:
             self.go_to(target)
 

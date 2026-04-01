@@ -83,9 +83,9 @@ def blend_color(start: Color, end: Color, amount: float) -> Color:
     )
 
 
-def render_text(font_obj: pg.font.Font, text: str, color: Color) -> pg.Surface:
+def render_text(font_obj: pg.font.Font, text: str, color: Color, opacity: float = 1.0) -> pg.Surface:
     """Render UI text without anti-aliasing so it reads closer to pixel art."""
-    return font_obj.render(text, False, color)
+    return font_obj.render(text, False, (color[0], color[1], color[2], 255 * opacity))
 
 
 def _pixel_cut(rect: pg.Rect) -> int:
