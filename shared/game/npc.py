@@ -150,7 +150,7 @@ class Npc:
         current_position: Position,
         target_position: Position | None,
         target_on_spare: bool,
-    ) -> tuple[Position | None, Position | None]:
+    ) -> tuple[Position | None, Position | None, int]:
         best_so_far = [] # best coordinates so far
         best_value = [board.width**2] # best distance to the target so far
         best_insertion = [] # insertion that was done to get the best_value
@@ -193,7 +193,7 @@ class Npc:
                     if current_treasure_coordinates in reachable_tiles:
                         best_insertion = [insertion] + best_insertion
                         best_so_far = [current_treasure_coordinates] + best_so_far
-                        return current_treasure_coordinates, best_insertion[0]
+                        return current_treasure_coordinates, best_insertion[0], 0
 
                     # get the closest to the treasure
                     else:
@@ -205,19 +205,20 @@ class Npc:
                     # rotate spare for next try
                     board_copy.spare.rotate_right()
 
-        return best_so_far[(self.parse_difficulty(len(best_so_far)))], best_insertion[self.parse_difficulty(len(best_insertion))]
+        return best_so_far[(self.parse_difficulty(len(best_so_far)))], best_insertion[self.parse_difficulty(len(best_insertion))], best_rotation[self.parse_difficulty(len(best_rotation))]
 
     def _build_turn(
         self,
         board: Board,
         best_insertion: Position,
         best_so_far: Position | None,
+        best_rotation
     ) -> NpcTurn:
         return NpcTurn(
             shift_side=board.convert_insertion(best_insertion[0], best_insertion[1])[0],
             shift_index=board.convert_insertion(best_insertion[0], best_insertion[1])[1],
             # TODO: Each Rotation
-            shift_rotation=0,
+            shift_rotation=best_rotation,
             move_to=(best_so_far[0], best_so_far[1]) if best_so_far is not None else None,
         )
 
@@ -237,7 +238,7 @@ class Npc:
             raise ValueError("NPC target is missing from both board and spare tile")
 
         # TODO: Use self.difficulty to vary insertion search breadth and move-selection heuristics.
-        best_so_far, best_insertion = self._find_best_move(
+        best_so_far, best_insertion, best_rotation = self._find_best_move(
             board,
             insertion_tiles,
             current_position,
@@ -247,4 +248,4 @@ class Npc:
         if best_insertion is None:
             # NOTE: could be resolved but sometimes it was None, so determinic fallback
             best_insertion = insertion_tiles[0]
-        return self._build_turn(board, best_insertion, best_so_far)
+        return self._build_turn(board, best_insertion, best_so_far, best_rotation)
