@@ -26,7 +26,7 @@ from client.ui.theme import (
     render_text,
 )
 
-type ButtonIcon = Literal["dice", "flag_de", "flag_en", "arrow_left", "arrow_right", "arrow_up", "arrow_down"]
+type ButtonIcon = Literal["dice", "flag_de", "flag_en", "arrow_left", "arrow_right", "arrow_up", "arrow_down", "star"]
 
 
 class Button:
@@ -44,6 +44,7 @@ class Button:
         "arrow_right": "_draw_icon_arrow_right",
         "arrow_up": "_draw_icon_arrow_up",
         "arrow_down": "_draw_icon_arrow_down",
+        "star": "_draw_icon_star",
     }
 
     def __init__(
@@ -166,6 +167,23 @@ class Button:
 
     def _draw_icon_arrow_down(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
         self._draw_icon_arrow(surface, color, rect, "down")
+
+    def _draw_icon_star(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        icon = self._icon_rect(rect, width=22, height=22)
+        cx, cy = icon.center
+        points = [
+            (cx, cy - 9),
+            (cx + 3, cy - 3),
+            (cx + 10, cy - 2),
+            (cx + 5, cy + 3),
+            (cx + 7, cy + 10),
+            (cx, cy + 6),
+            (cx - 7, cy + 10),
+            (cx - 5, cy + 3),
+            (cx - 10, cy - 2),
+            (cx - 3, cy - 3),
+        ]
+        pg.draw.polygon(surface, color, points)
 
     def _draw_icon_flag_de(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
         del color

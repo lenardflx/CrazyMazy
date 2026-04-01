@@ -58,7 +58,7 @@ class SceneManager:
         self.current_screen: BaseScreen | None = None
 
         # Transport sync
-        self._transport_sync = TransportSync(transport_state, self.runtime_state)
+        self._transport_sync = TransportSync(transport_state, self.runtime_state, self.client_settings)
 
         # Apply the initial audio settings
         self.audio.apply_settings(

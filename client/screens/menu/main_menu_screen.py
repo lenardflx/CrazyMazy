@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.config import WINDOW_TITLE
+from client.config import SERVER_HOST, SERVER_PORT, WINDOW_TITLE
 from client.ui.controls import Button
 from client.screens.menu.menu_screen import MenuScreen
 from client.screens.core.scene_types import SceneTypes
+from client.ui.theme import TEXT_MUTED, render_text
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -31,6 +32,13 @@ class MainMenuScreen(MenuScreen):
                 ("Options", SceneTypes.SETTINGS, "secondary"),
                 ("Quit", self._quit, "secondary"),
             ],
+        )
+        self.stats_button = Button(
+            pg.Rect(36, surface.get_height() - 84, 56, 56),
+            "",
+            lambda: self.scene_manager.go_to(SceneTypes.STATS),
+            variant="secondary",
+            icon="star",
         )
         
         if self.scene_manager.prompt_tutorial_on_main_menu:
@@ -58,3 +66,21 @@ class MainMenuScreen(MenuScreen):
     def _post_quit(self) -> None:
         """Post a QUIT event into the Pygame event queue, which the main loop handles to exit cleanly."""
         pg.event.post(pg.event.Event(pg.QUIT))
+
+    def handle_content_event(self, event: pg.event.Event) -> None:
+        super().handle_content_event(event)
+        self.stats_button.handle_event(event)
+
+    def draw_content(self, rect: pg.Rect) -> None:
+        super().draw_content(rect)
+        self.stats_button.draw(self.surface, self.button_font)
+
+        connection_label = render_text(
+            self.xs_font,
+            f"Connected to: {SERVER_HOST}:{SERVER_PORT}",
+            TEXT_MUTED,
+        )
+        connection_rect = connection_label.get_rect(
+            bottomright=(self.surface.get_width() - 16, self.surface.get_height() - 16)
+        )
+        self.surface.blit(connection_label, connection_rect)

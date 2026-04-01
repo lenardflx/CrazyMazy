@@ -53,6 +53,7 @@ class MenuScreen(BaseScreen):
         self.section_font = font(24)
         self.body_font = font(18)
         self.small_font = font(16)
+        self.xs_font = font(14)
         self.button_font = font(20)
 
         width, height = self.surface.get_size()

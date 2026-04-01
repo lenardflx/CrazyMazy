@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from client.state.languages import languages as langs
+from client.state.stats_data import Stats
 
 from shared.paths import BASE_DIR
 
@@ -32,6 +33,7 @@ class ClientData:
         self.language: langs = langs.ENGLISH
 
         self.tutorial: bool = False
+        self.stats = Stats()
 
         os.makedirs(os.path.dirname(BASE_DIR / "data/app_data.json"), exist_ok=True)
 
@@ -112,8 +114,12 @@ class ClientData:
     def get_tutorial(self) -> bool:
         return self.tutorial
 
+    def get_stats(self) -> Stats:
+        """Return the persisted local multiplayer stats section."""
+        return self.stats
+
     def write_JSON(self) -> None:
-        """Persist the current settings to data/app_data.json."""
+        """Persist the current settings and nested stats to ``data/app_data.json``."""
         setting_values = {
             "master_volume": self.get_master_volume(),
             "music_volume": self.get_music_volume(),
@@ -122,12 +128,18 @@ class ClientData:
             "name": self.get_name(),
             "language": self.get_language().value,
             "tutorial": self.get_tutorial(),
+            "stats": self.stats.to_dict(),
         }
         with open(BASE_DIR / "data/app_data.json", mode="w", encoding="utf-8") as f:
-            json.dump(setting_values, f)
+            json.dump(setting_values, f, indent=4)
 
     def read_JSON(self) -> None:
-        """Load settings from data/app_data.json. Silently does nothing if the file is missing or malformed."""
+        """Load settings and stats from ``data/app_data.json``.
+
+        Silently does nothing if the file is missing or malformed. The
+        ``stats`` section is delegated to :class:`client.state.stats_data.Stats`
+        for parsing so old files keep loading safely.
+        """
         try:
             with open(BASE_DIR / "data/app_data.json", mode="r", encoding="utf-8") as f:
                 read_app_data = json.load(f)
@@ -149,5 +161,7 @@ class ClientData:
                     self.set_language(val)
                 case "tutorial":
                     self.set_tutorial(val)
+                case "stats":
+                    self.stats = Stats.from_dict(val)
                 case other:
                     raise NotImplementedError("attribute not implemented in json: " + other)
