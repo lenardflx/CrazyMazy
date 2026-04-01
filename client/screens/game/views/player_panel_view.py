@@ -49,6 +49,7 @@ class PlayerPanelView:
         players = game_state.ordered_players
         if post_game:
             players = [player for player in players if player.placement is not None]
+            players.sort(key=lambda player: (player.placement, player.join_order))
         if not players:
             return
 

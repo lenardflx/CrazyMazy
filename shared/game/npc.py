@@ -6,7 +6,6 @@ from uuid import UUID
 
 from shared.game.board import Board, Position
 from shared.types.enums import InsertionSide, NpcDifficulty
-from random import randint
 
 
 @dataclass(slots=True, frozen=True)
@@ -99,16 +98,15 @@ class Npc:
         """
         used by _find_best_move() to choose which move the Npc should choose, based on their set difficulty. Returns an index for the best_so_far or best_insertion list
         """
-
-        # amplifier value to amplify the difficulty level of the Npc's
-        amplifier = 3
+        if lenght <= 1:
+            return 0
 
         difficulty_dicti = {
-            NpcDifficulty.HARD : 0,
-            NpcDifficulty.NORMAL : 1*amplifier,
-            NpcDifficulty.EASY : 2*amplifier
+            NpcDifficulty.HARD: 0,
+            NpcDifficulty.NORMAL: lenght // 3,
+            NpcDifficulty.EASY: (2 * lenght) // 3,
         }
-        return int((lenght/10) * difficulty_dicti[self.difficulty])
+        return min(lenght - 1, difficulty_dicti[self.difficulty])
 
     def insert_best_so_far(
             self,
@@ -126,7 +124,7 @@ class Npc:
         """
 
         if len(best_so_far) == 0:
-            return [new_position], [new_insertion], [0], [new_value]
+            return [new_position], [new_insertion], [rotation], [new_value]
 
         # find index for insertion in best_so_far
         i = 0
@@ -182,6 +180,10 @@ class Npc:
                 for rotation in range(4):
 
                     board_copy: Board = deepcopy(board)  # copy board to make non-permanent insertions
+                    if board_copy.spare is None:
+                        raise ValueError("NPC turn requires a spare tile")
+                    for _ in range(rotation):
+                        board_copy.spare.rotate_right()
 
                     # make an insertion
                     board_copy.insert_tile(insertion[0], insertion[1])
@@ -193,18 +195,19 @@ class Npc:
                     if current_treasure_coordinates in reachable_tiles:
                         best_insertion = [insertion] + best_insertion
                         best_so_far = [current_treasure_coordinates] + best_so_far
-                        return current_treasure_coordinates, best_insertion[0], 0
+                        return current_treasure_coordinates, best_insertion[0], rotation
 
                     # get the closest to the treasure
                     else:
+                        # Prefer any movement over staying on the same tile. This was the main reason for a stuck loop
+                        candidate_positions = reachable_tiles - {current_position_after_insert}
+                        # If there is no alternative, allow staying in place
+                        if not candidate_positions:
+                            candidate_positions = reachable_tiles
                         # check distance to the treasure of every reachable tile and change best_so_far if there is a closer tile
-                        for position in reachable_tiles:
+                        for position in candidate_positions:
                             distance = self.get_distance(position, current_treasure_coordinates)
                             best_so_far, best_insertion, best_rotation, best_value = self.insert_best_so_far(best_so_far, best_insertion, best_rotation, best_value, position, insertion, rotation, distance)
-
-                    # rotate spare for next try
-                    board_copy.spare.rotate_right()
-
         return best_so_far[(self.parse_difficulty(len(best_so_far)))], best_insertion[self.parse_difficulty(len(best_insertion))], best_rotation[self.parse_difficulty(len(best_rotation))]
 
     def _build_turn(

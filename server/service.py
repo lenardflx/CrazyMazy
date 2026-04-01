@@ -789,23 +789,34 @@ class GameService:
         finished_at_fallback = utcnow()
         placement = 2 if winner_id is not None else 1
 
+        player_collected_counts = {
+            player.id: sum(1 for treasure in self.treasure_repo.list_by_player_id(player.id) if treasure.collected)
+            for player in players
+        }
+
         ranked_players = sorted(
             (player for player in players if player.status != PlayerStatus.DEPARTED and player.id != winner_id),
             key=lambda player: (
-                player.status == PlayerStatus.OBSERVER,
+                -player_collected_counts[player.id],
                 player.finished_at or finished_at_fallback,
                 player.join_order,
             ),
         )
 
+        previous_rank_key: int | None = None
         for player in ranked_players:
-            player.placement = placement
+            rank_key = player_collected_counts[player.id]
+            if previous_rank_key is None or rank_key != previous_rank_key:
+                player.placement = placement
+                placement += 1
+                previous_rank_key = rank_key
+            else:
+                player.placement = placement - 1
             if player.status == PlayerStatus.OBSERVER:
                 player.result = PlayerResult.FORFEITED
             if player.finished_at is None:
                 player.finished_at = utcnow()
             self.player_repo.update_player(player)
-            placement += 1
 
     def _active_treasure(self, player_id: UUID) -> TreasureData | None:
         """Return the player's next uncollected treasure, or ``None`` if all are collected."""
