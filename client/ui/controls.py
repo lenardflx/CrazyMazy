@@ -360,7 +360,8 @@ class Checkbox:
             pg.draw.line(surface, ACCENT, (box.x + 5, box.y + 13), (box.x + 10, box.y + 18), 3)
             pg.draw.line(surface, ACCENT, (box.x + 10, box.y + 18), (box.x + 19, box.y + 7), 3)
         label = render_text(label_font, self.label, TEXT_PRIMARY)
-        surface.blit(label, (box.right + 16, self.rect.y))
+        label_rect = label.get_rect(midleft=(box.right + 16, box.centery))
+        surface.blit(label, label_rect)
 
 
 class Slider:
