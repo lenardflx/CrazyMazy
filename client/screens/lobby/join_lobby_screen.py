@@ -11,11 +11,12 @@ from shared.lib.names import generate_display_name
 from client.ui.theme import TEXT_MUTED, render_text
 from client.ui.controls import Button, TextInput
 from client.screens.menu.menu_screen import MenuScreen
+from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
-PLACEHOLDER_NAME = "Enter your Name"
+PLACEHOLDER_NAME = language_service.get_message(DisplayMessage.ENTER_NAME)
 
 class JoinLobbyScreen(MenuScreen):
     """
@@ -24,7 +25,7 @@ class JoinLobbyScreen(MenuScreen):
     """
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
-        super().__init__(surface, scene_manager, title="Join Lobby")
+        super().__init__(surface, scene_manager, title=language_service.get_message(DisplayMessage.LOBBY_JOIN))
         form = self.scene_manager.runtime_state.join_lobby
         center_x = self.content_rect.centerx
         stored_name = scene_manager.client_settings.get_name()
@@ -42,13 +43,13 @@ class JoinLobbyScreen(MenuScreen):
         self.code_input = TextInput(pg.Rect(center_x - 110, self.content_rect.y + 216, 220, 46), form.join_code, placeholder="AB12", max_length=8)
         self.join_button = Button(
             pg.Rect(center_x - 90, self.content_rect.y + 274, 180, 48),
-            "Join With Code",
+            language_service.get_message(DisplayMessage.JOIN_CODE),
             self._join_lobby,
             variant="primary",
         )
         self.join_public_button = Button(
             pg.Rect(center_x - 90, self.content_rect.y + 356, 180, 48),
-            "Join Public",
+            language_service.get_message(DisplayMessage.JOIN_PUBLIC),
             self._join_public_lobby,
         )
 
@@ -90,11 +91,11 @@ class JoinLobbyScreen(MenuScreen):
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the form controls and any error messages."""
         super().draw_content(rect)
-        self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
+        self.name_input.draw(self.surface, self.small_font, self.body_font, language_service.get_message(DisplayMessage.PLAYER_NAME))
         self.random_name_button.draw(self.surface, self.button_font)
-        self.code_input.draw(self.surface, self.small_font, self.body_font, "Join Code")
+        self.code_input.draw(self.surface, self.small_font, self.body_font, language_service.get_message(DisplayMessage.JOIN_CODE))
         self.join_button.draw(self.surface, self.button_font)
-        or_label = render_text(self.small_font, "or", TEXT_MUTED)
+        or_label = render_text(self.small_font, language_service.get_message(DisplayMessage.GAME_OR), TEXT_MUTED)
         self.surface.blit(or_label, or_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 338)))
         self.join_public_button.draw(self.surface, self.button_font)
         if self.error_message:

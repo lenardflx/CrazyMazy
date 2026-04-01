@@ -3,6 +3,7 @@
 from __future__ import annotations
 import pygame
 from client.screens.core.base_screen import BaseScreen
+from client.lang import DisplayMessage, language_service
 
 #Dieser Screen wird angezeigt, wenn keine Verbindung zum Server aufgebaut werden kann
 class NoServerScreen(BaseScreen):
@@ -19,6 +20,6 @@ class NoServerScreen(BaseScreen):
     def draw(self) -> None:
         self.surface.fill((30, 30, 30))
         font = pygame.font.SysFont(None, 48)
-        text = font.render("Server not reachable", True, (220, 80, 80))
+        text = font.render(language_service.get_message(DisplayMessage.SERVER_NOT_REACHABLE), True, (220, 80, 80))
         rect = text.get_rect(center=self.surface.get_rect().center)
         self.surface.blit(text, rect)

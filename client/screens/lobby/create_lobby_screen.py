@@ -113,14 +113,14 @@ class CreateLobbyScreen(MenuScreen):
         )
 
         self._row_labels = [
-            ("Board Size", center_x, board_size_row_y - label_offset),
-            ("Lobby Type", type_group_center_x, settings_row_y - label_offset),
-            ("Player Limit", limit_group_center_x, settings_row_y - label_offset),
+            (language_service.get_message(DisplayMessage.BOARD_SIZE), center_x, board_size_row_y - label_offset),
+            (language_service.get_message(DisplayMessage.LOBBY_TYPE), type_group_center_x, settings_row_y - label_offset),
+            (language_service.get_message(DisplayMessage.PLAYER_LIMIT), limit_group_center_x, settings_row_y - label_offset),
         ]
 
         self.create_button = Button(
             pg.Rect(center_x - 92, move_timeout_row_y + 50, 184, 46),
-            "Create Lobby",
+            language_service.get_message(DisplayMessage.LOBBY_CREATE),
             self._create_lobby,
             variant="primary",
         )
@@ -242,7 +242,7 @@ class CreateLobbyScreen(MenuScreen):
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the form controls and any error messages."""
         super().draw_content(rect)
-        self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
+        self.name_input.draw(self.surface, self.small_font, self.body_font, language_service.get_message(DisplayMessage.PLAYER_NAME))
         self.random_name_button.draw(self.surface, self.button_font)
         for label, x, y in self._row_labels:
             rendered = render_text(self.body_font, label, TEXT_PRIMARY)

@@ -6,6 +6,7 @@ import pygame as pg
 
 from client.screens.menu.menu_screen import MenuScreen
 from client.ui.theme import ACCENT, PANEL_ALT, TEXT_MUTED, TEXT_PRIMARY, font, render_text
+from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -18,7 +19,7 @@ class StatsScreen(MenuScreen):
         super().__init__(
             surface,
             scene_manager,
-            title="Stats",
+            title=language_service.get_message(DisplayMessage.STATS),
             is_main_menu=False,
         )
         self.hero_font = font(34)
@@ -27,11 +28,11 @@ class StatsScreen(MenuScreen):
         super().draw_content(rect)
         stats = self.scene_manager.client_settings.get_stats()
         rows = [
-            ("Games Played", str(stats.games_played)),
-            ("Games Won", str(stats.games_won)),
-            ("Win Rate", f"{stats.win_rate_percent}%"),
-            ("Treasures Collected", str(stats.treasures_collected)),
-            ("Moves Made", str(stats.moves_made)),
+            (language_service.get_message(DisplayMessage.STATS_GAMES_PLAYED), str(stats.games_played)),
+            (language_service.get_message(DisplayMessage.STATS_GAMES_WON), str(stats.games_won)),
+            (language_service.get_message(DisplayMessage.STATS_WIN_RATE), f"{stats.win_rate_percent}%"),
+            (language_service.get_message(DisplayMessage.STATS_TREASURES), str(stats.treasures_collected)),
+            (language_service.get_message(DisplayMessage.STATS_MOVES), str(stats.moves_made)),
         ]
 
         center_x = self.content_rect.centerx
@@ -40,7 +41,7 @@ class StatsScreen(MenuScreen):
         rate_surface = render_text(self.hero_font, f"{stats.win_rate_percent}%", ACCENT)
         self.surface.blit(rate_surface, rate_surface.get_rect(center=(center_x, top_y + 18)))
 
-        rate_caption = render_text(self.body_font, "Win Rate", TEXT_PRIMARY)
+        rate_caption = render_text(self.body_font, language_service.get_message(DisplayMessage.STATS_WIN_RATE), TEXT_PRIMARY)
         self.surface.blit(rate_caption, rate_caption.get_rect(center=(center_x, top_y + 58)))
 
         divider_y = top_y + 98

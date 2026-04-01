@@ -11,6 +11,7 @@ from shared.types.enums import GamePhase, NpcDifficulty
 from client.ui.controls import Button
 from client.ui.theme import TEXT_MUTED, TEXT_PRIMARY
 from client.screens.menu.menu_screen import MenuScreen
+from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -26,19 +27,19 @@ class LobbyScreen(MenuScreen):
         super().__init__(surface, scene_manager, title="Lobby")
         self.player_panel_view = PlayerPanelView(self.content_rect, scene_manager.lobby_service)
         button_y = self.content_rect.bottom - 54
-        self.start_button = Button(pg.Rect(self.content_rect.x, button_y, 160, 44), "Start Game", self._start_game, variant="primary")
-        self.add_npc_button = Button(pg.Rect(self.content_rect.x + 180, button_y, 140, 44), "Add NPC", self._add_npc)
-        self.leave_button = Button(pg.Rect(self.content_rect.x + 340, button_y, 160, 44), "Leave Lobby", self._confirm_leave)
+        self.start_button = Button(pg.Rect(self.content_rect.x, button_y, 160, 44), language_service.get_message(DisplayMessage.GAME_START), self._start_game, variant="primary")
+        self.add_npc_button = Button(pg.Rect(self.content_rect.x + 180, button_y, 140, 44), language_service.get_message(DisplayMessage.GAME_ADD_NPC), self._add_npc)
+        self.leave_button = Button(pg.Rect(self.content_rect.x + 340, button_y, 160, 44), language_service.get_message(DisplayMessage.GAME_LEAVE_LOBBY), self._confirm_leave)
 
     def _add_npc(self) -> None:
         """Open a choice dialog letting the leader pick an NPC difficulty to add to the lobby."""
         self.show_choice(
-            "Add NPC",
-            "Choose the difficulty for the new NPC.",
+            language_service.get_message(DisplayMessage.GAME_ADD_NPC),
+            language_service.get_message(DisplayMessage.GAME_DIFFICULTY_CHOOSE),
             [
-                ("Easy NPC", lambda: self.scene_manager.game_service.add_npc(NpcDifficulty.EASY), "secondary"),
-                ("Normal NPC", lambda: self.scene_manager.game_service.add_npc(NpcDifficulty.NORMAL), "secondary"),
-                ("Hard NPC", lambda: self.scene_manager.game_service.add_npc(NpcDifficulty.HARD), "secondary"),
+                (language_service.get_message(DisplayMessage.GAME_NPC_EASY), lambda: self.scene_manager.game_service.add_npc(NpcDifficulty.EASY), "secondary"),
+                (language_service.get_message(DisplayMessage.GAME_NPC_MED), lambda: self.scene_manager.game_service.add_npc(NpcDifficulty.NORMAL), "secondary"),
+                (language_service.get_message(DisplayMessage.GAME_NPC_HARD), lambda: self.scene_manager.game_service.add_npc(NpcDifficulty.HARD), "secondary"),
             ],
         )
 
@@ -78,10 +79,10 @@ class LobbyScreen(MenuScreen):
             return
         code = self.section_font.render(f"Code: {game_state.code}", True, TEXT_PRIMARY)
         self.surface.blit(code, (self.content_rect.x, self.content_rect.y + 62))
-        size = self.body_font.render(f"Board Size: {game_state.board_size}", True, TEXT_MUTED)
+        size = self.body_font.render(language_service.get_message(DisplayMessage.GAME_NPC_EASY) + str(game_state.board_size), True, TEXT_MUTED)
         self.surface.blit(size, (self.content_rect.x, self.content_rect.y + 98))
         visibility = self.body_font.render(
-            f"{'Public' if game_state.is_public else 'Private'} Lobby, {game_state.active_player_count}/{game_state.player_limit} Players",
+            f"{language_service.get_message(DisplayMessage.JOIN_PUBLIC) if game_state.is_public else language_service.get_message(DisplayMessage.LOBBY_PRIVATE)} Lobby, {game_state.active_player_count}/{game_state.player_limit} {language_service.get_message(DisplayMessage.GAME_PLAYERS)}",
             True,
             TEXT_MUTED,
         )
