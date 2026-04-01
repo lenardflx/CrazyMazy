@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 """
 This file defines the color palette and font settings for the client UI.
@@ -16,6 +16,8 @@ BACKGROUND: Color = (39, 66, 84)
 PANEL: Color = (246, 220, 171)
 PANEL_ALT: Color = (214, 156, 89)
 PANEL_SHADOW: Color = (110, 72, 41)
+PANEL_ERROR: Color = (219, 56, 44)
+PANEL_ERROR_SHADOW: Color = (110, 27, 21)
 
 # Text
 TEXT_PRIMARY: Color = (70, 43, 24)
