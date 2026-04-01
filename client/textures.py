@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pygame
-from PIL import Image
 
 from shared.types.enums import PlayerColor, PlayerSkin, TreasureType
 from shared.paths import BASE_DIR
@@ -10,12 +9,6 @@ from shared.paths import BASE_DIR
 def _image_load(path: str) -> pygame.Surface:
     """Load a pygame surface from the given path relative to the project base directory."""
     return pygame.image.load(BASE_DIR / path)
-
-
-PIL_IMAGES = {
-    "BACKGROUND": Image.open(BASE_DIR / "assets/images/ui/titleBackground.png"),
-    "SPACE_BACKGROUND": Image.open(BASE_DIR / "assets/images/ui/backgroundSpace.png"),
-}
 
 
 PLAYER_IMAGES: dict[PlayerSkin, dict[PlayerColor, pygame.Surface]] = {
