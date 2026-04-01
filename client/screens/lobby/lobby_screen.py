@@ -24,7 +24,7 @@ class LobbyScreen(MenuScreen):
     """
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
-        super().__init__(surface, scene_manager, title="Lobby")
+        super().__init__(surface, scene_manager, title=language_service.get_message(DisplayMessage.LOBBY_WORD))
         self.player_panel_view = PlayerPanelView(self.content_rect, scene_manager.lobby_service)
         button_y = self.content_rect.bottom - 54
         self.start_button = Button(
@@ -88,12 +88,20 @@ class LobbyScreen(MenuScreen):
         game_state = self.scene_manager.game_state
         if game_state is None or game_state.phase != GamePhase.PREGAME:
             return
-        code = self.section_font.render(f"Code: {game_state.code}", True, TEXT_PRIMARY)
+        code = self.section_font.render(
+            f"{language_service.get_message(DisplayMessage.GAME_CODE)}: {game_state.code}",
+            True,
+            TEXT_PRIMARY,
+        )
         self.surface.blit(code, (self.content_rect.x, self.content_rect.y + 62))
-        size = self.body_font.render(language_service.get_message(DisplayMessage.GAME_NPC_EASY) + str(game_state.board_size), True, TEXT_MUTED)
+        size = self.body_font.render(
+            language_service.get_message(DisplayMessage.GAME_BOARD_SIZE) + str(game_state.board_size),
+            True,
+            TEXT_MUTED,
+        )
         self.surface.blit(size, (self.content_rect.x, self.content_rect.y + 98))
         visibility = self.body_font.render(
-            f"{language_service.get_message(DisplayMessage.JOIN_PUBLIC) if game_state.is_public else language_service.get_message(DisplayMessage.LOBBY_PRIVATE)} Lobby, {game_state.active_player_count}/{game_state.player_limit} {language_service.get_message(DisplayMessage.GAME_PLAYERS)}",
+            f"{language_service.get_message(DisplayMessage.LOBBY_PUBLIC) if game_state.is_public else language_service.get_message(DisplayMessage.LOBBY_PRIVATE)} {language_service.get_message(DisplayMessage.LOBBY_WORD)}, {game_state.active_player_count}/{game_state.player_limit} {language_service.get_message(DisplayMessage.GAME_PLAYERS)}",
             True,
             TEXT_MUTED,
         )

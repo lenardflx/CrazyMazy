@@ -154,7 +154,11 @@ class TutorialScreen(GameScreen):
             self._draw_wrapped_text(step.text, overlay.x + 16, overlay.y + 14, overlay.width - 150)
 
         self.continue_button.enabled = isinstance(step, (TutorialTextStep, TutorialFreeplayStep))
-        self.continue_button.label = step.button_label if isinstance(step, (TutorialTextStep, TutorialFreeplayStep)) else "Next"
+        self.continue_button.label = (
+            step.button_label
+            if isinstance(step, (TutorialTextStep, TutorialFreeplayStep))
+            else language_service.get_message(DisplayMessage.TUTORIAL_NEXT)
+        )
         self.continue_button.rect = pg.Rect(overlay.right - 130, overlay.bottom - 52, 110, 36)
         if self.continue_button.enabled:
             self.continue_button.draw(self.surface, self.button_font)

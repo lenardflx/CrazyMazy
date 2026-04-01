@@ -366,8 +366,8 @@ class BoardView:
         if viewer is None:
             return
 
-        go_label = self.small_font.render("Go", True, TEXT_MUTED)
-        home_label = self.title_font.render("HOME", True, PLAYER_COLOR_VALUES[viewer.piece_color])
+        go_label = self.small_font.render(language_service.get_message(DisplayMessage.GAME_GO), True, TEXT_MUTED)
+        home_label = self.title_font.render(language_service.get_message(DisplayMessage.GAME_HOME), True, PLAYER_COLOR_VALUES[viewer.piece_color])
         go_rect = go_label.get_rect(center=(rect.centerx, rect.centery - 18))
         home_rect = home_label.get_rect(center=(rect.centerx, rect.centery + 10))
         surface.blit(go_label, go_rect)

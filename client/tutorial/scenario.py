@@ -114,6 +114,6 @@ def default_tutorial_steps() -> list[TutorialStep]:
 
         TutorialFreeplayStep(
             language_service.get_message(DisplayMessage.TUTORIAL_TEXT_13),
-            button_label="Start",
+            button_label=language_service.get_message(DisplayMessage.MAIN_MENU_START),
         ),
     ]

@@ -79,7 +79,7 @@ class SettingsForm:
 
         lower_row_width = top_row_width
         lower_left = center_x - lower_row_width // 2
-        language_width = 252
+        language_width = 224
         lower_gap = 20
         fullscreen_width = lower_row_width - language_width - lower_gap
         language_center_x = lower_left + language_width // 2
@@ -92,17 +92,17 @@ class SettingsForm:
         )
         self.highlight_tiles_checkbox = Checkbox(
             pg.Rect(display_center_x - 90, settings_y + 84, 220, 32),
-            "Highlight Tile + Target",
+            language_service.get_message(DisplayMessage.SETTINGS_HIGHLIGHT_TILE_TARGET),
             False,
         )
         self.english_button = Button(
-            pg.Rect(language_center_x - 126, settings_y + 44, 120, 42),
+            pg.Rect(language_center_x - 112, settings_y + 44, 106, 42),
             language_service.get_message(DisplayMessage.SETTINGS_ENGLISH),
             lambda: self._set_language(langs.ENGLISH),
             icon="flag_en",
         )
         self.german_button = Button(
-            pg.Rect(language_center_x + 6, settings_y + 44, 120, 42),
+            pg.Rect(language_center_x + 6, settings_y + 44, 106, 42),
             language_service.get_message(DisplayMessage.SETTINGS_GERMAN),
             lambda: self._set_language(langs.GERMAN),
             icon="flag_de",
@@ -193,6 +193,7 @@ class SettingsForm:
 
     def update_labels(self) -> None:
         self.fullscreen_checkbox.label = language_service.get_message(DisplayMessage.SETTINGS_FULLSCREEN)
+        self.highlight_tiles_checkbox.label = language_service.get_message(DisplayMessage.SETTINGS_HIGHLIGHT_TILE_TARGET)
         self.master_slider.label = language_service.get_message(DisplayMessage.SETTINGS_MASTER_VOLUME)
         self.music_slider.label = language_service.get_message(DisplayMessage.SETTINGS_MUSIC_VOLUME)
         self.effects_slider.label = language_service.get_message(DisplayMessage.SETTINGS_EFFECTS_VOLUME)
@@ -247,3 +248,5 @@ class SettingsScreen(MenuScreen):
     def update_labels(self):
         self.apply_button.label = language_service.get_message(DisplayMessage.SETTINGS_APPLY)
         self.title = language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS)
+        if self.back_button is not None:
+            self.back_button.label = language_service.get_message(DisplayMessage.GAME_BACK)

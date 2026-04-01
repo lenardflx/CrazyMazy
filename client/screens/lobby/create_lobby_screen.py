@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
-from client.lang import language_service
 from client.state.runtime_state import ErrorPopupAnimation
 from shared.lib.names import generate_display_name
 from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
@@ -18,8 +17,6 @@ from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
-
-PLACEHOLDER_NAME = "Enter your Name"
 
 
 class CreateLobbyScreen(MenuScreen):
@@ -48,7 +45,7 @@ class CreateLobbyScreen(MenuScreen):
         self.name_input = TextInput(
             pg.Rect(center_x - 170, name_y, 280, 46),
             form.player_name if stored_name == "" else stored_name,
-            placeholder=PLACEHOLDER_NAME if stored_name == "" else stored_name,
+            placeholder=language_service.get_message(DisplayMessage.ENTER_NAME) if stored_name == "" else stored_name,
         )
         self.random_name_button = Button(
             pg.Rect(self.name_input.rect.right + 10, self.name_input.rect.y, 54, 46),
@@ -196,7 +193,9 @@ class CreateLobbyScreen(MenuScreen):
         return self._move_timeout_values.index(timeout)
 
     def _format_timeout(self, timeout: int) -> str:
-        return "Off" if timeout is None else f"{timeout} Sec"
+        if timeout is None:
+            return language_service.get_message(DisplayMessage.COMMON_OFF)
+        return f"{timeout} {language_service.get_message(DisplayMessage.COMMON_SECONDS)}"
 
     def _create_lobby(self) -> None:
         """Submit the form and request the server to create a new lobby with the entered name and selected board size."""
