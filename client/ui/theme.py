@@ -7,6 +7,8 @@ The color palette is defined as a set of named RGB tuples, which can be used thr
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import pygame as pg
 
 Color = tuple[int, int, int]
@@ -146,11 +148,13 @@ _FONT_PATH = "assets/fonts/editundo.ttf"
 _TITLE_FONT_PATH = "assets/fonts/ka1.ttf"
 
 
+@lru_cache(maxsize=None)
 def font(size: int) -> pg.font.Font:
     """UI font (editundo) — use for all text except the main menu title."""
     return pg.font.Font(_FONT_PATH, size)
 
 
+@lru_cache(maxsize=None)
 def title_font(size: int) -> pg.font.Font:
     """Display font (ka1) — use only for the main menu title."""
     return pg.font.Font(_TITLE_FONT_PATH, size)

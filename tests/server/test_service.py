@@ -22,6 +22,16 @@ def make_service() -> GameService:
     )
 
 
+def make_service_without_npc_play() -> GameService:
+    return GameService(
+        GameRepositoryInMemory(),
+        PlayerRepositoryInMemory(),
+        TileRepositoryInMemory(),
+        TreasureRepositoryInMemory(),
+        allow_npc_play=False,
+    )
+
+
 def test_create_lobby_creates_game_and_leader() -> None:
     service = make_service()
 
@@ -104,6 +114,37 @@ def test_join_public_returns_no_public_lobby_when_none_available() -> None:
     rejected = service.join_game(None, "Cara", "conn_4", join_public=True)
 
     assert rejected == ErrorCode.NO_PUBLIC_LOBBY
+
+
+def test_start_game_requires_a_human_when_npc_play_is_disabled() -> None:
+    service = make_service_without_npc_play()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    service.add_npc(created.player.id)
+    service.add_npc(created.player.id)
+    service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
+
+    remaining = service.get_game_state(created.game.id)
+    assert remaining is not None
+    leader = next(player for player in remaining.players if player.id == remaining.game.leader_player_id)
+
+    started = service.start_game(leader.id)
+
+    assert started == ErrorCode.PLAYER_COUNT_INSUFFICIENT
+
+
+def test_game_ends_when_only_npcs_remain_and_npc_play_is_disabled() -> None:
+    service = make_service_without_npc_play()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    service.add_npc(created.player.id)
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    started = service.start_game(created.player.id)
+    assert not isinstance(started, ErrorCode)
+
+    state = service.leave_game(joined.player.id, PlayerLeaveReason.LEFT)
+
+    assert state is not None
+    assert state.game.game_phase == GamePhase.POSTGAME
+    assert state.game.end_reason == GameEndReason.PLAYERS_LEFT
 
 
 def test_join_game_rejects_taken_display_name() -> None:

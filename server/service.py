@@ -62,11 +62,14 @@ class GameService:
         player_repo: PlayerRepository,
         tile_repo: TileRepository,
         treasure_repo: TreasureRepository,
+        *,
+        allow_npc_play: bool = False,
     ) -> None:
         self.game_repo = game_repo
         self.player_repo = player_repo
         self.tile_repo = tile_repo
         self.treasure_repo = treasure_repo
+        self.allow_npc_play = allow_npc_play
         self._running_npc_games: set[UUID] = set()
         self._running_npc_games_lock = Lock()
 
@@ -324,7 +327,7 @@ class GameService:
             return self._reset_to_pregame(game, players)
 
         active = sorted(active_players(players), key=lambda current: current.join_order)
-        if len(active) < MIN_STARTABLE_PLAYERS:
+        if not self._is_valid_playing_group(active):
             return ErrorCode.PLAYER_COUNT_INSUFFICIENT
 
         # Wipe leftover tiles and treasures from a previous round before generating new ones.
@@ -530,7 +533,7 @@ class GameService:
         remaining_session_players = session_players(players)
 
         # End the game if fewer than 2 players remain during an active game.
-        if game.game_phase == GamePhase.GAME and len(remaining_players) < 2:
+        if game.game_phase == GamePhase.GAME and not self._is_valid_playing_group(remaining_players):
             if transfer_leader and game.leader_player_id == player.id and remaining_session_players:
                 next_leader = self._next_leader(remaining_players, remaining_session_players)
                 game.leader_player_id = next_leader.id
@@ -587,10 +590,6 @@ class GameService:
 
     def _reset_to_pregame(self, game: GameData, players: list[PlayerData]) -> GameState | ErrorCode:
         """Reset a finished match back into lobby state without changing the current leader."""
-        session = session_players(players)
-        if len(session) < MIN_STARTABLE_PLAYERS:
-            return ErrorCode.PLAYER_COUNT_INSUFFICIENT
-
         self._clear_game_runtime(game.id, players)
 
         for current in players:
@@ -703,6 +702,13 @@ class GameService:
         if state is None:
             return ErrorCode.GAME_NOT_FOUND
         return state
+
+    def _is_valid_playing_group(self, players: list[PlayerData]) -> bool:
+        if len(players) < MIN_STARTABLE_PLAYERS:
+            return False
+        if self.allow_npc_play:
+            return True
+        return any(player.controller_kind == PlayerControllerKind.HUMAN for player in players)
 
     def _require_current_player(self, player_id: UUID, phase: TurnPhase) -> tuple[PlayerData, GameData] | ErrorCode:
         """Fetch and validate that it is the player's turn in the expected phase."""

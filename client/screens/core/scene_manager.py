@@ -118,7 +118,7 @@ class SceneManager:
         # --- MANUELLES FULLSCREEN-SCALING --- #!!!!
         if pygame.display.is_fullscreen():
             info = pygame.display.Info()
-            scaled = pygame.transform.smoothscale(
+            scaled = pygame.transform.scale(
                 self.render_surface,
                 (info.current_w, info.current_h)
             )
