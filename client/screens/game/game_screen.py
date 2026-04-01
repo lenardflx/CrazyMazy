@@ -5,14 +5,17 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+import pygame
 import pygame as pg
+from PIL import ImageFilter
+from PIL.Image import Image
 
 from client.screens.core.base_screen import BaseScreen
 from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout
 from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.screens.menu.settings_screen import SettingsForm
 from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
-from client.textures import UI_IMAGES
+from client.textures import UI_IMAGES, PIL_IMAGES
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.helper import format_ms_to_clock
@@ -206,9 +209,7 @@ class GameScreen(BaseScreen):
         """Draw the game screen."""
 
         # Fill the background
-        #self.surface.fill(BACKGROUND)
-        scaled = pg.transform.scale(UI_IMAGES["SPACE_BACKGROUND"], self.surface.get_size())
-        self.surface.blit(scaled, (0, 0))
+        self.surface.fill(BACKGROUND)
 
         # Resolve the game layout based on the current game state
         game_state = self._game_snapshot
