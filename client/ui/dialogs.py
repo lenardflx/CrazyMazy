@@ -61,10 +61,31 @@ class BaseDialog:
 
     def draw_text(self, surface: pg.Surface, *, body_y: int | None = None) -> None:
         title = render_text(self.title_font, self.title, TEXT_PRIMARY)
-        body = render_text(self.body_font, self.message, TEXT_MUTED)
-
         surface.blit(title, (self.rect.x + self.TITLE_X, self.rect.y + self.TITLE_Y))
-        surface.blit(body, (self.rect.x + self.BODY_X, self.rect.y + (body_y if body_y is not None else self.BODY_Y)))
+        max_width = self.rect.width - self.BODY_X * 2
+        current_y = self.rect.y + (body_y if body_y is not None else self.BODY_Y)
+        for line in self._wrap_text(self.message, self.body_font, max_width):
+            body = render_text(self.body_font, line, TEXT_MUTED)
+            surface.blit(body, (self.rect.x + self.BODY_X, current_y))
+            current_y += self.body_font.get_linesize()
+
+    @staticmethod
+    def _wrap_text(text: str, text_font: pg.font.Font, max_width: int) -> list[str]:
+        words = text.split()
+        if not words:
+            return [""]
+
+        lines: list[str] = []
+        current_line = words[0]
+        for word in words[1:]:
+            candidate = f"{current_line} {word}"
+            if text_font.size(candidate)[0] <= max_width:
+                current_line = candidate
+                continue
+            lines.append(current_line)
+            current_line = word
+        lines.append(current_line)
+        return lines
 
     def draw_buttons(self, surface: pg.Surface, buttons: list[Button]) -> None:
         for button in buttons:
