@@ -2,6 +2,7 @@
  
 from __future__ import annotations
 
+import random
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -50,6 +51,10 @@ class MenuScreen(BaseScreen):
         self.dialog: ConfirmDialog | ChoiceDialog | None = None
         self.background_image: pg.Surface | None = UI_IMAGES["TITLE_BACKGROUND"]
         self.animation_state: int = 0
+
+        # used for the blinking skeleton to make the blinking
+        # behavior look natural
+        self.blinking: int = 0
 
         self.title_font = font(34)
         self.display_title_font = title_font(72)  # ka1 — main menu title only
@@ -138,9 +143,19 @@ class MenuScreen(BaseScreen):
         ms = pg.time.get_ticks()
         frame_duration = 200
         frame_index = (ms // frame_duration) % MENU_BACKGROUND_ANIMATION_FRAMES
-        current_image = UI_IMAGES["TITLE_ANIMATION_" + str(frame_index)]
-        scaled = pg.transform.scale(current_image, self.surface.get_size())
-        self.surface.blit(scaled, (0, 0))
+        current_fire = UI_IMAGES["FIRE_" + str(frame_index)]
+        current_smoke = UI_IMAGES["SMOKE_" + str(frame_index)]
+        scaled_fire = pg.transform.scale(current_fire, self.surface.get_size())
+        scaled_smoke = pg.transform.scale(current_smoke, self.surface.get_size())
+        if self.blinking > 0:
+            self.blinking -= 1
+        elif random.randint(0, 1000) < 15:
+            self.blinking = 50
+        static_texture = "TITLE_BACKGROUND_BLINK" if self.blinking > 0 else "TITLE_BACKGROUND_STATIC"
+        scaled_static = pg.transform.scale(UI_IMAGES[static_texture], self.surface.get_size())
+        self.surface.blit(scaled_static, (0, 0))
+        self.surface.blit(scaled_smoke, (0, 0))
+        self.surface.blit(scaled_fire, (0, 0))
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         for button in self.buttons:
