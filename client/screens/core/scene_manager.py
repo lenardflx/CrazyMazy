@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 import pygame
@@ -20,8 +21,10 @@ from client.screens.core.screen_factory import create_screen
 from client.screens.core.transport_sync import TransportSync
 from client.state.runtime_state import RuntimeState
 from client.state.app_data import ClientData
+from client.ui.controls import configure_ui_sfx
 from shared.game.snapshot import SnapshotGameState
 from shared.lib.lobby import VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
+from shared.types.enums import GamePhase, PlayerResult
 
 if TYPE_CHECKING:
     from client.tutorial.session import TutorialSession
@@ -60,6 +63,7 @@ class SceneManager:
 
         # Transport sync
         self._transport_sync = TransportSync(transport_state, self.runtime_state, self.client_settings)
+        self._last_timer_beep_second: int | None = None
 
         # Apply the initial audio settings
         self.audio.apply_settings(
@@ -67,6 +71,7 @@ class SceneManager:
             self.client_settings.music_volume,
             self.client_settings.effects_volume,
         )
+        configure_ui_sfx(self.audio.play_sfx)
 
     def go_to(self, scene: SceneTypes) -> None:
         """Switch to a new scene and create the corresponding screen."""
@@ -101,6 +106,7 @@ class SceneManager:
             self.current_screen.handle_event(event)
 
     def tick(self, dt: float) -> None:
+        self._play_countdown_sfx()
         if self.current_screen is not None:
             self.current_screen.update(dt)
             self.current_screen.draw()
@@ -110,7 +116,7 @@ class SceneManager:
         # --- MANUELLES FULLSCREEN-SCALING --- #!!!!
         if pygame.display.is_fullscreen():
             info = pygame.display.Info()
-            scaled = pygame.transform.smoothscale(
+            scaled = pygame.transform.scale(
                 self.render_surface,
                 (info.current_w, info.current_h)
             )
@@ -131,9 +137,13 @@ class SceneManager:
             pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     def sync_transport(self) -> None:
+        previous_state = self.game_state
         target, error = self._transport_sync.sync()
         if error is not None:
             self.current_screen.set_error_message(language_service.get_message(error))
+            self.audio.play_sfx("error")
+        current_state = self.game_state
+        self._play_snapshot_sfx(previous_state, current_state)
         if target is not None:
             self.go_to(target)
 
@@ -150,3 +160,74 @@ class SceneManager:
     @property
     def game_state(self) -> SnapshotGameState | None:
         return self._transport_sync.game_state
+
+    def _play_snapshot_sfx(
+        self,
+        previous_state: SnapshotGameState | None,
+        current_state: SnapshotGameState | None,
+    ) -> None:
+        if current_state is None:
+            self._last_timer_beep_second = None
+            return
+
+        if current_state.phase == GamePhase.POSTGAME and (
+            previous_state is None or previous_state.phase != GamePhase.POSTGAME
+        ):
+            viewer = current_state.viewer_player
+            if viewer is not None and viewer.result == PlayerResult.WON:
+                self.audio.play_sfx("win")
+            else:
+                self.audio.play_sfx("lose")
+
+        became_viewer_turn = (
+            current_state.phase == GamePhase.GAME
+            and current_state.viewer_turn
+            and (
+                previous_state is None
+                or previous_state.phase != GamePhase.GAME
+                or not previous_state.viewer_turn
+                or previous_state.current_player_id != current_state.current_player_id
+                or previous_state.turn.phase != current_state.turn.phase
+            )
+        )
+        if became_viewer_turn:
+            self.audio.play_sfx("your_turn")
+            self._last_timer_beep_second = None
+
+        if current_state.phase != GamePhase.GAME or not current_state.viewer_turn:
+            self._last_timer_beep_second = None
+
+        previous_viewer = None if previous_state is None else previous_state.viewer_player
+        current_viewer = current_state.viewer_player
+        if (
+            previous_viewer is not None
+            and current_viewer is not None
+            and current_viewer.collected_treasure_count > previous_viewer.collected_treasure_count
+            and current_viewer.collected_treasures
+        ):
+            collected = current_viewer.collected_treasures[-1]
+            if collected.name == "PRINCESS":
+                self.audio.play_sfx("treasure_collect_meow")
+            else:
+                self.audio.play_sfx("treasure_collect")
+
+    def _play_countdown_sfx(self) -> None:
+        game_state = self.game_state
+        if (
+            game_state is None
+            or game_state.phase != GamePhase.GAME
+            or not game_state.viewer_turn
+            or game_state.turn.turn_end_timestamp is None
+        ):
+            self._last_timer_beep_second = None
+            return
+
+        remaining_ms = game_state.turn.turn_end_timestamp - (time.time_ns() // 1_000_000)
+        if remaining_ms <= 0:
+            self._last_timer_beep_second = None
+            return
+
+        remaining_second = (remaining_ms - 1) // 1000 + 1
+        if 1 <= remaining_second <= 3 and remaining_second != self._last_timer_beep_second:
+            self.audio.play_sfx("timer_beep")
+            self._last_timer_beep_second = remaining_second

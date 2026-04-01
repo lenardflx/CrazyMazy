@@ -78,6 +78,8 @@ class BoardView:
         self._tile_surface_cache: dict[tuple[str, int, tuple[int, int], bool], pg.Surface] = {}
         self._tile_mask_cache: dict[tuple[int, int], pg.Surface] = {}
         self._tile_shadow_cache: dict[tuple[int, int], pg.Surface] = {}
+        self._player_pin_cache: dict[tuple[PlayerColor, tuple[int, int]], pg.Surface] = {}
+        self._treasure_surface_cache: dict[tuple[str, tuple[int, int]], pg.Surface] = {}
 
     def layout(self, surface_rect: pg.Rect, board_size: int) -> GameBoardLayout:
         """Calculate the layout of the game board and related UI elements based on the surface size and board size."""
@@ -90,6 +92,7 @@ class BoardView:
 
         # Calculate the size of each cell on the board based on the available space and the board size, and create rects for each cell and the spare tile.
         cell_size = min((board_panel.width - 64) // board_size, (board_panel.height - 64) // board_size)
+        tile_gap = max(1, min(4, round(cell_size * 0.04)))
         board_rect = pg.Rect(board_panel.x + 32, board_panel.y + 32, cell_size * board_size, cell_size * board_size)
         spare_tile_rect = pg.Rect(spare_panel.x + 18, spare_panel.y + 52, 112, 112)
 
@@ -98,8 +101,8 @@ class BoardView:
             (col, row): pg.Rect(
                 board_rect.x + col * cell_size,
                 board_rect.y + row * cell_size,
-                cell_size - 4,
-                cell_size - 4,
+                cell_size - tile_gap,
+                cell_size - tile_gap,
             )
             for row in range(board_size)
             for col in range(board_size)
@@ -297,7 +300,7 @@ class BoardView:
 
         self._draw_stack_card(surface, top_rect, face_up=True)
         if game_state.active_treasure_type is not None:
-            treasure_surface = _treasure_surface(game_state.active_treasure_type, (68, 68))
+            treasure_surface = self._treasure_surface(game_state.active_treasure_type, (68, 68))
             if treasure_surface is not None:
                 surface.blit(treasure_surface, treasure_surface.get_rect(center=(top_rect.centerx, top_rect.centery - 6)))
             self._draw_stack_count(surface, top_rect, remaining)
@@ -371,18 +374,21 @@ class BoardView:
         anchors = self._tile_overlay_anchors(rect)
 
         if treasure_type is not None:
-            treasure_surface = _treasure_surface(treasure_type, (max(16, rect.width // 4), max(16, rect.width // 4)))
+            treasure_surface = self._treasure_surface(
+                treasure_type,
+                (max(12, round(rect.width * 0.3)), max(12, round(rect.width * 0.3))),
+            )
             if treasure_surface is not None:
                 surface.blit(treasure_surface, treasure_surface.get_rect(center=anchors.marker_center))
 
         if home_color is not None:
-            radius = max(6, rect.width // 10)
+            radius = max(4, round(rect.width * 0.13))
             pg.draw.circle(surface, PLAYER_COLOR_VALUES[home_color], anchors.marker_center, radius)
-            pg.draw.circle(surface, (247, 239, 224), anchors.marker_center, radius, 2)
+            pg.draw.circle(surface, (247, 239, 224), anchors.marker_center, radius, max(1, radius // 3))
 
         for piece_color in players:
             center = anchors.player_centers[piece_color]
-            self._draw_player_pin(surface, piece_color, center, max_size=max(14, rect.width // 4))
+            self._draw_player_pin(surface, piece_color, center, max_size=max(12, round(rect.width * 0.32)))
 
     def _draw_arrow(self, surface: pg.Surface, arrow: ArrowTarget, *, enabled: bool) -> None:
         button = self._arrow_buttons.get((arrow.side, arrow.index))
@@ -583,16 +589,34 @@ class BoardView:
                 max(1, round(width * scale)),
                 max(1, round(height * scale)),
             )
-            pin = pg.transform.scale(pin, target_size)
+            pin = self._player_pin(piece_color, target_size)
         surface.blit(pin, pin.get_rect(center=center))
+
+    def _player_pin(self, piece_color: PlayerColor, size: tuple[int, int]) -> pg.Surface:
+        key = (piece_color, size)
+        cached = self._player_pin_cache.get(key)
+        if cached is not None:
+            return cached
+        pin = pg.transform.scale(PLAYER_IMAGES[PlayerSkin.DEFAULT][piece_color], size)
+        self._player_pin_cache[key] = pin
+        return pin
+
+    def _treasure_surface(
+        self,
+        treasure_type: str | TreasureType | None,
+        size: tuple[int, int],
+    ) -> pg.Surface | None:
+        if treasure_type is None:
+            return None
+        key = treasure_type.value if isinstance(treasure_type, TreasureType) else treasure_type
+        cache_key = (key, size)
+        cached = self._treasure_surface_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        surface = pg.transform.scale(TREASURE_IMAGES[key], size)
+        self._treasure_surface_cache[cache_key] = surface
+        return surface
 
 
 def _tile_surface(tile: Tile) -> pg.Surface:
     return pg.transform.rotate(TILE_IMAGES[tile.type.value], (-90 * tile.orientation.value) % 360)
-
-
-def _treasure_surface(treasure_type: str | TreasureType | None, size: tuple[int, int]) -> pg.Surface | None:
-    if treasure_type is None:
-        return None
-    key = treasure_type.value if isinstance(treasure_type, TreasureType) else treasure_type
-    return pg.transform.scale(TREASURE_IMAGES[key], size)

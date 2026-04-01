@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import copy
 
 import pygame as pg
-from pygame_widgets.util import drawText
 
 from client.network.services.lobby_service import LobbyService
 from client.state.runtime_state import TreasureCollectAnimation
@@ -22,7 +20,7 @@ class PlayerPanelView:
     Used both during the game (sidebar) and on the post-game screen.
     """
 
-    def __init__(self, container: pg.Rect, lobby_service: LobbyService) -> None:
+    def __init__(self, container: pg.Rect | None, lobby_service: LobbyService) -> None:
         # each button is reserved for a specific player
         self.container = container
         self.lobby_service = lobby_service
@@ -107,12 +105,13 @@ class PlayerPanelView:
             row_surface.blit(name, (name_x, name_y))
 
             if is_lobby:
+                container: pg.Rect = self.container or rect
                 # only draw kick button when the current player is the leader
                 # and the button is not rendered for themselves
                 if player.id != game_state.leader_player_id and game_state.viewer_id == game_state.leader_player_id:
                     self._draw_kick_button(surface=row_surface,
                                            row=row_surface.get_rect(),
-                                           x_offset=self.container.left,
+                                           x_offset=container.left,
                                            y_offset=y - row_height - gap,
                                            player=player)
 

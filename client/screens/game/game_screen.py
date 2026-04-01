@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-import pygame
 import pygame as pg
 
 from client.screens.core.base_screen import BaseScreen
@@ -17,7 +16,7 @@ from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.helper import format_ms_to_clock
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, render_text
-from shared.types.enums import GamePhase, TurnPhase
+from shared.types.enums import GamePhase, TreasureType, TurnPhase
 from shared.game.snapshot import SnapshotGameState
 
 if TYPE_CHECKING:
@@ -65,6 +64,8 @@ class GameScreen(BaseScreen):
             "Close",
             self._close_settings,
         )
+        self._last_shift_animation = None
+        self._last_move_animation = None
 
     def _confirm_quit(self) -> None:
         """Open a confirmation dialog to confirm if the player really wants to leave the match and return to the main menu."""
@@ -178,22 +179,36 @@ class GameScreen(BaseScreen):
         runtime_game = self._game_runtime
         shift_animation = runtime_game.shift_animation
         if shift_animation is not None:
+            if shift_animation is not self._last_shift_animation:
+                self.scene_manager.audio.play_sfx("tile_shift")
+                self._last_shift_animation = shift_animation
             shift_animation.advance(dt)
             if shift_animation.is_finished:
                 runtime_game.shift_animation = None
+                self._last_shift_animation = None
 
         # Move animation
         move_animation = runtime_game.move_animation
         if move_animation is not None:
+            if move_animation is not self._last_move_animation:
+                if len(move_animation.path) >= 2:
+                    self.scene_manager.audio.play_sfx("player_move")
+                self._last_move_animation = move_animation
             move_animation.advance(dt)
             if move_animation.is_finished:
                 if move_animation.collected_treasure_type is not None:
+                    if move_animation.player_id != self._game_snapshot.viewer_id:
+                        if move_animation.collected_treasure_type == TreasureType.PRINCESS:
+                            self.scene_manager.audio.play_sfx("treasure_collect_meow")
+                        else:
+                            self.scene_manager.audio.play_sfx("treasure_collect")
                     # TODO: play treasure collect SFX when the card flip animation starts.
                     runtime_game.treasure_collect_animation = TreasureCollectAnimation(
                         player_id=move_animation.player_id,
                         treasure_type=move_animation.collected_treasure_type,
                     )
                 runtime_game.move_animation = None
+                self._last_move_animation = None
 
         # Treasure collect animation
         treasure_animation = runtime_game.treasure_collect_animation
