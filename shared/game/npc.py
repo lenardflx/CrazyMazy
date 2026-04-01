@@ -114,17 +114,19 @@ class Npc:
             self,
             best_so_far : list[Position],
             best_insertion : list[Position],
+            best_rotation : list[int],
             best_value : list[int],
             new_position : Position,
             new_insertion: Position,
+            rotation : int,
             new_value: int
-    ) -> tuple[list[Position], list[Position], list[int]] :
+    ) -> tuple[list[Position], list[Position], list[int], list[int]] :
         """
         insert a new position, insertion and value into best_so_far, best_insertion and best_value
         """
 
         if len(best_so_far) == 0:
-            return [new_position], [new_insertion], [new_value]
+            return [new_position], [new_insertion], [0], [new_value]
 
         # find index for insertion in best_so_far
         i = 0
@@ -136,9 +138,10 @@ class Npc:
         # insertion best_so_far and best_insertion into their correct spot
         best_so_far.insert(i, new_position)
         best_insertion.insert(i, new_insertion)
+        best_rotation.insert(i, rotation)
         best_value.insert(i, new_value)
 
-        return best_so_far, best_insertion, best_value
+        return best_so_far, best_insertion, best_rotation, best_value
 
     def _find_best_move(
         self,
@@ -151,6 +154,7 @@ class Npc:
         best_so_far = [] # best coordinates so far
         best_value = [board.width**2] # best distance to the target so far
         best_insertion = [] # insertion that was done to get the best_value
+        best_rotation = [] # rotation of the spare tile
 
         # Evaluate every relevant insertion independently on a fresh board copy.
         for insertion in insertion_tiles:
@@ -173,26 +177,33 @@ class Npc:
 
             # check if treasure is the spare
             if current_treasure_coordinates is not None:
-                board_copy: Board = deepcopy(board)  # copy board to make non-permanent insertions
 
-                # make an insertion
-                board_copy.insert_tile(insertion[0], insertion[1])
+                # try every rotation
+                for rotation in range(4):
 
-                # compute all tiles that are reachable after the insertion
-                reachable_tiles = board_copy.reachable_positions(current_position_after_insert)
+                    board_copy: Board = deepcopy(board)  # copy board to make non-permanent insertions
 
-                # check if insertion lead to a direct path to the treasure
-                if current_treasure_coordinates in reachable_tiles:
-                    best_insertion = [insertion] + best_insertion
-                    best_so_far = [current_treasure_coordinates] + best_so_far
-                    return current_treasure_coordinates, best_insertion[0]
+                    # make an insertion
+                    board_copy.insert_tile(insertion[0], insertion[1])
 
-                # get the closest to the treasure
-                else:
-                    # check distance to the treasure of every reachable tile and change best_so_far if there is a closer tile
-                    for position in reachable_tiles:
-                        distance = self.get_distance(position, current_treasure_coordinates)
-                        best_so_far, best_insertion, best_value = self.insert_best_so_far(best_so_far, best_insertion, best_value, position, insertion, distance)
+                    # compute all tiles that are reachable after the insertion
+                    reachable_tiles = board_copy.reachable_positions(current_position_after_insert)
+
+                    # check if insertion lead to a direct path to the treasure
+                    if current_treasure_coordinates in reachable_tiles:
+                        best_insertion = [insertion] + best_insertion
+                        best_so_far = [current_treasure_coordinates] + best_so_far
+                        return current_treasure_coordinates, best_insertion[0]
+
+                    # get the closest to the treasure
+                    else:
+                        # check distance to the treasure of every reachable tile and change best_so_far if there is a closer tile
+                        for position in reachable_tiles:
+                            distance = self.get_distance(position, current_treasure_coordinates)
+                            best_so_far, best_insertion, best_rotation, best_value = self.insert_best_so_far(best_so_far, best_insertion, best_rotation, best_value, position, insertion, rotation, distance)
+
+                    # rotate spare for next try
+                    board_copy.spare.rotate_right()
 
         return best_so_far[(self.parse_difficulty(len(best_so_far)))], best_insertion[self.parse_difficulty(len(best_insertion))]
 
@@ -206,7 +217,7 @@ class Npc:
             shift_side=board.convert_insertion(best_insertion[0], best_insertion[1])[0],
             shift_index=board.convert_insertion(best_insertion[0], best_insertion[1])[1],
             # TODO: Each Rotation
-            shift_rotation=randint(0,3),
+            shift_rotation=0,
             move_to=(best_so_far[0], best_so_far[1]) if best_so_far is not None else None,
         )
 
