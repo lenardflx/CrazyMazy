@@ -6,7 +6,7 @@ from enum import StrEnum
 from pygame import Rect, Surface
 
 from client.ui.theme import draw_pixel_rect, PANEL_ERROR, PANEL_ERROR_SHADOW, render_text, font, TEXT_MUTED, \
-    TEXT_PRIMARY
+    TEXT_PRIMARY, PANEL
 from shared.types.enums import InsertionSide, TreasureType
 from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
 
@@ -160,7 +160,7 @@ class ErrorPopupAnimation:
         start_y = center[1] - total_height // 2
 
         for i, line in enumerate(wrapped_lines):
-            text_surf = render_text(font_obj=fnt, text=line, color=TEXT_PRIMARY)
+            text_surf = render_text(font_obj=fnt, text=line, color=PANEL)
             text_rect = text_surf.get_rect(centerx=center[0], top=start_y + (i * line_height))
             surface.blit(text_surf, text_rect)
 
