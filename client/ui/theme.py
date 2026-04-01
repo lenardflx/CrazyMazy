@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 """
 This file defines the color palette and font settings for the client UI.
@@ -7,15 +7,19 @@ The color palette is defined as a set of named RGB tuples, which can be used thr
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import pygame as pg
 
 Color = tuple[int, int, int]
 
 # Background
-BACKGROUND: Color = (45, 50, 60)
+BACKGROUND: Color = (39, 66, 84)
 PANEL: Color = (246, 220, 171)
 PANEL_ALT: Color = (214, 156, 89)
 PANEL_SHADOW: Color = (110, 72, 41)
+PANEL_ERROR: Color = (219, 56, 44)
+PANEL_ERROR_SHADOW: Color = (110, 27, 21)
 
 # Text
 TEXT_PRIMARY: Color = (70, 43, 24)
@@ -81,9 +85,9 @@ def blend_color(start: Color, end: Color, amount: float) -> Color:
     )
 
 
-def render_text(font_obj: pg.font.Font, text: str, color: Color) -> pg.Surface:
+def render_text(font_obj: pg.font.Font, text: str, color: Color, opacity: float = 1.0) -> pg.Surface:
     """Render UI text without anti-aliasing so it reads closer to pixel art."""
-    return font_obj.render(text, False, color)
+    return font_obj.render(text, False, (color[0], color[1], color[2], 255 * opacity))
 
 
 def _pixel_cut(rect: pg.Rect) -> int:
@@ -146,11 +150,13 @@ _FONT_PATH = "assets/fonts/editundo.ttf"
 _TITLE_FONT_PATH = "assets/fonts/ka1.ttf"
 
 
+@lru_cache(maxsize=None)
 def font(size: int) -> pg.font.Font:
     """UI font (editundo) — use for all text except the main menu title."""
     return pg.font.Font(_FONT_PATH, size)
 
 
+@lru_cache(maxsize=None)
 def title_font(size: int) -> pg.font.Font:
     """Display font (ka1) — use only for the main menu title."""
     return pg.font.Font(_TITLE_FONT_PATH, size)

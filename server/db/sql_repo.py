@@ -10,7 +10,7 @@ from sqlmodel import SQLModel, Session, select
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
 from shared.types.enums import GamePhase
-from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind
+from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind, PlayerStatus
 from shared.types.data import GameData, PlayerData, TileData, TreasureData
 from shared.table_models import GameTable, PlayerTable, TileTable, TreasureTable
 
@@ -157,11 +157,23 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
 
     def find_by_connection_id(self, connection_id: str) -> PlayerData | None:
         """Returns the instance of the table Player that has a specific connection_id."""
-        return self.read(
-            lambda session: self.session.exec(
-                select(PlayerTable).where(PlayerTable.connection_id == connection_id)
-            ).first()
+        candidates = self.read(
+            lambda session: list(
+                self.session.exec(
+                    select(PlayerTable).where(PlayerTable.connection_id == connection_id)
+                ).all()
+            )
         )
+        if not candidates:
+            return None
+        # Prefer the most recent live session when stale rows still carry the same connection id.
+        return sorted(
+            candidates,
+            key=lambda player: (
+                player.status == PlayerStatus.DEPARTED,
+                -player.created_at.timestamp(),
+            ),
+        )[0]
 
     def list_by_game_id(self, game_id: UUID) -> list[PlayerData]:
         """Returns all instances of the table Player that have a specific game_id"""

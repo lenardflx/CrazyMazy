@@ -12,12 +12,11 @@ from client.screens.game.views.board_view import BoardClick, BoardView, GameBoar
 from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.screens.menu.settings_screen import SettingsForm
 from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
-from client.textures import UI_IMAGES
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.helper import format_ms_to_clock
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, render_text
-from shared.types.enums import GamePhase, TurnPhase
+from shared.types.enums import GamePhase, TreasureType, TurnPhase
 from shared.game.snapshot import SnapshotGameState
 from client.lang import DisplayMessage, language_service
 
@@ -67,6 +66,8 @@ class GameScreen(BaseScreen):
             language_service.get_message(DisplayMessage.SETTINGS_CLOSE),
             self._close_settings,
         )
+        self._last_shift_animation = None
+        self._last_move_animation = None
 
     def _confirm_quit(self) -> None:
         """Open a confirmation dialog to confirm if the player really wants to leave the match and return to the main menu."""
@@ -118,6 +119,43 @@ class GameScreen(BaseScreen):
     @property
     def _game_snapshot(self) -> SnapshotGameState | None:
         return self.scene_manager.game_state
+
+    def _blocking_actor_id(self) -> str | None:
+        runtime_game = self._game_runtime
+        if runtime_game.move_animation is not None:
+            return runtime_game.move_animation.player_id
+        if runtime_game.treasure_collect_animation is not None:
+            return runtime_game.treasure_collect_animation.player_id
+        return None
+
+    def _displayed_current_player_id(self) -> str:
+        game_state = self._game_snapshot
+        if game_state is None:
+            return ""
+        blocking_actor_id = self._blocking_actor_id()
+        if blocking_actor_id is not None and blocking_actor_id != game_state.current_player_id:
+            return blocking_actor_id
+        return game_state.current_player_id
+
+    def _remaining_blocking_animation_ms(self) -> int:
+        runtime_game = self._game_runtime
+        remaining_ms = 0
+        if runtime_game.move_animation is not None:
+            remaining_ms += round((1.0 - runtime_game.move_animation.progress) * runtime_game.move_animation.duration * 1000)
+        if runtime_game.treasure_collect_animation is not None:
+            remaining_ms += round((1.0 - runtime_game.treasure_collect_animation.progress) * runtime_game.treasure_collect_animation.duration * 1000)
+        return max(0, remaining_ms)
+
+    def _displayed_turn_prompt(self) -> str:
+        game_state = self._game_snapshot
+        if game_state is None:
+            return ""
+        blocking_actor_id = self._blocking_actor_id()
+        if blocking_actor_id is None or blocking_actor_id == game_state.current_player_id:
+            return game_state.turn_prompt
+        if blocking_actor_id == game_state.viewer_id:
+            return "Finishing move..."
+        return "Waiting for another player"
 
     def handle_event(self, event: pg.event.Event) -> None:
         """Handle a Pygame event. This covers all actions on the screen. It passes the events to the different UI elements."""
@@ -180,22 +218,36 @@ class GameScreen(BaseScreen):
         runtime_game = self._game_runtime
         shift_animation = runtime_game.shift_animation
         if shift_animation is not None:
+            if shift_animation is not self._last_shift_animation:
+                self.scene_manager.audio.play_sfx("tile_shift")
+                self._last_shift_animation = shift_animation
             shift_animation.advance(dt)
             if shift_animation.is_finished:
                 runtime_game.shift_animation = None
+                self._last_shift_animation = None
 
         # Move animation
         move_animation = runtime_game.move_animation
         if move_animation is not None:
+            if move_animation is not self._last_move_animation:
+                if len(move_animation.path) >= 2:
+                    self.scene_manager.audio.play_sfx("player_move")
+                self._last_move_animation = move_animation
             move_animation.advance(dt)
             if move_animation.is_finished:
                 if move_animation.collected_treasure_type is not None:
+                    if move_animation.player_id != self._game_snapshot.viewer_id:
+                        if move_animation.collected_treasure_type == TreasureType.PRINCESS:
+                            self.scene_manager.audio.play_sfx("treasure_collect_meow")
+                        else:
+                            self.scene_manager.audio.play_sfx("treasure_collect")
                     # TODO: play treasure collect SFX when the card flip animation starts.
                     runtime_game.treasure_collect_animation = TreasureCollectAnimation(
                         player_id=move_animation.player_id,
                         treasure_type=move_animation.collected_treasure_type,
                     )
                 runtime_game.move_animation = None
+                self._last_move_animation = None
 
         # Treasure collect animation
         treasure_animation = runtime_game.treasure_collect_animation
@@ -208,9 +260,7 @@ class GameScreen(BaseScreen):
         """Draw the game screen."""
 
         # Fill the background
-        #self.surface.fill(BACKGROUND)
-        scaled = pg.transform.scale(UI_IMAGES["SPACE_BACKGROUND"], self.surface.get_size())
-        self.surface.blit(scaled, (0, 0))
+        self.surface.fill(BACKGROUND)
 
         # Resolve the game layout based on the current game state
         game_state = self._game_snapshot
@@ -237,6 +287,7 @@ class GameScreen(BaseScreen):
             self.surface,
             layout.players_panel,
             game_state,
+            highlighted_player_id=self._displayed_current_player_id(),
             treasure_animation=runtime.treasure_collect_animation,
             pending_collect=(
                 None
@@ -268,8 +319,9 @@ class GameScreen(BaseScreen):
         # make sure we don't exceed the maximum length reserved for the
         # turn status text. This does not happen normally, but we cannot
         # be sure due to variable language.
-        turn_text = self._game_snapshot.turn_prompt[:30]
-        if len(self._game_snapshot.turn_prompt) >= 30:
+        prompt = self._displayed_turn_prompt()
+        turn_text = prompt[:30]
+        if len(prompt) >= 30:
             turn_text += "..."
 
         status = self.title_font.render(turn_text, True, TEXT_PRIMARY)
@@ -284,10 +336,15 @@ class GameScreen(BaseScreen):
 
         now = time.time_ns() // 1_000_000
 
-        if now > turn_end:
+        remaining_ms = turn_end - now
+        blocking_actor_id = self._blocking_actor_id()
+        if blocking_actor_id is not None and blocking_actor_id != self._game_snapshot.current_player_id:
+            remaining_ms -= self._remaining_blocking_animation_ms()
+
+        if remaining_ms <= 0:
             timer_content = "00:00"
         else:
-            timer_content = format_ms_to_clock(turn_end - now)
+            timer_content = format_ms_to_clock(remaining_ms)
 
         timer_text = self.title_font.render(timer_content, True, TEXT_PRIMARY)
         self.surface.blit(timer_text, (timer_rect.left + 25, timer_rect.top + 7))
@@ -322,7 +379,7 @@ class GameScreen(BaseScreen):
         If the game state is not in the correct phase or the spare tile is not available, return None to indicate that we cant resolve a layout.
         """
         game_state = self._game_snapshot
-        if game_state is None or game_state.phase != GamePhase.GAME or game_state.spare_tile is None:
+        if game_state is None or game_state.spare_tile is None:
             return None
         key = (self.surface.get_size(), game_state.board_size)
         if self._layout_cache is not None and self._layout_cache[0] == key[0] and self._layout_cache[1] == key[1]:

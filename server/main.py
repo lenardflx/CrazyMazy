@@ -3,8 +3,9 @@
 import socket
 import threading
 
-import server.handlers
-from server.config import HOST, PORT
+import server.handlers # register handlers
+from server.config import ALLOW_NPC_PLAY, HOST, PORT
+from server.db.runtime import game_service
 from server.network.connections import register_connection, unregister_connection
 from server.network.dispatch import dispatcher
 from server.network.models import RequestContext
@@ -13,7 +14,6 @@ from server.schedule.timeout_scheduler import TimeoutScheduler
 from shared.events import parse_event
 from shared.network import recv_line
 from shared.utils.ids import new_connection_id
-
 
 def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:
     """Handle a client connection and dispatch inbound protocol messages."""
@@ -41,6 +41,7 @@ def handle_client(conn: socket.socket, addr: tuple[str, int]) -> None:
 
 
 def main() -> None:
+    game_service.allow_npc_play = ALLOW_NPC_PLAY
     timeout_scheduler = TimeoutScheduler()
     timeout_scheduler.start(interval=1)
 
@@ -48,7 +49,7 @@ def main() -> None:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, PORT))
         s.listen()
-        print(f"[server] listening on {HOST}:{PORT}")
+        print(f"[server] listening on {HOST}:{PORT} (allow_npc_play={game_service.allow_npc_play})")
         while True:
             conn, addr = s.accept()
             threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()

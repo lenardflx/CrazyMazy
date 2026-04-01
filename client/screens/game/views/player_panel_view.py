@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import copy
 
 import pygame as pg
-from pygame_widgets.util import drawText
 
 from client.network.services.lobby_service import LobbyService
 from client.state.runtime_state import TreasureCollectAnimation
@@ -22,7 +20,7 @@ class PlayerPanelView:
     Used both during the game (sidebar) and on the post-game screen.
     """
 
-    def __init__(self, container: pg.Rect, lobby_service: LobbyService) -> None:
+    def __init__(self, container: pg.Rect | None, lobby_service: LobbyService) -> None:
         # each button is reserved for a specific player
         self.container = container
         self.lobby_service = lobby_service
@@ -39,6 +37,7 @@ class PlayerPanelView:
         game_state: SnapshotGameState,
         *,
         post_game: bool = False,
+        highlighted_player_id: str | None = None,
         treasure_animation: TreasureCollectAnimation | None = None,
         pending_collect: tuple[str, TreasureType] | None = None,
     ) -> None: # TODO: better docs
@@ -71,13 +70,14 @@ class PlayerPanelView:
             row_surface = pg.Surface(row.size, pg.SRCALPHA)
 
             fill = PANEL if not player.is_inactive else blend_color(PANEL, DISABLED, 0.35)
-            if player.id == game_state.current_player_id:
+            active_player_id = game_state.current_player_id if highlighted_player_id is None else highlighted_player_id
+            if player.id == active_player_id:
                 fill = blend_color(PANEL, ACCENT_SOFT, 0.52)
             elif player.id == game_state.viewer_id:
                 fill = blend_color(PANEL, PANEL_ALT, 0.34)
             border = blend_color(fill, ACCENT_DARK, 0.32)
             shadow = blend_color(fill, PANEL_SHADOW, 0.22)
-            if player.id == game_state.current_player_id:
+            if player.id == active_player_id:
                 border = blend_color(ACTIVE_OUTLINE, ACCENT_DARK, 0.4)
                 shadow = blend_color(fill, ACCENT_DARK, 0.18)
             draw_pixel_rect(
@@ -107,12 +107,13 @@ class PlayerPanelView:
             row_surface.blit(name, (name_x, name_y))
 
             if is_lobby:
+                container: pg.Rect = self.container or rect
                 # only draw kick button when the current player is the leader
                 # and the button is not rendered for themselves
                 if player.id != game_state.leader_player_id and game_state.viewer_id == game_state.leader_player_id:
                     self._draw_kick_button(surface=row_surface,
                                            row=row_surface.get_rect(),
-                                           x_offset=self.container.left,
+                                           x_offset=container.left,
                                            y_offset=y - row_height - gap,
                                            player=player)
 

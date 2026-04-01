@@ -17,6 +17,7 @@ from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
 from shared.types.enums import NpcDifficulty, PlayerColor, PlayerControllerKind, GamePhase
+from shared.types.enums import PlayerStatus
 from shared.types.data import GameData, PlayerData, TileData, TreasureData
 
 
@@ -112,10 +113,17 @@ class PlayerRepositoryInMemory(PlayerRepository):
         return self._players.get(player_id)
 
     def find_by_connection_id(self, connection_id: str) -> PlayerData | None:
-        for player in self._players.values():
-            if player.connection_id == connection_id:
-                return player
-        return None
+        candidates = [player for player in self._players.values() if player.connection_id == connection_id]
+        if not candidates:
+            return None
+        # Prefer the most recent live session when stale rows still carry the same connection id.
+        return sorted(
+            candidates,
+            key=lambda player: (
+                player.status == PlayerStatus.DEPARTED,
+                -player.created_at.timestamp(),
+            ),
+        )[0]
 
     def list_by_game_id(self, game_id: UUID) -> list[PlayerData]:
         return [player for player in self._players.values() if player.game_id == game_id]

@@ -28,6 +28,19 @@ from client.ui.theme import (
 
 type ButtonIcon = Literal["dice", "flag_de", "flag_en", "arrow_left", "arrow_right", "arrow_up", "arrow_down", "star"]
 
+_ui_sfx_player: Callable[[str], None] | None = None
+
+
+def configure_ui_sfx(player: Callable[[str], None] | None) -> None:
+    """Register a callback used by controls to play UI sound effects."""
+    global _ui_sfx_player
+    _ui_sfx_player = player
+
+
+def _play_ui_sfx(key: str) -> None:
+    if _ui_sfx_player is not None:
+        _ui_sfx_player(key)
+
 
 class Button:
     """
@@ -84,6 +97,7 @@ class Button:
             was_pressed = self.pressed
             self.pressed = False
             if was_pressed and self._collides_with_cursor(event.pos):
+                _play_ui_sfx("button_click")
                 self.on_click()
                 return True
         return False
@@ -335,6 +349,7 @@ class Checkbox:
     def handle_event(self, event: pg.event.Event) -> bool:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos):
             self.value = not self.value
+            _play_ui_sfx("button_click")
             return True
         return False
 
@@ -378,24 +393,31 @@ class Slider:
         self.show_steps = show_steps
         self.dragging = False
 
-    def _set_from_mouse(self, x: int) -> None:
+    def _set_from_mouse(self, x: int) -> bool:
+        previous_value = self.value
         amount = (x - self.rect.x) / max(1, self.rect.width)
         amount = max(0.0, min(1.0, amount))
         raw_value = self.minimum + amount * (self.maximum - self.minimum)
         stepped_value = int(round(raw_value / self.step) * self.step)
         self.value = max(self.minimum, min(self.maximum, stepped_value))
+        return self.value != previous_value
 
     def handle_event(self, event: pg.event.Event) -> bool:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.rect.inflate(0, 24).collidepoint(event.pos):
             self.dragging = True
-            self._set_from_mouse(event.pos[0])
+            changed = self._set_from_mouse(event.pos[0])
+            if changed:
+                _play_ui_sfx("button_click")
             return True
         if event.type == pg.MOUSEBUTTONUP and event.button == 1:
             self.dragging = False
             return False
         if event.type == pg.MOUSEMOTION and self.dragging:
-            self._set_from_mouse(event.pos[0])
-            return True
+            changed = self._set_from_mouse(event.pos[0])
+            if changed:
+                _play_ui_sfx("button_click")
+                return True
+            return False
         return False
 
     def draw(self, surface: pg.Surface, label_font: pg.font.Font, value_font: pg.font.Font) -> None:
