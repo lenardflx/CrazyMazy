@@ -5,8 +5,8 @@ from __future__ import annotations
 MIN_BOARD_SIZE = 7
 MAX_BOARD_SIZE = 15
 VALID_BOARD_SIZES = frozenset(range(MIN_BOARD_SIZE, MAX_BOARD_SIZE + 1, 2))
-VALID_INSERT_TIMEOUTS = frozenset([5, 10, 20, 30, 60, 90, 120])
-VALID_MOVE_TIMEOUTS = frozenset([5, 10, 20, 30, 60, 90, 120])
+VALID_INSERT_TIMEOUTS = frozenset([15, 30, 45, 60, 90, 120])
+VALID_MOVE_TIMEOUTS = frozenset([15, 30, 45, 60, 90, 120])
 MIN_STARTABLE_PLAYERS = 2
 MAX_JOINABLE_PLAYERS = 4
 

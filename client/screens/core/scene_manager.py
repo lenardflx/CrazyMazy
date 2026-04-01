@@ -21,6 +21,7 @@ from client.screens.core.transport_sync import TransportSync
 from client.state.runtime_state import RuntimeState
 from client.state.app_data import ClientData
 from shared.game.snapshot import SnapshotGameState
+from shared.lib.lobby import VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
 
 if TYPE_CHECKING:
     from client.tutorial.session import TutorialSession
@@ -44,6 +45,8 @@ class SceneManager:
         self.audio = audio
         self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
+        self.runtime_state.create_lobby.insert_timeout = 60 if 60 in VALID_INSERT_TIMEOUTS else VALID_INSERT_TIMEOUTS[0]
+        self.runtime_state.create_lobby.move_timeout = 60 if 60 in VALID_MOVE_TIMEOUTS else VALID_MOVE_TIMEOUTS[0]
         self.tutorial_session: TutorialSession | None = None
         self.prompt_tutorial_on_main_menu = not self.client_settings.get_tutorial()
         self.settings_return_scene = SceneTypes.MAIN_MENU
