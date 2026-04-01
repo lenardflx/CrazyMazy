@@ -290,6 +290,8 @@ class BoardView:
 
     def _draw_treasure_stack(self, surface: pg.Surface, rect: pg.Rect, game_state: SnapshotGameState) -> None:
         viewer = game_state.viewer_player
+        if viewer is not None and viewer.is_observer:
+            return
         remaining = 0 if viewer is None else viewer.remaining_treasure_count
         visible_stack = max(1, min(remaining, 6))
         top_rect = rect

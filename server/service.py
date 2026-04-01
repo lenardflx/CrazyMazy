@@ -53,6 +53,8 @@ class ConnectionState:
 
 
 _NPC_ACTION_DELAY_SECONDS = 0.45
+_CLIENT_MOVE_DURATION_PER_STEP_SECONDS = 0.16
+_CLIENT_TREASURE_COLLECT_DURATION_SECONDS = 0.45
 
 
 class GameService:
@@ -689,8 +691,9 @@ class GameService:
         next_player = self._next_active_player(active_players(self.player_repo.list_by_game_id(game.id)), player.id)
         game.current_player_id = next_player.id
         game.turn_phase = TurnPhase.SHIFT
+        turn_delay_ms = round(self._client_resolution_delay_seconds(game) * 1000)
         if game.insert_timeout is not None:
-            game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
+            game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000 + turn_delay_ms
         else:
             game.turn_end_timestamp = None
         game.last_shift_side = None
@@ -709,6 +712,16 @@ class GameService:
         if self.allow_npc_play:
             return True
         return any(player.controller_kind == PlayerControllerKind.HUMAN for player in players)
+
+    def _client_resolution_delay_seconds(self, game: GameData) -> float:
+        if game.last_move_path is None:
+            return 0.0
+
+        path_length = 1 if game.last_move_path == "" else game.last_move_path.count(";") + 1
+        delay = max(0, path_length - 1) * _CLIENT_MOVE_DURATION_PER_STEP_SECONDS
+        if game.last_move_collected_treasure_type is not None:
+            delay += _CLIENT_TREASURE_COLLECT_DURATION_SECONDS
+        return delay
 
     def _require_current_player(self, player_id: UUID, phase: TurnPhase) -> tuple[PlayerData, GameData] | ErrorCode:
         """Fetch and validate that it is the player's turn in the expected phase."""
@@ -856,6 +869,7 @@ class GameService:
                 if isinstance(updated, ErrorCode):
                     return
                 flush_outgoing(snapshot_response(updated))
+                sleep(self._npc_post_action_delay_seconds(updated))
         finally:
             with self._running_npc_games_lock:
                 self._running_npc_games.discard(game_id)
@@ -894,6 +908,17 @@ class GameService:
         if turn.move_to is None:
             return self.end_turn(npc.player_id)
         return self.move_player(npc.player_id, turn.move_to[0], turn.move_to[1])
+
+    def _npc_post_action_delay_seconds(self, state: GameState) -> float:
+        game = state.game
+        if game.last_move_player_id is None or game.last_move_path is None:
+            return 0.0
+
+        path_length = 1 if game.last_move_path == "" else game.last_move_path.count(";") + 1
+        move_duration = max(1, path_length - 1) * _CLIENT_MOVE_DURATION_PER_STEP_SECONDS
+        if game.last_move_collected_treasure_type is not None:
+            move_duration += _CLIENT_TREASURE_COLLECT_DURATION_SECONDS
+        return max(0.0, move_duration - _NPC_ACTION_DELAY_SECONDS)
 
 # TODO: is this clean? + probably should be in lib
 def _serialize_position_path(path: list[tuple[int, int]]) -> str:
