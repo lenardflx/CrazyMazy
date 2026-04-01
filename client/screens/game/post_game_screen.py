@@ -26,6 +26,8 @@ class PostGameScreen(MenuScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title=language_service.get_message(DisplayMessage.GAME_OVER))
         self.player_panel_view = PlayerPanelView(None, scene_manager.lobby_service)
+        if self.back_button is not None:
+            self.back_button.on_click = self._leave_post_game
         self.menu_button = Button(pg.Rect(self.content_rect.x, self.content_rect.bottom - 54, 180, 44), language_service.get_message(DisplayMessage.MAIN_MENU), self._leave_post_game, variant="primary")
         self.play_again_button = Button(
             pg.Rect(self.content_rect.x + 202, self.content_rect.bottom - 54, 180, 44),

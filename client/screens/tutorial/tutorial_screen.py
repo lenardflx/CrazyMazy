@@ -9,6 +9,7 @@ from client.screens.game.game_screen import GameScreen
 from client.screens.game.post_game_screen import PostGameScreen
 from client.screens.game.views.board_view import GameBoardLayout
 from client.state.runtime_state import GameRuntimeState
+from client.lang import DisplayMessage, language_service
 from client.tutorial import (
     TutorialFreeplayStep,
     TutorialMoveStep,
@@ -37,7 +38,7 @@ class TutorialScreen(GameScreen):
         self.settings_button.rect = pg.Rect(surface.get_width() - 320, 24, 112, 40)
         self.menu_button = Button(
             pg.Rect(surface.get_width() - 196, 24, 172, 40),
-            "Leave Tutorial",
+            language_service.get_message(DisplayMessage.TUTORIAL_LEAVE),
             self._confirm_quit,
             variant="primary",
         )
@@ -45,7 +46,7 @@ class TutorialScreen(GameScreen):
             scene_manager.tutorial_session = TutorialSession()
         self.session = scene_manager.tutorial_session
         self.body_font = font(18)
-        self.continue_button = Button(pg.Rect(0, 0, 120, 40), "Next", self._continue_step, variant="primary")
+        self.continue_button = Button(pg.Rect(0, 0, 120, 40), language_service.get_message(DisplayMessage.TUTORIAL_NEXT), self._continue_step, variant="primary")
 
     @property
     def _game_runtime(self) -> GameRuntimeState:
@@ -61,11 +62,11 @@ class TutorialScreen(GameScreen):
         """Open a confirmation dialog to confirm if the player really wants to leave the tutorial and return to the main menu."""
         self.dialog = ConfirmDialog(
             self.surface.get_rect(),
-            "Leave Tutorial?",
-            "Return to the main menu?",
+            language_service.get_message(DisplayMessage.TUTORIAL_LEAVE) + "?",
+            language_service.get_message(DisplayMessage.TUTORIAL_TO_MENU),
             self._leave_to_menu,
             self._close_dialog,
-            confirm_label="Leave",
+            confirm_label=language_service.get_message(DisplayMessage.GAME_LEAVE),
         )
 
     def _leave_to_menu(self) -> None:

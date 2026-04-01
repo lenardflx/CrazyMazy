@@ -141,7 +141,6 @@ class SceneManager:
         target, error = self._transport_sync.sync()
         if error is not None:
             self.current_screen.set_error_message(language_service.get_message(error))
-            self.audio.play_sfx("error")
         current_state = self.game_state
         self._play_snapshot_sfx(previous_state, current_state)
         if target is not None:
@@ -154,6 +153,13 @@ class SceneManager:
     def _sync_scene_music(self, scene: SceneTypes) -> None:
         if scene in (SceneTypes.GAME, SceneTypes.TUTORIAL):
             self.audio.play_music("ingame")
+            return
+        if scene == SceneTypes.POST_GAME:
+            viewer = None if self.game_state is None else self.game_state.viewer_player
+            if viewer is not None and viewer.result == PlayerResult.WON:
+                self.audio.play_music("win_music")
+            else:
+                self.audio.play_music("lose_music")
             return
         self.audio.play_music("lobby")
 
@@ -169,15 +175,6 @@ class SceneManager:
         if current_state is None:
             self._last_timer_beep_second = None
             return
-
-        if current_state.phase == GamePhase.POSTGAME and (
-            previous_state is None or previous_state.phase != GamePhase.POSTGAME
-        ):
-            viewer = current_state.viewer_player
-            if viewer is not None and viewer.result == PlayerResult.WON:
-                self.audio.play_sfx("win")
-            else:
-                self.audio.play_sfx("lose")
 
         became_viewer_turn = (
             current_state.phase == GamePhase.GAME
