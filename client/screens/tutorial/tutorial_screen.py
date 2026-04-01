@@ -98,6 +98,8 @@ class TutorialScreen(GameScreen):
             self.scene_manager.go_to(SceneTypes.POST_GAME)
 
     def _draw_overlay(self, layout: GameBoardLayout) -> None:
+        if self.dialog is not None or self.settings_overlay_open:
+            return
         self._draw_focus_mask(layout)
         self._draw_step_overlay(layout)
         self.settings_button.draw(self.surface, self.button_font)
@@ -131,10 +133,7 @@ class TutorialScreen(GameScreen):
             return
 
         mask = pg.Surface(self.surface.get_size(), pg.SRCALPHA)
-        mask.fill((46, 46, 46, 100))
-
-        overlay_rect = self._step_overlay_rect().inflate(18, 18)
-        _cutout_pixel_rect(mask, overlay_rect)
+        mask.fill((46, 46, 46, 140))
 
         target_rect = self._step_target_rect(layout)
         if target_rect is not None:

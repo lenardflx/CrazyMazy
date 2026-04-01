@@ -15,7 +15,7 @@ from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimatio
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.helper import format_ms_to_clock
-from client.ui.theme import BACKGROUND, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, render_text
+from client.ui.theme import BACKGROUND, ERROR, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, render_text
 from shared.types.enums import GamePhase, TreasureType, TurnPhase
 from shared.game.snapshot import SnapshotGameState
 
@@ -295,7 +295,7 @@ class GameScreen(BaseScreen):
         )
 
         # Render a status text about the current turn.
-        self._draw_turn_indicator()
+        self._draw_turn_indicator(layout)
 
         if self.give_up_button is not None:
             self.give_up_button.draw(self.surface, self.button_font)
@@ -310,8 +310,9 @@ class GameScreen(BaseScreen):
         if self.dialog is not None:
             self.dialog.draw(self.surface)
 
-    def _draw_turn_indicator(self):
-        rect = pg.Rect(21.0, 19.0, 600, 65)
+    def _draw_turn_indicator(self, layout: GameBoardLayout) -> None:
+        board_panel_rect = layout.board_rect.inflate(24, 24)
+        rect = pg.Rect(board_panel_rect.x, 19, board_panel_rect.width, 65)
         draw_pixel_rect(surface=self.surface, rect=rect, fill=PANEL, shadow=PANEL_SHADOW, border=ACCENT_DARK)
 
         # make sure we don't exceed the maximum length reserved for the
@@ -323,7 +324,8 @@ class GameScreen(BaseScreen):
             turn_text += "..."
 
         status = self.title_font.render(turn_text, True, TEXT_PRIMARY)
-        self.surface.blit(status, (rect.left + 10, rect.top + 8))
+        status_rect = status.get_rect(midleft=(rect.left + 14, rect.centery))
+        self.surface.blit(status, status_rect)
 
         turn_end = self._game_snapshot.turn.turn_end_timestamp
         if turn_end is None:
@@ -344,8 +346,9 @@ class GameScreen(BaseScreen):
         else:
             timer_content = format_ms_to_clock(remaining_ms)
 
-        timer_text = self.title_font.render(timer_content, True, TEXT_PRIMARY)
-        self.surface.blit(timer_text, (timer_rect.left + 25, timer_rect.top + 7))
+        timer_color = ERROR if 0 < remaining_ms <= 4_000 else TEXT_PRIMARY
+        timer_text = self.title_font.render(timer_content, True, timer_color)
+        self.surface.blit(timer_text, timer_text.get_rect(center=timer_rect.center))
 
 
     def _draw_overlay(self, layout: GameBoardLayout) -> None:

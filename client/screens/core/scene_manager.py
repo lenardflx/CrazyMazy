@@ -152,8 +152,8 @@ class SceneManager:
         self.go_to(SceneTypes.SETTINGS)
 
     def _sync_scene_music(self, scene: SceneTypes) -> None:
-        if scene == SceneTypes.GAME:
-            self.audio.stop_music()
+        if scene in (SceneTypes.GAME, SceneTypes.TUTORIAL):
+            self.audio.play_music("ingame")
             return
         self.audio.play_music("lobby")
 

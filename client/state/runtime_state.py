@@ -52,9 +52,9 @@ class ErrorPopupAnimation:
     """How long the error message was fully visible to the user"""
 
     text: str = "Internal error"
-    duration: float = 0.5  # seconds
-    fade_away_duration = 0.5 # seconds
-    stay_duration: float = 5
+    duration: float = 0.2  # seconds
+    fade_away_duration = 0.2 # seconds
+    stay_duration: float = 3
 
     _rect: Rect | None = None
     _text_surface: Surface | None = None
