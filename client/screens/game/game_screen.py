@@ -18,6 +18,7 @@ from client.ui.helper import format_ms_to_clock
 from client.ui.theme import BACKGROUND, ERROR, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, render_text
 from shared.types.enums import GamePhase, TreasureType, TurnPhase
 from shared.game.snapshot import SnapshotGameState
+from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -40,9 +41,9 @@ class GameScreen(BaseScreen):
         self.dialog: ConfirmDialog | None = None
         self.settings_overlay_open = False
         self._layout_cache: tuple[tuple[int, int], int, GameBoardLayout] | None = None
-        self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), "Give Up", self._confirm_give_up)
-        self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), "Options", self._open_settings)
-        self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), "Menu", self._confirm_quit)
+        self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), language_service.get_message(DisplayMessage.GAME_GIVE_UP), self._confirm_give_up)
+        self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS), self._open_settings)
+        self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU), self._confirm_quit)
         self.settings_overlay_rect = pg.Rect(surface.get_width() // 2 - 310, surface.get_height() // 2 - 230, 620, 460)
         self.settings_form = SettingsForm(
             surface,
@@ -51,17 +52,18 @@ class GameScreen(BaseScreen):
             body_font=self.small_font,
             small_font=self.small_font,
             button_font=self.button_font,
+            label_updater=self.update_labels
         )
         footer_y = self.settings_overlay_rect.bottom - 72
         self.settings_apply_button = Button(
             pg.Rect(self.settings_overlay_rect.centerx - 126, footer_y, 120, 44),
-            "Apply",
+            language_service.get_message(DisplayMessage.SETTINGS_APPLY),
             self.settings_form.apply,
             variant="primary",
         )
         self.settings_close_button = Button(
             pg.Rect(self.settings_overlay_rect.centerx + 6, footer_y, 120, 44),
-            "Close",
+            language_service.get_message(DisplayMessage.SETTINGS_CLOSE),
             self._close_settings,
         )
         self._last_shift_animation = None
@@ -71,22 +73,22 @@ class GameScreen(BaseScreen):
         """Open a confirmation dialog to confirm if the player really wants to leave the match and return to the main menu."""
         self.dialog = ConfirmDialog(
             self.surface.get_rect(),
-            "Leave Match?",
-            "Return to the main menu?",
+            language_service.get_message(DisplayMessage.GAME_LEAVE_MATCH),
+            language_service.get_message(DisplayMessage.GAME_RETURN),
             self._leave_to_menu,
             self._close_dialog,
-            confirm_label="Leave",
+            confirm_label=language_service.get_message(DisplayMessage.GAME_LEAVE),
         )
 
     def _confirm_give_up(self) -> None:
         """Open a confirmation dialog to confirm if the player really wants to give up and spectate the rest of the match."""
         self.dialog = ConfirmDialog(
             self.surface.get_rect(),
-            "Give Up?",
-            "Give up and spectate the rest of the match?",
+            language_service.get_message(DisplayMessage.GAME_GIVE_UP_Q),
+            language_service.get_message(DisplayMessage.GAME_GIVE_UP_MATCH),
             self._give_up,
             self._close_dialog,
-            confirm_label="Give Up",
+            confirm_label=language_service.get_message(DisplayMessage.GAME_GIVE_UP),
         )
 
     def _open_settings(self) -> None:
@@ -150,7 +152,7 @@ class GameScreen(BaseScreen):
             return ""
         blocking_actor_id = self._blocking_actor_id()
         if blocking_actor_id is None or blocking_actor_id == game_state.current_player_id:
-            return game_state.turn_prompt
+            return self.turn_prompt()
         if blocking_actor_id == game_state.viewer_id:
             return "Finishing move..."
         return "Waiting for another player"
@@ -280,6 +282,7 @@ class GameScreen(BaseScreen):
             spare_tile,
             runtime.shift_animation,
             runtime.move_animation,
+            accessibility_highlight_tiles=self.scene_manager.client_settings.get_accessibility_highlight_tiles(),
         )
         self.player_panel_view.draw(
             self.surface,
@@ -367,7 +370,7 @@ class GameScreen(BaseScreen):
             border=ACCENT_DARK,
             shadow=blend_color(PANEL, ACCENT_DARK, 0.35),
         )
-        title = render_text(self.title_font, "Options", TEXT_PRIMARY)
+        title = render_text(self.title_font, language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS), TEXT_PRIMARY)
         self.surface.blit(title, title.get_rect(center=(self.settings_overlay_rect.centerx, self.settings_overlay_rect.y + 34)))
 
         self.settings_form.draw()
@@ -422,3 +425,19 @@ class GameScreen(BaseScreen):
             # If the click is a move click, perform a move action to the given x and y coordinates.
             case ("move", x, y):
                 self.scene_manager.game_service.move_player(x, y)
+
+    
+    def update_labels(self):
+        self.settings_apply_button.label = language_service.get_message(DisplayMessage.SETTINGS_APPLY)
+        self.title = language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS)
+
+    def turn_prompt(self) -> str:
+        if self._game_snapshot == None:
+            return "" # fallback
+        if self._game_snapshot.viewer_is_spectator:
+            return language_service.get_message(DisplayMessage.GAME_SPECTATING)
+        if self._game_snapshot.can_shift:
+            return language_service.get_message(DisplayMessage.GAME_MOVE_TILE)
+        if self._game_snapshot.can_move:
+            return language_service.get_message(DisplayMessage.GAME_MOVE_PLAYER)
+        return language_service.get_message(DisplayMessage.GAME_WAITING)

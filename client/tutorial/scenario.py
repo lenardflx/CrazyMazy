@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from shared.types.enums import InsertionSide
+from client.lang import DisplayMessage, language_service
 
 
 @dataclass(slots=True, frozen=True)
@@ -10,7 +11,7 @@ class TutorialTextStep:
     """Shows explanatory text and advances when the player presses the continue button."""
 
     text: str
-    button_label: str = "Next"
+    button_label: str = language_service.get_message(DisplayMessage.TUTORIAL_NEXT)
 
 
 @dataclass(slots=True, frozen=True)
@@ -50,7 +51,7 @@ class TutorialFreeplayStep:
     """Ends the guided sequence and lets the player continue the match in freeplay."""
 
     text: str
-    button_label: str = "Play"
+    button_label: str = language_service.get_message(DisplayMessage.TUTORIAL_PLAY)
 
 
 TutorialStep = (
@@ -66,53 +67,53 @@ def default_tutorial_steps() -> list[TutorialStep]:
     """Return the default ordered sequence of guided tutorial steps."""
     return [
         TutorialTextStep(
-            "Welcome! This tutorial will teach you the basics of the game."
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_01)
         ),
         TutorialTextStep(
-            "Each turn, you have to insert the spare tile into the board to shift a row or column and move your player"
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_02)
         ),
         TutorialTextStep(
-            "Your goal is to collect all your treasures and return to your starting corner."    
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_03)  
         ),
         TutorialTextStep(
-            "On the right, you can see the spare tile that will be inserted on your turn. You can rotate it before inserting. "
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_04)
         ),
         TutorialTextStep(
-            "Next to the spare tile, you can see your current target treasure. Collect it to move on to the next one."
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_05)
         ),
 
         # Cycle 1 — shift somewhere, stay put to show moving is optional
         TutorialShiftStep(
-            "Insert the spare tile from the left at row 3. "
-            "Your treasure is not reachable yet — watch how the tiles shift.",
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_06) +
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_07),
             side=InsertionSide.LEFT,
             index=3,
         ),
         TutorialMoveStep(
-            "You can always stay on your current tile. Click it to end your turn without moving.",
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_08),
             position=(0, 0),
         ),
         TutorialNpcStep(
-            "The opponent takes their turn now.",
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_09),
         ),
 
         # Cycle 2 — rotate + shift to unlock the treasure, then collect it
         TutorialRotateStep(
-            "Rotate the spare tile once to the right so it opens a path eastward.",
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_10),
             direction=1,
         ),
         TutorialShiftStep(
-            "Insert from the top at column 1. This connects your starting corner to your treasure.",
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_11),
             side=InsertionSide.TOP,
             index=1,
         ),
         TutorialMoveStep(
-            "Move east to collect your treasure.",
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_12),
             position=(2, 0),
         ),
 
         TutorialFreeplayStep(
-            "Well done! Now try to collect all your remaining treasures, and return to your starting corner to win the game.",
+            language_service.get_message(DisplayMessage.TUTORIAL_TEXT_13),
             button_label="Start",
         ),
     ]

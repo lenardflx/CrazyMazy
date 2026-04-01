@@ -14,6 +14,8 @@ from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOV
 from client.ui.controls import Button, Slider, TextInput
 from client.ui.theme import TEXT_PRIMARY, render_text
 from client.screens.menu.menu_screen import MenuScreen
+from client.lang import DisplayMessage, language_service
+
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
@@ -27,7 +29,7 @@ class CreateLobbyScreen(MenuScreen):
     """
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
-        super().__init__(surface, scene_manager, title="Create Lobby")
+        super().__init__(surface, scene_manager, title=language_service.get_message(DisplayMessage.LOBBY_CREATE))
         form = self.scene_manager.runtime_state.create_lobby
         center_x = self.content_rect.centerx
         stored_name = scene_manager.client_settings.get_name()
@@ -71,13 +73,13 @@ class CreateLobbyScreen(MenuScreen):
         )
         self.private_button = Button(
             pg.Rect(type_group_center_x - 100, settings_row_y, 96, option_height),
-            "Private",
+            language_service.get_message(DisplayMessage.LOBBY_PRIVATE),
             self._set_public_action(False),
             variant="primary" if not form.is_public else "secondary",
         )
         self.public_button = Button(
             pg.Rect(type_group_center_x + 4, settings_row_y, 96, option_height),
-            "Public",
+            language_service.get_message(DisplayMessage.LOBBY_PUBLIC),
             self._set_public_action(True),
             variant="primary" if form.is_public else "secondary",
         )
@@ -94,7 +96,7 @@ class CreateLobbyScreen(MenuScreen):
         slider_width = 340
         self.insert_timeout_slider = Slider(
             pg.Rect(center_x - slider_width // 2, insert_timeout_row_y, slider_width, 14),
-            "Insert Timeout",
+            language_service.get_message(DisplayMessage.LOBBY_INSERT_TIMEOUT),
             self._insert_timeout_index(form.insert_timeout),
             minimum=0,
             maximum=len(self._insert_timeout_values) - 1,
@@ -103,7 +105,7 @@ class CreateLobbyScreen(MenuScreen):
         )
         self.move_timeout_slider = Slider(
             pg.Rect(center_x - slider_width // 2, move_timeout_row_y, slider_width, 14),
-            "Move Timeout",
+            language_service.get_message(DisplayMessage.LOBBY_MOVE_TIMEOUT),
             self._move_timeout_index(form.move_timeout),
             minimum=0,
             maximum=len(self._move_timeout_values) - 1,
@@ -112,14 +114,14 @@ class CreateLobbyScreen(MenuScreen):
         )
 
         self._row_labels = [
-            ("Board Size", center_x, board_size_row_y - label_offset),
-            ("Lobby Type", type_group_center_x, settings_row_y - label_offset),
-            ("Player Limit", limit_group_center_x, settings_row_y - label_offset),
+            (language_service.get_message(DisplayMessage.BOARD_SIZE), center_x, board_size_row_y - label_offset),
+            (language_service.get_message(DisplayMessage.LOBBY_TYPE), type_group_center_x, settings_row_y - label_offset),
+            (language_service.get_message(DisplayMessage.PLAYER_LIMIT), limit_group_center_x, settings_row_y - label_offset),
         ]
 
         self.create_button = Button(
             pg.Rect(center_x - 92, move_timeout_row_y + 50, 184, 46),
-            "Create Lobby",
+            language_service.get_message(DisplayMessage.LOBBY_CREATE),
             self._create_lobby,
             variant="primary",
         )
@@ -242,7 +244,7 @@ class CreateLobbyScreen(MenuScreen):
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the form controls and any error messages."""
         super().draw_content(rect)
-        self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
+        self.name_input.draw(self.surface, self.small_font, self.body_font, language_service.get_message(DisplayMessage.PLAYER_NAME))
         self.random_name_button.draw(self.surface, self.button_font)
         for label, x, y in self._row_labels:
             rendered = render_text(self.body_font, label, TEXT_PRIMARY)
