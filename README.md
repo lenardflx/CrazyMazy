@@ -45,6 +45,20 @@ For a custom number of clients, and also Windows users (since the Make command m
 pytest
 ```
 
+## Local Stats
+
+The client keeps a small set of local multiplayer stats in `data/app_data.json`.
+They are shown in the main menu through the star button and currently track:
+
+- games played
+- games won
+- win rate
+- treasures collected
+- moves made
+
+These stats are derived on the client from incoming multiplayer snapshots and are
+meant for personal progress only. They are not authoritative server-side stats.
+
 ## Project Structure
 
 ```

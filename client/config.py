@@ -7,6 +7,10 @@ Server connection is configured via the ".env" file. You can read how to set it 
 
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 WINDOW_TITLE = "Crazy Mazy"
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720

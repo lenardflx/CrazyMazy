@@ -6,6 +6,7 @@ from client.network.state import ClientState
 from client.screens.core.scene_types import SceneTypes
 from shared.protocol import ErrorCode
 from client.state.runtime_state import BoardShiftAnimation, PlayerMoveAnimation, RuntimeState
+from client.state.app_data import ClientData
 from shared.types.enums import GamePhase
 from shared.game.snapshot import SnapshotGameState
 
@@ -23,9 +24,11 @@ class TransportSync:
         self,
         transport_state: ClientState,
         runtime_state: RuntimeState,
+        client_data: ClientData,
     ) -> None:
         self._transport = transport_state
         self._runtime = runtime_state
+        self._client_data = client_data
         self._game_state: SnapshotGameState | None = None
         self._seen_snapshot_version = 0
         self._seen_error_version = 0
@@ -48,7 +51,10 @@ class TransportSync:
             self._seen_snapshot_version = self._transport.snapshot_version
             snapshot = self._transport.game_snapshot
             if snapshot is not None:
+                previous_state = self._game_state
                 self._game_state = SnapshotGameState.from_snapshot(snapshot)
+                if self._client_data.stats.record_snapshot_transition(previous_state, self._game_state):
+                    self._client_data.write_JSON()
                 self._reset_runtime()
                 self._start_animations(self._game_state)
                 target_scene = self._scene_from_snapshot()
