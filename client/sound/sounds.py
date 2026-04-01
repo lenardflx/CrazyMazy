@@ -13,7 +13,7 @@ SFX: dict[str, str] = {
     "lose": "assets/sounds/button.wav", # add
     "your_turn": "assets/sounds/button.wav", # add
     "timer_beep": "assets/sounds/timer.wav", # add
-    "treasure_collect": "assets/unused/place_player_1.wav", # add
+    "treasure_collect": "assets/unused/collect_sound.wav", # add
     "treasure_collect_meow": "assets/sounds/meow.mp3",
     "error": "assets/sounds/error_sound.wav", # add
 }
