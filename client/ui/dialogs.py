@@ -12,6 +12,7 @@ from collections.abc import Callable
 import pygame as pg
 
 from client.ui.controls import Button
+from client.lang import DisplayMessage, language_service
 from client.ui.theme import PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, draw_pixel_rect, font, render_text
 
 ChoiceSpec = tuple[str, Callable[[], None], str]
@@ -84,8 +85,8 @@ class ConfirmDialog(BaseDialog):
         on_confirm: Callable[[], None],
         on_cancel: Callable[[], None],
         *,
-        confirm_label: str = "Confirm",
-        cancel_label: str = "Cancel",
+        confirm_label: str = language_service.get_message(DisplayMessage.GAME_CONFIRM),
+        cancel_label: str = language_service.get_message(DisplayMessage.GAME_CANCEL),
     ) -> None:
         rect = pg.Rect(surface_rect.centerx - 220, surface_rect.centery - 110, self.WIDTH, 220)
         super().__init__(surface_rect, title, message, rect)
@@ -126,7 +127,7 @@ class ChoiceDialog(BaseDialog):
         choices: list[ChoiceSpec],
         on_cancel: Callable[[], None],
         *,
-        cancel_label: str | None = "Cancel",
+        cancel_label: str | None = language_service.get_message(DisplayMessage.GAME_CANCEL),
     ) -> None:
         has_cancel = cancel_label is not None
         height = 190 + len(choices) * 54 - (58 if not has_cancel else 0)

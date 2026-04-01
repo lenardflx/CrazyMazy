@@ -41,9 +41,9 @@ class GameScreen(BaseScreen):
         self.dialog: ConfirmDialog | None = None
         self.settings_overlay_open = False
         self._layout_cache: tuple[tuple[int, int], int, GameBoardLayout] | None = None
-        self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), "Give Up", self._confirm_give_up)
-        self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), "Options", self._open_settings)
-        self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), "Menu", self._confirm_quit)
+        self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), language_service.get_message(DisplayMessage.GAME_GIVE_UP), self._confirm_give_up)
+        self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS), self._open_settings)
+        self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU), self._confirm_quit)
         self.settings_overlay_rect = pg.Rect(surface.get_width() // 2 - 310, surface.get_height() // 2 - 230, 620, 460)
         self.settings_form = SettingsForm(
             surface,
@@ -152,7 +152,7 @@ class GameScreen(BaseScreen):
             return ""
         blocking_actor_id = self._blocking_actor_id()
         if blocking_actor_id is None or blocking_actor_id == game_state.current_player_id:
-            return game_state.turn_prompt
+            return self.turn_prompt()
         if blocking_actor_id == game_state.viewer_id:
             return "Finishing move..."
         return "Waiting for another player"
@@ -430,3 +430,13 @@ class GameScreen(BaseScreen):
         self.settings_apply_button.label = language_service.get_message(DisplayMessage.SETTINGS_APPLY)
         self.title = language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS)
 
+    def turn_prompt(self) -> str:
+        if self._game_snapshot == None:
+            return "" # fallback
+        if self._game_snapshot.viewer_is_spectator:
+            return language_service.get_message(DisplayMessage.GAME_SPECTATING)
+        if self._game_snapshot.can_shift:
+            return language_service.get_message(DisplayMessage.GAME_MOVE_TILE)
+        if self._game_snapshot.can_move:
+            return language_service.get_message(DisplayMessage.GAME_MOVE_PLAYER)
+        return language_service.get_message(DisplayMessage.GAME_WAITING)

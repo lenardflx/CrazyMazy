@@ -208,16 +208,6 @@ class SnapshotGameState:
         return self.turn.blocked_insertion_side == side and self.turn.blocked_insertion_index == index
 
     @property
-    def turn_prompt(self) -> str:
-        if self.viewer_is_spectator:
-            return "Spectating"
-        if self.can_shift:
-            return "Your turn: insert a tile"
-        if self.can_move:
-            return "Your turn: move"
-        return "Waiting for another player"
-
-    @property
     def spare_tile(self) -> Tile | None:
         if self.board is None:
             return None

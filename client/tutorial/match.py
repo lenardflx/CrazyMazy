@@ -18,6 +18,7 @@ from shared.game.state import GameState
 from shared.game.tile import Tile
 from shared.lib.snapshot import make_game_snapshot_payload
 from shared.protocol import ErrorCode
+from client.lang import DisplayMessage, language_service
 from shared.types.data import TreasureData
 from shared.types.enums import InsertionSide, NpcDifficulty, TileOrientation, TileType, TreasureType, TurnPhase
 
@@ -159,7 +160,7 @@ class TutorialMatch:
             self._scripted_npc_turn_done = True
 
     def _bootstrap(self) -> None:
-        created = self._service.create_lobby(board_size=7, leader_display_name="You", connection_id="tutorial", insert_timeout=None, move_timeout=None)
+        created = self._service.create_lobby(board_size=7, leader_display_name=language_service.get_message(DisplayMessage.TUTORIAL_YOU), connection_id="tutorial", insert_timeout=None, move_timeout=None)
         if isinstance(created, ErrorCode):
             raise RuntimeError(f"Tutorial lobby creation failed: {created}")
         self._player_id = created.player.id

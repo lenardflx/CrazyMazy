@@ -12,6 +12,7 @@ from client.ui.theme import ACCENT_DARK, DISABLED, PANEL, PANEL_ALT, PANEL_SHADO
 from shared.types.enums import InsertionSide, PlayerColor, PlayerSkin, TreasureType
 from shared.game.tile import Tile
 from shared.game.snapshot import SnapshotGameState
+from client.lang import DisplayMessage, language_service
 
 # TODO: finish documentation.... this file is annoying
 
@@ -271,7 +272,7 @@ class BoardView:
         """Draw the spare tile panel, including the current spare tile and the rotate buttons. The rotate buttons are only enabled when the player can shift."""
         self._sync_control_buttons(layout, game_state)
         draw_pixel_rect(surface, layout.spare_panel, PANEL, border=ACCENT_DARK, shadow=PANEL_SHADOW)
-        surface.blit(self.title_font.render("Current Tile", True, TEXT_PRIMARY), (layout.spare_panel.x + 18, layout.spare_panel.y + 16))
+        surface.blit(self.title_font.render(language_service.get_message(DisplayMessage.GAME_CURRENT_TILE), True, TEXT_PRIMARY), (layout.spare_panel.x + 18, layout.spare_panel.y + 16))
 
         self._draw_tile(surface, layout.spare_tile_rect, tile)
         self._draw_tile_overlays(
@@ -333,7 +334,7 @@ class BoardView:
         )
 
     def _draw_stack_count(self, surface: pg.Surface, rect: pg.Rect, remaining: int) -> None:
-        label = self.xs_font.render("Cards left", True, TEXT_MUTED)
+        label = self.xs_font.render(language_service.get_message(DisplayMessage.GAME_CARDS_LEFT), True, TEXT_MUTED)
         value = self.small_font.render(str(remaining), True, TEXT_PRIMARY)
         label_pos = label.get_rect(midleft=(rect.x + 12, rect.bottom - 16))
         value_pos = value.get_rect(midright=(rect.right - 12, rect.bottom - 16))

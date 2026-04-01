@@ -60,7 +60,7 @@ class LobbyScreen(MenuScreen):
 
     def _confirm_leave(self) -> None:
         """Open a confirmation dialog before leaving the lobby."""
-        self.show_confirm("Leave Lobby?", "Return to the main menu?", self._leave_lobby, confirm_label="Leave")
+        self.show_confirm(language_service.get_message(DisplayMessage.GAME_LEAVE_LOBBY), language_service.get_message(DisplayMessage.TUTORIAL_TO_MENU), self._leave_lobby, confirm_label=language_service.get_message(DisplayMessage.GAME_LEAVE))
 
     def _leave_lobby(self) -> None:
         """Confirm action to leave the lobby and return to the main menu."""
