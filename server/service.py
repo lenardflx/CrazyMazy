@@ -208,6 +208,23 @@ class GameService:
             return ErrorCode.GAME_NOT_FOUND
         return state
 
+    def kick_player(self, leader_player_id: UUID, target_player_id: UUID) -> GameState | ErrorCode:
+        leader = self.player_repo.find_by_id(leader_player_id)
+        if leader is None:
+            return ErrorCode.PLAYER_NOT_FOUND
+
+        target = self.player_repo.find_by_id(target_player_id)
+        if target is None:
+            return ErrorCode.PLAYER_NOT_FOUND
+
+        game = self.game_repo.find_by_game_id(leader.game_id)
+        if game is None or target.game_id != game.id:
+            return ErrorCode.GAME_NOT_FOUND
+        if game.leader_player_id != leader.id or target.id == leader.id:
+            return ErrorCode.PLAYER_INSUFFICIENT_PERMISSION
+
+        return self.leave_game(target.id, PlayerLeaveReason.KICKED)
+
     def find_game(self, game_id: UUID) -> GameData | None:
         """Look up a game by its ID.
 
@@ -280,7 +297,8 @@ class GameService:
         elif reason == PlayerLeaveReason.KICKED:
             if player.controller_kind == PlayerControllerKind.HUMAN:
                 conn = get_connection(player.connection_id)
-                flush_outgoing([OutgoingMessage(conn=conn, msg=ServerGameLeftEvent(reason=PlayerLeaveReason.KICKED).to_message())])
+                if conn is not None:
+                    flush_outgoing([OutgoingMessage(conn=conn, msg=ServerGameLeftEvent(reason=PlayerLeaveReason.KICKED).to_message())])
             self.player_repo.delete_player(player.id)
 
         players = self.player_repo.list_by_game_id(player.game_id)
@@ -869,12 +887,23 @@ class GameService:
         from server.handlers._responses import snapshot_response
         from server.network.outgoing import flush_outgoing
 
+        first_action = True
         try:
             while True:
-                sleep(_NPC_ACTION_DELAY_SECONDS)
                 state = self.get_game_state(game_id)
                 if state is None or not self._has_pending_npc_turn(state):
                     return
+                if first_action:
+                    sleep(max(_NPC_ACTION_DELAY_SECONDS, self._client_resolution_delay_seconds(state.game)))
+                    first_action = False
+                    state = self.get_game_state(game_id)
+                    if state is None or not self._has_pending_npc_turn(state):
+                        return
+                else:
+                    sleep(_NPC_ACTION_DELAY_SECONDS)
+                    state = self.get_game_state(game_id)
+                    if state is None or not self._has_pending_npc_turn(state):
+                        return
 
                 updated = self._perform_next_npc_action(state)
                 if isinstance(updated, ErrorCode):

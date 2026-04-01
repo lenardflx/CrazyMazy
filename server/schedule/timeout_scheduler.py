@@ -23,6 +23,13 @@ class TimeoutScheduler(AsyncScheduler):
             if now < game.turn_end_timestamp:
                 continue
 
+            current_state = game_service.get_game_state(game.id)
+            if current_state is None:
+                continue
+            if game_service._has_pending_npc_turn(current_state):
+                game_service.schedule_npc_turns(current_state)
+                continue
+
             if game.turn_phase == TurnPhase.SHIFT:
                 state = game_service.give_up(game.current_player_id)
                 if isinstance(state, ErrorCode):
@@ -34,3 +41,4 @@ class TimeoutScheduler(AsyncScheduler):
 
             outgoing_messages = snapshot_response(state)
             flush_outgoing(outgoing_messages)
+            game_service.schedule_npc_turns(state)
