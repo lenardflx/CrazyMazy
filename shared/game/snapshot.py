@@ -230,6 +230,25 @@ class SnapshotGameState:
     def home_color_at(self, position: Position) -> PlayerColor | None:
         return home_color_for_position(self.board_size, position)
 
+    @property
+    def viewer_position(self) -> Position | None:
+        viewer = self.viewer_player
+        return None if viewer is None else viewer.position
+
+    @property
+    def viewer_target_position(self) -> Position | None:
+        viewer = self.viewer_player
+        if viewer is None:
+            return None
+        if self.active_treasure_type is None:
+            return start_position_for_color_snapshot(self.board_size, viewer.piece_color)
+        if self.board is None:
+            return None
+        return next(
+            (position for position, tile in self.board.tiles.items() if tile.treasure == self.active_treasure_type),
+            None,
+        )
+
     @classmethod
     def from_snapshot(cls, snapshot: GameSnapshotPayload) -> "SnapshotGameState":
         turn_phase = snapshot["turn"]["turn_phase"]
@@ -273,6 +292,18 @@ class SnapshotGameState:
                 )
             ),
         )
+
+
+def start_position_for_color_snapshot(board_size: int, piece_color: PlayerColor) -> Position:
+    match piece_color:
+        case PlayerColor.RED:
+            return 0, 0
+        case PlayerColor.YELLOW:
+            return board_size - 1, 0
+        case PlayerColor.BLUE:
+            return 0, board_size - 1
+        case PlayerColor.GREEN:
+            return board_size - 1, board_size - 1
 
 
 def _board_from_snapshot(board_size: int, tiles: list[TilePayload], phase: GamePhase) -> Board | None:

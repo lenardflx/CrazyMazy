@@ -24,6 +24,8 @@ PLAYER_COLOR_VALUES = {
     PlayerColor.YELLOW: (209, 173, 59),
 }
 
+VIEWER_ACCESSIBILITY_COLOR = (0, 42, 63)
+
 # The type for handling clicks on the game board
 BoardClick = (
     tuple[Literal["rotate"], int]
@@ -132,9 +134,18 @@ class BoardView:
         spare_tile: Tile,
         shift_animation: BoardShiftAnimation | None,
         move_animation: PlayerMoveAnimation | None,
+        *,
+        accessibility_highlight_tiles: bool = False,
     ) -> None:
         """Draw the game board and related UI elements based on the current game state and animations."""
-        self._draw_board(surface, layout, game_state, shift_animation, move_animation)
+        self._draw_board(
+            surface,
+            layout,
+            game_state,
+            shift_animation,
+            move_animation,
+            accessibility_highlight_tiles=accessibility_highlight_tiles,
+        )
         self._draw_spare_panel(surface, layout, spare_tile, game_state)
 
     def resolve_click(self, pos: tuple[int, int], layout: GameBoardLayout, game_state: SnapshotGameState) -> BoardClick:
@@ -204,6 +215,8 @@ class BoardView:
         game_state: SnapshotGameState,
         shift_animation: BoardShiftAnimation | None,
         move_animation: PlayerMoveAnimation | None,
+        *,
+        accessibility_highlight_tiles: bool,
     ) -> None:
         """Draw the game board, including the tiles, players, and arrows. Takes into account the current animations for shifting and moving."""
         draw_pixel_rect(
@@ -222,6 +235,9 @@ class BoardView:
                 continue
             players_by_position.setdefault(player.position, []).append(player.piece_color)
 
+        viewer_position = game_state.viewer_position if accessibility_highlight_tiles else None
+        viewer_target = game_state.viewer_target_position if accessibility_highlight_tiles else None
+
         # Tiles
         for position, rect in layout.cells.items():
             tile = game_state.tile_at(position)
@@ -234,6 +250,10 @@ class BoardView:
                 tile,
                 highlight=game_state.is_position_reachable(position),
             )
+            if viewer_target == position:
+                self._draw_tile_highlight(surface, animated_rect, VIEWER_ACCESSIBILITY_COLOR)
+            if viewer_position == position:
+                self._draw_tile_highlight(surface, animated_rect, VIEWER_ACCESSIBILITY_COLOR)
             self._draw_tile_overlays(
                 surface,
                 animated_rect,
@@ -488,6 +508,12 @@ class BoardView:
         draw_pixel_rect(shadow, shadow.get_rect(), shadow_color, border=shadow_color)
         self._tile_shadow_cache[size] = shadow
         return shadow
+
+    def _draw_tile_highlight(self, surface: pg.Surface, rect: pg.Rect, color: tuple[int, int, int]) -> None:
+        highlight_surface = pg.Surface(rect.size, pg.SRCALPHA)
+        highlight_surface.fill((*color, 70))
+        highlight_surface.blit(self._tile_mask_surface(rect.size), (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        surface.blit(highlight_surface, rect.topleft)
 
     def _animated_rect(
         self,

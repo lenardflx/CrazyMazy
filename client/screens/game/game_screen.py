@@ -282,6 +282,7 @@ class GameScreen(BaseScreen):
             spare_tile,
             runtime.shift_animation,
             runtime.move_animation,
+            accessibility_highlight_tiles=self.scene_manager.client_settings.get_accessibility_highlight_tiles(),
         )
         self.player_panel_view.draw(
             self.surface,

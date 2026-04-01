@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from collections.abc import Callable
 from typing import TypeVar
 from uuid import UUID
@@ -53,12 +54,11 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         )
 
     def list_public_games(self) -> list[GameData]:
-        """Returns all instances of the table Game that are set to public and in the pregame phase."""
+        """Returns all instances of the table Game that are set to public."""
         return self.read(
             lambda session: list(self.session.exec(
                 select(GameTable)
                 .where(GameTable.is_public == True)  # noqa: E712
-                .where(GameTable.game_phase == GamePhase.PREGAME)
                 .order_by(GameTable.created_at)
             ).all())
         )
@@ -85,7 +85,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         """Creates an instance of the table Game and returns it."""
         def op(session: Session) -> GameData:
             game = GameTable(
-                code="0000",
+                code=self._new_code(),
                 leader_player_id=leader_player_id,
                 board_size=board_size,
                 is_public=is_public,
@@ -98,6 +98,15 @@ class GameRepositorySQL(SQLRepository, GameRepository):
             return game
 
         return self.write(op)
+
+    def _new_code(self) -> str:
+        while True:
+            code = f"{random.randint(0, 9999):04d}"
+            existing = self.session.exec(
+                select(GameTable).where(GameTable.code == code)
+            ).first()
+            if existing is None:
+                return code
 
     def update_game(self, new_game: GameData) -> GameData:
         """Updates an instance of the table Game and returns it."""
@@ -203,8 +212,6 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
                 self.session.delete(player)
 
         self.write(op)
-
-
 
 class TileRepositorySQL(SQLRepository, TileRepository):
     def __init__(self, engine):
