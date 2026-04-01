@@ -48,8 +48,6 @@ class SceneManager:
         self.audio = audio
         self.client_settings = ClientData()
         self.runtime_state = RuntimeState()
-        self.runtime_state.create_lobby.insert_timeout = 60 if 60 in VALID_INSERT_TIMEOUTS else VALID_INSERT_TIMEOUTS[0]
-        self.runtime_state.create_lobby.move_timeout = 60 if 60 in VALID_MOVE_TIMEOUTS else VALID_MOVE_TIMEOUTS[0]
         self.tutorial_session: TutorialSession | None = None
         self.prompt_tutorial_on_main_menu = not self.client_settings.get_tutorial()
         self.settings_return_scene = SceneTypes.MAIN_MENU
@@ -118,7 +116,7 @@ class SceneManager:
         # --- MANUELLES FULLSCREEN-SCALING --- #!!!!
         if pygame.display.is_fullscreen():
             info = pygame.display.Info()
-            scaled = pygame.transform.smoothscale(
+            scaled = pygame.transform.scale(
                 self.render_surface,
                 (info.current_w, info.current_h)
             )
@@ -142,7 +140,7 @@ class SceneManager:
         previous_state = self.game_state
         target, error = self._transport_sync.sync()
         if error is not None:
-            self.current_screen.error_message = language_service.get_message(error)
+            self.current_screen.set_error_message(language_service.get_message(error))
             self.audio.play_sfx("error")
         current_state = self.game_state
         self._play_snapshot_sfx(previous_state, current_state)

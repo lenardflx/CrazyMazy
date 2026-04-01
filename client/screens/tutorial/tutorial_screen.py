@@ -134,11 +134,11 @@ class TutorialScreen(GameScreen):
         mask.fill((46, 46, 46, 100))
 
         overlay_rect = self._step_overlay_rect().inflate(18, 18)
-        pg.draw.rect(mask, (0, 0, 0, 0), overlay_rect, border_radius=20)
+        _cutout_pixel_rect(mask, overlay_rect)
 
         target_rect = self._step_target_rect(layout)
         if target_rect is not None:
-            pg.draw.rect(mask, (0, 0, 0, 0), target_rect, border_radius=18)
+            _cutout_pixel_rect(mask, target_rect)
 
         self.surface.blit(mask, (0, 0))
 
@@ -177,6 +177,28 @@ class TutorialScreen(GameScreen):
         for index, current in enumerate(lines):
             rendered = render_text(self.body_font, current, TEXT_PRIMARY)
             self.surface.blit(rendered, (x, y + index * (self.body_font.get_height() + 4)))
+
+
+def _cutout_pixel_rect(surface: pg.Surface, rect: pg.Rect) -> None:
+    if rect.width <= 0 or rect.height <= 0:
+        return
+
+    cut = max(4, min(7, rect.width // 6, rect.height // 6))
+    step = 3
+    clear = (0, 0, 0, 0)
+    for y in range(rect.height):
+        top_inset = max(0, ((max(0, cut - y - 1) + step - 1) // step) * step)
+        bottom_inset = max(0, ((max(0, cut - (rect.height - y - 1) - 1) + step - 1) // step) * step)
+        inset = max(top_inset, bottom_inset)
+        row_width = rect.width - inset * 2
+        if row_width <= 0:
+            continue
+        pg.draw.line(
+            surface,
+            clear,
+            (rect.x + inset, rect.y + y),
+            (rect.x + inset + row_width - 1, rect.y + y),
+        )
 
 
 class TutorialPostGameScreen(PostGameScreen):

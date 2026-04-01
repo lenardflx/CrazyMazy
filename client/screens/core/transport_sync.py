@@ -71,6 +71,13 @@ class TransportSync:
             self._seen_error_version = self._transport.error_version
             error = self._transport.last_error
 
+        if self._game_state is not None:
+            if self._game_state.phase == GamePhase.POSTGAME:
+                if self._runtime.game.move_animation is not None or self._runtime.game.treasure_collect_animation is not None:
+                    target_scene = SceneTypes.GAME
+                else:
+                    target_scene = SceneTypes.POST_GAME
+
         return target_scene, error
 
     def _reset_runtime(self) -> None:

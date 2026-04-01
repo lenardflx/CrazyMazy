@@ -118,6 +118,43 @@ class GameScreen(BaseScreen):
     def _game_snapshot(self) -> SnapshotGameState | None:
         return self.scene_manager.game_state
 
+    def _blocking_actor_id(self) -> str | None:
+        runtime_game = self._game_runtime
+        if runtime_game.move_animation is not None:
+            return runtime_game.move_animation.player_id
+        if runtime_game.treasure_collect_animation is not None:
+            return runtime_game.treasure_collect_animation.player_id
+        return None
+
+    def _displayed_current_player_id(self) -> str:
+        game_state = self._game_snapshot
+        if game_state is None:
+            return ""
+        blocking_actor_id = self._blocking_actor_id()
+        if blocking_actor_id is not None and blocking_actor_id != game_state.current_player_id:
+            return blocking_actor_id
+        return game_state.current_player_id
+
+    def _remaining_blocking_animation_ms(self) -> int:
+        runtime_game = self._game_runtime
+        remaining_ms = 0
+        if runtime_game.move_animation is not None:
+            remaining_ms += round((1.0 - runtime_game.move_animation.progress) * runtime_game.move_animation.duration * 1000)
+        if runtime_game.treasure_collect_animation is not None:
+            remaining_ms += round((1.0 - runtime_game.treasure_collect_animation.progress) * runtime_game.treasure_collect_animation.duration * 1000)
+        return max(0, remaining_ms)
+
+    def _displayed_turn_prompt(self) -> str:
+        game_state = self._game_snapshot
+        if game_state is None:
+            return ""
+        blocking_actor_id = self._blocking_actor_id()
+        if blocking_actor_id is None or blocking_actor_id == game_state.current_player_id:
+            return game_state.turn_prompt
+        if blocking_actor_id == game_state.viewer_id:
+            return "Finishing move..."
+        return "Waiting for another player"
+
     def handle_event(self, event: pg.event.Event) -> None:
         """Handle a Pygame event. This covers all actions on the screen. It passes the events to the different UI elements."""
 
@@ -248,6 +285,7 @@ class GameScreen(BaseScreen):
             self.surface,
             layout.players_panel,
             game_state,
+            highlighted_player_id=self._displayed_current_player_id(),
             treasure_animation=runtime.treasure_collect_animation,
             pending_collect=(
                 None
@@ -279,8 +317,9 @@ class GameScreen(BaseScreen):
         # make sure we don't exceed the maximum length reserved for the
         # turn status text. This does not happen normally, but we cannot
         # be sure due to variable language.
-        turn_text = self._game_snapshot.turn_prompt[:30]
-        if len(self._game_snapshot.turn_prompt) >= 30:
+        prompt = self._displayed_turn_prompt()
+        turn_text = prompt[:30]
+        if len(prompt) >= 30:
             turn_text += "..."
 
         status = self.title_font.render(turn_text, True, TEXT_PRIMARY)
@@ -295,10 +334,15 @@ class GameScreen(BaseScreen):
 
         now = time.time_ns() // 1_000_000
 
-        if now > turn_end:
+        remaining_ms = turn_end - now
+        blocking_actor_id = self._blocking_actor_id()
+        if blocking_actor_id is not None and blocking_actor_id != self._game_snapshot.current_player_id:
+            remaining_ms -= self._remaining_blocking_animation_ms()
+
+        if remaining_ms <= 0:
             timer_content = "00:00"
         else:
-            timer_content = format_ms_to_clock(turn_end - now)
+            timer_content = format_ms_to_clock(remaining_ms)
 
         timer_text = self.title_font.render(timer_content, True, TEXT_PRIMARY)
         self.surface.blit(timer_text, (timer_rect.left + 25, timer_rect.top + 7))
@@ -333,7 +377,7 @@ class GameScreen(BaseScreen):
         If the game state is not in the correct phase or the spare tile is not available, return None to indicate that we cant resolve a layout.
         """
         game_state = self._game_snapshot
-        if game_state is None or game_state.phase != GamePhase.GAME or game_state.spare_tile is None:
+        if game_state is None or game_state.spare_tile is None:
             return None
         key = (self.surface.get_size(), game_state.board_size)
         if self._layout_cache is not None and self._layout_cache[0] == key[0] and self._layout_cache[1] == key[1]:

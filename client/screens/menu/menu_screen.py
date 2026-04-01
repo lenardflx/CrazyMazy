@@ -106,6 +106,7 @@ class MenuScreen(BaseScreen):
         self.handle_content_event(event)
 
     def update(self, dt: float) -> None:
+        super().update(dt)
         self.update_content(dt)
 
     def update_content(self, dt: float) -> None:
@@ -126,6 +127,7 @@ class MenuScreen(BaseScreen):
 
         if self.dialog is not None:
             self.dialog.draw(self.surface)
+        super().draw()
 
     def _draw_background(self) -> None:
         if self.background_image is None:

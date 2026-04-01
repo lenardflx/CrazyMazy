@@ -37,6 +37,7 @@ class PlayerPanelView:
         game_state: SnapshotGameState,
         *,
         post_game: bool = False,
+        highlighted_player_id: str | None = None,
         treasure_animation: TreasureCollectAnimation | None = None,
         pending_collect: tuple[str, TreasureType] | None = None,
     ) -> None: # TODO: better docs
@@ -69,13 +70,14 @@ class PlayerPanelView:
             row_surface = pg.Surface(row.size, pg.SRCALPHA)
 
             fill = PANEL if not player.is_inactive else blend_color(PANEL, DISABLED, 0.35)
-            if player.id == game_state.current_player_id:
+            active_player_id = game_state.current_player_id if highlighted_player_id is None else highlighted_player_id
+            if player.id == active_player_id:
                 fill = blend_color(PANEL, ACCENT_SOFT, 0.52)
             elif player.id == game_state.viewer_id:
                 fill = blend_color(PANEL, PANEL_ALT, 0.34)
             border = blend_color(fill, ACCENT_DARK, 0.32)
             shadow = blend_color(fill, PANEL_SHADOW, 0.22)
-            if player.id == game_state.current_player_id:
+            if player.id == active_player_id:
                 border = blend_color(ACTIVE_OUTLINE, ACCENT_DARK, 0.4)
                 shadow = blend_color(fill, ACCENT_DARK, 0.18)
             draw_pixel_rect(
