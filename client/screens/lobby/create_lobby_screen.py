@@ -13,6 +13,8 @@ from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOV
 from client.ui.controls import Button, Slider, TextInput
 from client.ui.theme import TEXT_PRIMARY, render_text
 from client.screens.menu.menu_screen import MenuScreen
+from client.lang import DisplayMessage, language_service
+
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
@@ -26,7 +28,7 @@ class CreateLobbyScreen(MenuScreen):
     """
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
-        super().__init__(surface, scene_manager, title="Create Lobby")
+        super().__init__(surface, scene_manager, title=language_service.get_message(DisplayMessage.LOBBY_CREATE))
         form = self.scene_manager.runtime_state.create_lobby
         center_x = self.content_rect.centerx
         stored_name = scene_manager.client_settings.get_name()
@@ -70,13 +72,13 @@ class CreateLobbyScreen(MenuScreen):
         )
         self.private_button = Button(
             pg.Rect(type_group_center_x - 100, settings_row_y, 96, option_height),
-            "Private",
+            language_service.get_message(DisplayMessage.LOBBY_PRIVATE),
             self._set_public_action(False),
             variant="primary" if not form.is_public else "secondary",
         )
         self.public_button = Button(
             pg.Rect(type_group_center_x + 4, settings_row_y, 96, option_height),
-            "Public",
+            language_service.get_message(DisplayMessage.LOBBY_PUBLIC),
             self._set_public_action(True),
             variant="primary" if form.is_public else "secondary",
         )
@@ -93,7 +95,7 @@ class CreateLobbyScreen(MenuScreen):
         slider_width = 340
         self.insert_timeout_slider = Slider(
             pg.Rect(center_x - slider_width // 2, insert_timeout_row_y, slider_width, 14),
-            "Insert Timeout",
+            language_service.get_message(DisplayMessage.LOBBY_INSERT_TIMEOUT),
             self._insert_timeout_index(form.insert_timeout),
             minimum=0,
             maximum=len(self._insert_timeout_values) - 1,
@@ -102,7 +104,7 @@ class CreateLobbyScreen(MenuScreen):
         )
         self.move_timeout_slider = Slider(
             pg.Rect(center_x - slider_width // 2, move_timeout_row_y, slider_width, 14),
-            "Move Timeout",
+            language_service.get_message(DisplayMessage.LOBBY_MOVE_TIMEOUT),
             self._move_timeout_index(form.move_timeout),
             minimum=0,
             maximum=len(self._move_timeout_values) - 1,

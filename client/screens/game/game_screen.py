@@ -19,6 +19,7 @@ from client.ui.helper import format_ms_to_clock
 from client.ui.theme import BACKGROUND, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, render_text
 from shared.types.enums import GamePhase, TurnPhase
 from shared.game.snapshot import SnapshotGameState
+from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -52,17 +53,18 @@ class GameScreen(BaseScreen):
             body_font=self.small_font,
             small_font=self.small_font,
             button_font=self.button_font,
+            label_updater=self.update_labels
         )
         footer_y = self.settings_overlay_rect.bottom - 72
         self.settings_apply_button = Button(
             pg.Rect(self.settings_overlay_rect.centerx - 126, footer_y, 120, 44),
-            "Apply",
+            language_service.get_message(DisplayMessage.SETTINGS_APPLY),
             self.settings_form.apply,
             variant="primary",
         )
         self.settings_close_button = Button(
             pg.Rect(self.settings_overlay_rect.centerx + 6, footer_y, 120, 44),
-            "Close",
+            language_service.get_message(DisplayMessage.SETTINGS_CLOSE),
             self._close_settings,
         )
 
@@ -70,22 +72,22 @@ class GameScreen(BaseScreen):
         """Open a confirmation dialog to confirm if the player really wants to leave the match and return to the main menu."""
         self.dialog = ConfirmDialog(
             self.surface.get_rect(),
-            "Leave Match?",
-            "Return to the main menu?",
+            language_service.get_message(DisplayMessage.GAME_LEAVE_MATCH),
+            language_service.get_message(DisplayMessage.GAME_RETURN),
             self._leave_to_menu,
             self._close_dialog,
-            confirm_label="Leave",
+            confirm_label=language_service.get_message(DisplayMessage.GAME_LEAVE),
         )
 
     def _confirm_give_up(self) -> None:
         """Open a confirmation dialog to confirm if the player really wants to give up and spectate the rest of the match."""
         self.dialog = ConfirmDialog(
             self.surface.get_rect(),
-            "Give Up?",
-            "Give up and spectate the rest of the match?",
+            language_service.get_message(DisplayMessage.GAME_GIVE_UP_Q),
+            language_service.get_message(DisplayMessage.GAME_GIVE_UP_MATCH),
             self._give_up,
             self._close_dialog,
-            confirm_label="Give Up",
+            confirm_label=language_service.get_message(DisplayMessage.GAME_GIVE_UP),
         )
 
     def _open_settings(self) -> None:
@@ -307,7 +309,7 @@ class GameScreen(BaseScreen):
             border=ACCENT_DARK,
             shadow=blend_color(PANEL, ACCENT_DARK, 0.35),
         )
-        title = render_text(self.title_font, "Options", TEXT_PRIMARY)
+        title = render_text(self.title_font, language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS), TEXT_PRIMARY)
         self.surface.blit(title, title.get_rect(center=(self.settings_overlay_rect.centerx, self.settings_overlay_rect.y + 34)))
 
         self.settings_form.draw()
@@ -362,3 +364,9 @@ class GameScreen(BaseScreen):
             # If the click is a move click, perform a move action to the given x and y coordinates.
             case ("move", x, y):
                 self.scene_manager.game_service.move_player(x, y)
+
+    
+    def update_labels(self):
+        self.settings_apply_button.label = language_service.get_message(DisplayMessage.SETTINGS_APPLY)
+        self.title = language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS)
+
