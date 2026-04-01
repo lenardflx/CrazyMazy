@@ -10,6 +10,10 @@ from time import sleep
 from uuid import UUID
 
 from server.db.repo import GameRepository, PlayerRepository, TileRepository, TreasureRepository
+from server.network.connections import get_connection
+from server.network.models import OutgoingMessage
+from server.network.outgoing import flush_outgoing
+from shared.events import ServerGameLeftEvent
 from shared.lib.lobby import MIN_STARTABLE_PLAYERS
 from server.lib.game import can_join_game, is_valid_board_size, is_valid_player_limit, normalize_join_code
 from server.lib.player import (
@@ -31,11 +35,12 @@ from shared.types.enums import (
     PlayerControllerKind,
     TreasureType,
     TurnPhase,
+    PlayerLeaveReason,
 )
 
 from shared.lib.names import generate_display_name
 from shared.protocol import ErrorCode
-from shared.types.data import GameData, PlayerData, TileData, TreasureData, utcnow
+from shared.types.data import GameData, PlayerData, TreasureData, utcnow
 from shared.game.board import Board, is_valid_insertion_index, opposite_side
 from shared.game.helper import assign_treasures, start_position_for_color
 from shared.game.state import GameState
@@ -76,12 +81,18 @@ class GameService:
         *,
         is_public: bool = False,
         player_limit: int = 4,
+        insert_timeout: int | None = None,
+        move_timeout: int | None = None
     ) -> ConnectionState | ErrorCode:
         """Create a new game lobby and register the creating player as leader.
 
         :param board_size: Side length of the square board.
         :param leader_display_name: Display name for the lobby leader.
         :param connection_id: WebSocket connection ID of the leader.
+        :param player_limit:
+        :param is_public:
+        :param insert_timeout:
+        :param move_timeout:
         :return: Connection state containing the new game and leader player.
                     `INVALID_BOARD_SIZE` when the configured width of the board is out of range or even.
                     ``
@@ -109,6 +120,8 @@ class GameService:
         # Assign the newly created player as leader before persisting.
         game.leader_player_id = leader.id
         game.revision += 1
+        game.insert_timeout = insert_timeout
+        game.move_timeout = move_timeout
         game = self.game_repo.update_game(game)
         return ConnectionState(game=game, player=leader)
 
@@ -237,22 +250,33 @@ class GameService:
 
         return ConnectionState(game=game, player=player)
 
-    def leave_game(self, player_id: UUID) -> GameState | None:
+    def leave_game(self, player_id: UUID, reason: PlayerLeaveReason) -> GameState | ErrorCode:
         """Mark a player as departed and apply any resulting game state changes.
 
+        :param reason:
         :param player_id: UUID of the player leaving.
         :return: Updated game state, or ``None`` if the game was deleted (all players left).
         """
         player = self.player_repo.find_by_id(player_id)
         if player is None:
-            return None
+            return ErrorCode.PLAYER_NOT_FOUND
 
         game = self.game_repo.find_by_game_id(player.game_id)
         if game is None:
-            return None
+            return ErrorCode.GAME_NOT_FOUND
 
-        players = self._mark_player_departed(player)
+        if reason == PlayerLeaveReason.LEFT and player.status != PlayerStatus.DEPARTED:
+            player.status = PlayerStatus.DEPARTED
+            player.connection_id = None
+            player.left_at = utcnow()
+            self.player_repo.update_player(player)
+        elif reason == PlayerLeaveReason.KICKED:
+            if player.controller_kind == PlayerControllerKind.HUMAN:
+                conn = get_connection(player.connection_id)
+                flush_outgoing([OutgoingMessage(conn=conn, msg=ServerGameLeftEvent(reason=PlayerLeaveReason.KICKED).to_message())])
+            self.player_repo.delete_player(player.id)
 
+        players = self.player_repo.list_by_game_id(player.game_id)
         return self._after_player_inactivation(game, player, players)
 
     def give_up(self, player_id: UUID) -> GameState | None:
@@ -270,7 +294,7 @@ class GameService:
             return None
 
         players = self._mark_player_observer(player)
-        return self._after_player_inactivation(game, player, players)
+        return self._after_player_inactivation(game, player, players, transfer_leader=False)
 
     def start_game(self, player_id: UUID) -> GameState | ErrorCode:
         """Start (or restart) the game; only the lobby leader may call this.
@@ -294,6 +318,9 @@ class GameService:
             return ErrorCode.GAME_NOT_STARTABLE
 
         players = self.player_repo.list_by_game_id(game.id)
+        if game.game_phase == GamePhase.POSTGAME:
+            return self._reset_to_pregame(game, players)
+
         active = sorted(active_players(players), key=lambda current: current.join_order)
         if len(active) < MIN_STARTABLE_PLAYERS:
             return ErrorCode.PLAYER_COUNT_INSUFFICIENT
@@ -322,7 +349,10 @@ class GameService:
         game.game_phase = GamePhase.GAME
         game.end_reason = None
         game.turn_phase = TurnPhase.SHIFT
-        game.turn_start_timestamp = time.time_ns() // 1_000_000
+        if game.insert_timeout is not None:
+            game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
+        else:
+            game.turn_end_timestamp = None
         game.current_player_id = active[0].id
         game.blocked_insertion_side = None
         game.blocked_insertion_index = None
@@ -353,7 +383,10 @@ class GameService:
         :return: Updated game state after the shift.
         :raises ValueError: If it is not the player's turn, the insertion is blocked, or the index is invalid.
         """
-        _, game = self._require_current_player(player_id, TurnPhase.SHIFT) # todo: fix error handling here, currently unsafe as tuple unpacking does not always work!
+        current = self._require_current_player(player_id, TurnPhase.SHIFT)
+        if not isinstance(current, tuple):
+            return current
+        _, game = current
         if not is_valid_insertion_index(game.board_size, index):
             raise ValueError(f"Invalid insertion index: {index}")
 
@@ -365,6 +398,8 @@ class GameService:
         state = self.get_game_state(game.id)
         if state is None:
             return ErrorCode.GAME_NOT_FOUND
+        if state.board is None:
+            return ErrorCode.GAME_INACTIVE
 
         state.board.shift_tile(side, index, rotation)
 
@@ -385,6 +420,10 @@ class GameService:
 
         # Transition to MOVE phase for the current player, blocking the reverse shift as the next valid action.
         game.turn_phase = TurnPhase.MOVE
+        if game.move_timeout is not None:
+            game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.move_timeout * 1000
+        else:
+            game.turn_end_timestamp = None
         game.blocked_insertion_side = opposite_side(side)
         game.blocked_insertion_index = index
         game.last_shift_side = side
@@ -412,10 +451,15 @@ class GameService:
         :raises ValueError: If it is not the player's turn, the position is unreachable,
             or the player has no position.
         """
-        player, game = self._require_current_player(player_id, TurnPhase.MOVE)
+        current = self._require_current_player(player_id, TurnPhase.MOVE)
+        if not isinstance(current, tuple):
+            return current
+        player, game = current
         state = self.get_game_state(game.id)
         if state is None:
             return ErrorCode.GAME_NOT_FOUND
+        if state.board is None:
+            return ErrorCode.GAME_INACTIVE
 
         start = self._player_position(player)
         if start is None:
@@ -458,14 +502,17 @@ class GameService:
             return updated
         return self._finish_move(updated.game, player)
 
-    def end_turn(self, player_id: UUID) -> GameState:
+    def end_turn(self, player_id: UUID) -> GameState | ErrorCode:
         """Skip the move phase and pass the turn to the next player.
 
         :param player_id: UUID of the current player ending their turn.
         :return: Updated game state with the next player's turn started.
         :raises ValueError: If it is not the player's turn or the game is not in the MOVE phase.
         """
-        player, game = self._require_current_player(player_id, TurnPhase.MOVE)
+        current = self._require_current_player(player_id, TurnPhase.MOVE)
+        if not isinstance(current, tuple):
+            return current
+        player, game = current
         return self._finish_move(game, player)
 
     def _after_player_inactivation(
@@ -473,6 +520,8 @@ class GameService:
         game: GameData,
         player: PlayerData,
         players: list[PlayerData],
+        *,
+        transfer_leader: bool = True,
     ) -> GameState | None:
         """Handle turn/leader reassignment and end-game checks after a player stops being active."""
         remaining_players = active_players(players)
@@ -480,7 +529,7 @@ class GameService:
 
         # End the game if fewer than 2 players remain during an active game.
         if game.game_phase == GamePhase.GAME and len(remaining_players) < 2:
-            if game.leader_player_id == player.id and remaining_session_players:
+            if transfer_leader and game.leader_player_id == player.id and remaining_session_players:
                 next_leader = self._next_leader(remaining_players, remaining_session_players)
                 game.leader_player_id = next_leader.id
             game.game_phase = GamePhase.POSTGAME
@@ -512,7 +561,10 @@ class GameService:
             next_player = self._next_active_player(remaining_players, player.id)
             game.current_player_id = next_player.id
             game.turn_phase = TurnPhase.SHIFT
-            game.turn_start_timestamp = time.time_ns() // 1_000_000
+            if game.insert_timeout is not None:
+                game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
+            else:
+                game.turn_end_timestamp = None
             game.blocked_insertion_side = None
             game.blocked_insertion_index = None
             game.last_shift_side = None
@@ -523,12 +575,52 @@ class GameService:
             game.last_move_collected_treasure_type = None
 
         # Hand the leader role to an active player when possible, otherwise the earliest remaining session player.
-        if game.leader_player_id == player.id:
+        if transfer_leader and game.leader_player_id == player.id:
             next_leader = self._next_leader(remaining_players, remaining_session_players)
             game.leader_player_id = next_leader.id
         game.revision += 1
         game = self.game_repo.update_game(game)
         state = self.get_game_state(game.id)
+        return state
+
+    def _reset_to_pregame(self, game: GameData, players: list[PlayerData]) -> GameState | ErrorCode:
+        """Reset a finished match back into lobby state without changing the current leader."""
+        session = session_players(players)
+        if len(session) < MIN_STARTABLE_PLAYERS:
+            return ErrorCode.PLAYER_COUNT_INSUFFICIENT
+
+        self._clear_game_runtime(game.id, players)
+
+        for current in players:
+            current.position_x = None
+            current.position_y = None
+            current.result = PlayerResult.NONE
+            current.placement = None
+            current.finished_at = None
+            if current.status != PlayerStatus.DEPARTED:
+                current.status = PlayerStatus.ACTIVE
+            self.player_repo.update_player(current)
+
+        game.game_phase = GamePhase.PREGAME
+        game.end_reason = None
+        game.turn_phase = None
+        game.turn_end_timestamp = None
+        game.current_player_id = None
+        game.blocked_insertion_side = None
+        game.blocked_insertion_index = None
+        game.last_shift_side = None
+        game.last_shift_index = None
+        game.last_shift_rotation = None
+        game.last_move_player_id = None
+        game.last_move_path = None
+        game.last_move_collected_treasure_type = None
+        game.started_at = None
+        game.ended_at = None
+        game.revision += 1
+        game = self.game_repo.update_game(game)
+        state = self.get_game_state(game.id)
+        if state is None:
+            return ErrorCode.GAME_NOT_FOUND
         return state
 
     def _mark_player_departed(self, player: PlayerData) -> list[PlayerData]:
@@ -542,7 +634,13 @@ class GameService:
         return self.player_repo.list_by_game_id(player.game_id)
 
     def _mark_player_observer(self, player: PlayerData) -> list[PlayerData]:
-        """Set player status to OBSERVER and keep them connected to the session."""
+        """
+        Set player status to OBSERVER and keep them connected to the session.
+
+        :param player: The player to be made an observer.
+        :return: An updated list of all players connected to the game the given
+                 player was in.
+        """
         if player.status != PlayerStatus.OBSERVER:
             player.status = PlayerStatus.OBSERVER
             player.position_x = None
@@ -590,9 +688,10 @@ class GameService:
         next_player = self._next_active_player(active_players(self.player_repo.list_by_game_id(game.id)), player.id)
         game.current_player_id = next_player.id
         game.turn_phase = TurnPhase.SHIFT
-        game.turn_start_timestamp = time.time_ns() // 1_000_000
-        game.blocked_insertion_side = None
-        game.blocked_insertion_index = None
+        if game.insert_timeout is not None:
+            game.turn_end_timestamp = time.time_ns() // 1_000_000 + game.insert_timeout * 1000
+        else:
+            game.turn_end_timestamp = None
         game.last_shift_side = None
         game.last_shift_index = None
         game.last_shift_rotation = None
@@ -746,6 +845,8 @@ class GameService:
                     return
 
                 updated = self._perform_next_npc_action(state)
+                if isinstance(updated, ErrorCode):
+                    return
                 flush_outgoing(snapshot_response(updated))
         finally:
             with self._running_npc_games_lock:
@@ -758,12 +859,15 @@ class GameService:
             and state.game.current_player_id in state.npcs
         )
 
-    def _perform_next_npc_action(self, state: GameState) -> GameState:
+    def _perform_next_npc_action(self, state: GameState) -> GameState | ErrorCode:
         from server.handlers._responses import snapshot_response
         from server.network.outgoing import flush_outgoing
 
         game = state.game
-        npc = state.npcs[game.current_player_id]
+        current_player_id = game.current_player_id
+        if current_player_id is None:
+            raise ValueError("NPC turn requires a current player")
+        npc = state.npcs[current_player_id]
         if state.board is None:
             raise ValueError("NPC turn requires a board")
         turn = npc.choose_turn(
@@ -772,8 +876,11 @@ class GameService:
             state.target_position_for_player(npc.player_id),
             blocked_side=game.blocked_insertion_side,
             blocked_index=game.blocked_insertion_index,
+            target_on_spare=state.target_on_spare_for_player(npc.player_id),
         )
         updated = self.shift_tile(npc.player_id, turn.shift_side, turn.shift_index, turn.shift_rotation)
+        if isinstance(updated, ErrorCode):
+            return updated
         flush_outgoing(snapshot_response(updated))
         sleep(_NPC_ACTION_DELAY_SECONDS)
         if turn.move_to is None:

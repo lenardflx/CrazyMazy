@@ -11,6 +11,11 @@ class PlayerStatus(StrEnum):
     DEPARTED = "DEPARTED"
 
 
+class PlayerLeaveReason(StrEnum):
+    KICKED = "KICKED"
+    LEFT = "LEFT"
+
+
 class PlayerResult(StrEnum):
     """
     Defines the final outcome of a player within the current game loop.

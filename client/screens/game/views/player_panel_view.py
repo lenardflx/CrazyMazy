@@ -1,10 +1,17 @@
+# Author: Lenard Felix, Raphael Eiden
+
 from __future__ import annotations
 
-import pygame as pg
+import copy
 
+import pygame as pg
+from pygame_widgets.util import drawText
+
+from client.network.services.lobby_service import LobbyService
 from client.state.runtime_state import TreasureCollectAnimation
 from client.textures import PLAYER_IMAGES, TREASURE_IMAGES
-from client.ui.theme import ACTIVE_OUTLINE, DISABLED, PANEL, PANEL_ALT, TEXT_MUTED, TEXT_PRIMARY, blend_color, font
+from client.ui.theme import ACTIVE_OUTLINE, ACCENT_DARK, ACCENT_SOFT, DISABLED, PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, blend_color, draw_pixel_rect, font
+from client.ui import Button
 from shared.game.snapshot import SnapshotGameState, SnapshotPlayerState
 from shared.types.enums import GamePhase, PlayerControllerKind, PlayerSkin, TreasureType
 
@@ -15,8 +22,15 @@ class PlayerPanelView:
     Used both during the game (sidebar) and on the post-game screen.
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, container: pg.Rect, lobby_service: LobbyService) -> None:
+        # each button is reserved for a specific player
+        self.container = container
+        self.lobby_service = lobby_service
+        self.kick_buttons: dict[str, Button] = {}
+
+    def handle_player_panel_event(self, event: pg.event.Event):
+        for player_id, button in self.kick_buttons.items():
+            button.handle_event(event)
 
     def draw(
         self,
@@ -48,17 +62,31 @@ class PlayerPanelView:
         row_height = max(min_row_height, min(preferred_row_height, max_fit_height))
         y = rect.y
 
+        inactive_players = list(self.kick_buttons.keys())
         for player in players:
+            if str(player.id) in inactive_players: inactive_players.remove(str(player.id))
+
             row = pg.Rect(rect.x, y, rect.width, row_height)
             y += row_height + gap
             row_surface = pg.Surface(row.size, pg.SRCALPHA)
 
             fill = PANEL if not player.is_inactive else blend_color(PANEL, DISABLED, 0.35)
             if player.id == game_state.current_player_id:
-                fill = blend_color(PANEL, ACTIVE_OUTLINE, 0.18)
+                fill = blend_color(PANEL, ACCENT_SOFT, 0.52)
             elif player.id == game_state.viewer_id:
-                fill = blend_color(PANEL, PANEL_ALT, 0.22)
-            pg.draw.rect(row_surface, fill, row_surface.get_rect(), border_radius=16)
+                fill = blend_color(PANEL, PANEL_ALT, 0.34)
+            border = blend_color(fill, ACCENT_DARK, 0.32)
+            shadow = blend_color(fill, PANEL_SHADOW, 0.22)
+            if player.id == game_state.current_player_id:
+                border = blend_color(ACTIVE_OUTLINE, ACCENT_DARK, 0.4)
+                shadow = blend_color(fill, ACCENT_DARK, 0.18)
+            draw_pixel_rect(
+                row_surface,
+                row_surface.get_rect(),
+                fill,
+                border=border,
+                shadow=shadow,
+            )
 
             pin = PLAYER_IMAGES[PlayerSkin.DEFAULT][player.piece_color]
             pin_rect = pin.get_rect(midleft=(14, row_surface.get_rect().centery))
@@ -78,12 +106,23 @@ class PlayerPanelView:
             name_y = row_surface.get_rect().centery - name.get_height() // 2
             row_surface.blit(name, (name_x, name_y))
 
+            if is_lobby:
+                # only draw kick button when the current player is the leader
+                # and the button is not rendered for themselves
+                if player.id != game_state.leader_player_id and game_state.viewer_id == game_state.leader_player_id:
+                    self._draw_kick_button(surface=row_surface,
+                                           row=row_surface.get_rect(),
+                                           x_offset=self.container.left,
+                                           y_offset=y - row_height - gap,
+                                           player=player)
+
             meta = self._inline_meta(player, game_state) if is_lobby else None
             if meta:
                 meta_font = font(14)
                 meta_surface = meta_font.render(f"({meta})", True, TEXT_MUTED)
                 meta_x = name_x + name.get_width() + 8
                 row_surface.blit(meta_surface, (meta_x, row_surface.get_rect().centery - meta_surface.get_height() // 2))
+
             elif not is_lobby:
                 self._draw_progress(
                     row_surface,
@@ -97,6 +136,23 @@ class PlayerPanelView:
             if player.is_inactive:
                 row_surface.set_alpha(128)
             surface.blit(row_surface, row.topleft)
+
+        if len(inactive_players) > 0: self.kick_buttons.clear()
+
+
+    def _draw_kick_button(self,
+                          surface: pg.Surface,
+                          row: pg.Rect,
+                          x_offset: int,
+                          y_offset: int,
+                          player: SnapshotPlayerState):
+        if player.id not in self.kick_buttons:
+            kick_button_height = 29
+            rect = pg.Rect(row.right - 100, row.centery - kick_button_height // 2, 80, kick_button_height)
+            abs_rect = pg.Rect(row.right + x_offset - 100, y_offset + row.centery - kick_button_height // 2, 80, kick_button_height)
+            button = Button(rect=rect, label="KICK", on_click=lambda: self.lobby_service.kick_player(player.id), variant="primary", abs_rect=abs_rect)
+            self.kick_buttons[player.id] = button
+        self.kick_buttons[player.id].draw(surface, font(20))
 
     def _draw_progress(
         self,
@@ -148,9 +204,9 @@ class PlayerPanelView:
         flip_progress: float,
     ) -> None:
         card_rect = rect.copy()
-        outline_color = blend_color(PANEL_ALT, TEXT_PRIMARY, 0.2)
+        outline_color = blend_color(PANEL_ALT, TEXT_PRIMARY, 0.14)
         face_fill = PANEL
-        back_fill = blend_color(PANEL_ALT, PANEL, 0.08)
+        back_fill = blend_color(PANEL_ALT, PANEL, 0.3)
 
         if is_flipping:
             scale = abs(1.0 - 2.0 * flip_progress)
@@ -161,14 +217,22 @@ class PlayerPanelView:
             showing_front = treasure_type is not None
 
         fill = face_fill if showing_front and treasure_type is not None else back_fill
-        shadow = blend_color(fill, (76, 58, 42), 0.12)
-        pg.draw.rect(surface, shadow, card_rect.move(0, 2), border_radius=5)
-        pg.draw.rect(surface, fill if not is_inactive else blend_color(fill, DISABLED, 0.45), card_rect, border_radius=5)
-        pg.draw.rect(surface, outline_color if not is_inactive else DISABLED, card_rect, width=1, border_radius=5)
+        draw_pixel_rect(
+            surface,
+            card_rect,
+            fill if not is_inactive else blend_color(fill, DISABLED, 0.45),
+            border=outline_color if not is_inactive else DISABLED,
+            shadow=blend_color(fill, PANEL_SHADOW, 0.08),
+        )
 
         if not showing_front or treasure_type is None:
             inset = card_rect.inflate(-4, -6)
-            pg.draw.rect(surface, blend_color(PANEL_ALT, TEXT_PRIMARY, 0.08), inset, border_radius=3)
+            draw_pixel_rect(
+                surface,
+                inset,
+                blend_color(PANEL_ALT, PANEL, 0.46),
+                border=blend_color(PANEL_ALT, TEXT_PRIMARY, 0.12),
+            )
             return
 
         icon_width = max(2, card_rect.width - 10)

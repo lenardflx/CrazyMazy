@@ -48,15 +48,16 @@ class MenuScreen(BaseScreen):
         self.dialog: ConfirmDialog | ChoiceDialog | None = None
         self.background_image: pg.Surface | None = UI_IMAGES["TITLE_BACKGROUND"]
 
-        self.title_font = font(42)
+        self.title_font = font(34)
         self.display_title_font = title_font(72)  # ka1 — main menu title only
         self.section_font = font(24)
         self.body_font = font(18)
         self.small_font = font(16)
+        self.xs_font = font(14)
         self.button_font = font(20)
 
         width, height = self.surface.get_size()
-        self.card_rect = pg.Rect(width // 2 - 430, 120, 860, height - 180)
+        self.card_rect = pg.Rect(width // 2 - 430, 104, 860, height - 164)
         self.content_rect = self.card_rect.inflate(-56, -56)
         self.back_button = None
         self.buttons: list[Button] = []
@@ -64,7 +65,11 @@ class MenuScreen(BaseScreen):
             self.back_button = Button(
                 pg.Rect(42, 34, 120, 46),
                 "Back",
-                lambda: self.scene_manager.go_to(SceneTypes.MAIN_MENU),
+                lambda: self.scene_manager.go_to(
+                    self.scene_manager.settings_return_scene
+                    if self.scene_manager.current_scene == SceneTypes.SETTINGS
+                    else SceneTypes.MAIN_MENU
+                ),
             )
         if buttons:
             self._build_buttons(buttons)
@@ -156,7 +161,7 @@ class MenuScreen(BaseScreen):
         message: str,
         choices: list[tuple[str, Callable[[], None], str]],
         *,
-        cancel_label: str = "Cancel",
+        cancel_label: str | None = "Cancel",
     ) -> None:
         """Open a ChoiceDialog. Each choice auto-closes the dialog before firing its callback."""
         wrapped_choices: list[tuple[str, Callable[[], None], str]] = []

@@ -10,7 +10,7 @@ import pygame as pg
 from client.lang import language_service
 from shared.lib.names import generate_display_name
 from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
-from client.ui.controls import Button, TextInput
+from client.ui.controls import Button, Slider, TextInput
 from client.ui.theme import TEXT_PRIMARY, render_text
 from client.screens.menu.menu_screen import MenuScreen
 if TYPE_CHECKING:
@@ -30,13 +30,25 @@ class CreateLobbyScreen(MenuScreen):
         form = self.scene_manager.runtime_state.create_lobby
         center_x = self.content_rect.centerx
         stored_name = scene_manager.client_settings.get_name()
+        option_width = 64
+        option_height = 40
+        option_gap = 8
+        label_offset = 18
+        name_y = self.content_rect.y + 84
+        board_size_row_y = self.content_rect.y + 180
+        settings_row_y = board_size_row_y + 78
+        insert_timeout_row_y = settings_row_y + 88
+        move_timeout_row_y = insert_timeout_row_y + 64
+        type_group_center_x = center_x - 120
+        limit_group_center_x = center_x + 120
+
         self.name_input = TextInput(
-            pg.Rect(center_x - 186, self.content_rect.y + 96, 300, 46),
+            pg.Rect(center_x - 170, name_y, 280, 46),
             form.player_name if stored_name == "" else stored_name,
             placeholder=PLACEHOLDER_NAME if stored_name == "" else stored_name,
         )
         self.random_name_button = Button(
-            pg.Rect(self.name_input.rect.right + 12, self.name_input.rect.y, 60, 46),
+            pg.Rect(self.name_input.rect.right + 10, self.name_input.rect.y, 54, 46),
             "",
             self._roll_name,
             icon="dice",
@@ -44,76 +56,98 @@ class CreateLobbyScreen(MenuScreen):
         sizes = tuple(sorted(VALID_BOARD_SIZES))
         insert_timeouts = tuple(sorted(VALID_INSERT_TIMEOUTS))
         move_timeouts = tuple(sorted(VALID_MOVE_TIMEOUTS))
-
-        self.board_size_y = self.content_rect.y + 192
-
-        self.size_buttons = []
-        for index, size in enumerate(sizes):
-            button = Button(
-                pg.Rect(center_x - ((len(sizes) * 86 + (len(sizes) - 1) * 8) // 2) + index * 94, self.content_rect.y + 198, 86, 42),
-                str(size),
-                self._set_board_size_action(size),
-                variant="primary" if form.board_size == size else "secondary",
-            )
-            self.size_buttons.append(button)
+        self._insert_timeout_values = insert_timeouts + (None,)
+        self._move_timeout_values = move_timeouts + (None,)
+        self.size_buttons = self._build_option_buttons(
+            center_x,
+            board_size_row_y,
+            [str(size) for size in sizes],
+            option_width,
+            option_height,
+            option_gap,
+            self._set_board_size_action,
+            form.board_size,
+        )
         self.private_button = Button(
-            pg.Rect(center_x - 137, self.content_rect.y + 286, 128, 42),
+            pg.Rect(type_group_center_x - 100, settings_row_y, 96, option_height),
             "Private",
             self._set_public_action(False),
             variant="primary" if not form.is_public else "secondary",
         )
         self.public_button = Button(
-            pg.Rect(center_x + 9, self.content_rect.y + 286, 128, 42),
+            pg.Rect(type_group_center_x + 4, settings_row_y, 96, option_height),
             "Public",
             self._set_public_action(True),
             variant="primary" if form.is_public else "secondary",
         )
-        self.player_limit_buttons: list[Button] = []
-        for index, limit in enumerate((2, 3, 4)):
-            button = Button(
-                pg.Rect(center_x - 137 + index * 94, self.content_rect.y + 372, 86, 42),
-                str(limit),
-                self._set_player_limit_action(limit),
-                variant="primary" if form.player_limit == limit else "secondary",
-            )
-            self.player_limit_buttons.append(button)
+        self.player_limit_buttons = self._build_option_buttons(
+            limit_group_center_x,
+            settings_row_y,
+            ["2", "3", "4"],
+            56,
+            option_height,
+            option_gap,
+            self._set_player_limit_action,
+            form.player_limit,
+        )
+        slider_width = 340
+        self.insert_timeout_slider = Slider(
+            pg.Rect(center_x - slider_width // 2, insert_timeout_row_y, slider_width, 14),
+            "Insert Timeout",
+            self._insert_timeout_index(form.insert_timeout),
+            minimum=0,
+            maximum=len(self._insert_timeout_values) - 1,
+            value_formatter=lambda index: self._format_timeout(self._insert_timeout_values[index]),
+            show_steps=True,
+        )
+        self.move_timeout_slider = Slider(
+            pg.Rect(center_x - slider_width // 2, move_timeout_row_y, slider_width, 14),
+            "Move Timeout",
+            self._move_timeout_index(form.move_timeout),
+            minimum=0,
+            maximum=len(self._move_timeout_values) - 1,
+            value_formatter=lambda index: self._format_timeout(self._move_timeout_values[index]),
+            show_steps=True,
+        )
 
-        self.insert_timeout_buttons = []
-        self.insert_timeout_y = self.size_buttons[-1].rect.bottom + 20
-        for index, timeout in enumerate(insert_timeouts):
-            button = Button(
-                pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + index * 94, self.insert_timeout_y, 86, 42),
-                str(timeout),
-                self._set_board_size_action(timeout),
-                variant="primary" if form.insert_timeout == timeout else "secondary",
-            )
-            self.insert_timeout_buttons.append(button)
-        self.insert_timeout_buttons.append(Button(
-            pg.Rect(center_x - (((len(insert_timeouts) + 1) * 86 + (len(insert_timeouts)) * 8) // 2) + len(insert_timeouts) * 94, self.insert_timeout_y, 86, 42),
-            str("∞"),
-            self._set_board_size_action(-1),
-            variant="primary" if form.insert_timeout == -1 else "secondary",
-        ))
-
-        self.move_timeout_buttons = []
-        # self.move_timeout_y = self.insert_timeout_buttons[-1] + 20
-        for index, timeout in enumerate(move_timeouts):
-            button = Button(
-                pg.Rect(center_x - ((len(move_timeouts) * 86 + (len(move_timeouts) - 1) * 8) // 2) + index * 94,
-                        self.insert_timeout_y, 86, 42),
-                str(timeout),
-                self._set_board_size_action(timeout),
-                variant="primary" if form.insert_timeout == timeout else "secondary",
-            )
-            self.move_timeout_buttons.append(button)
-
+        self._row_labels = [
+            ("Board Size", center_x, board_size_row_y - label_offset),
+            ("Lobby Type", type_group_center_x, settings_row_y - label_offset),
+            ("Player Limit", limit_group_center_x, settings_row_y - label_offset),
+        ]
 
         self.create_button = Button(
-            pg.Rect(center_x - 100, self.content_rect.y + 430, 200, 48),
+            pg.Rect(center_x - 92, move_timeout_row_y + 50, 184, 46),
             "Create Lobby",
             self._create_lobby,
             variant="primary",
         )
+
+    def _build_option_buttons(
+        self,
+        center_x: int,
+        y: int,
+        labels: list[str],
+        width: int,
+        height: int,
+        gap: int,
+        action_factory: Callable[[int | str], Callable[[], None]],
+        selected: int,
+    ) -> list[Button]:
+        buttons: list[Button] = []
+        total_width = len(labels) * width + (len(labels) - 1) * gap
+        start_x = center_x - total_width // 2
+        for index, label in enumerate(labels):
+            value = label if label == "∞" else int(label)
+            buttons.append(
+                Button(
+                    pg.Rect(start_x + index * (width + gap), y, width, height),
+                    label,
+                    action_factory(value),
+                    variant="primary" if selected == (-1 if label == "∞" else int(label)) else "secondary",
+                )
+            )
+        return buttons
 
     def _set_board_size(self, size: int) -> None:
         """Update the selected board size in the runtime state and highlight the corresponding button."""
@@ -152,15 +186,26 @@ class CreateLobbyScreen(MenuScreen):
 
         return handle_click
 
+    def _insert_timeout_index(self, timeout: int) -> int:
+        return self._insert_timeout_values.index(timeout)
+
+    def _move_timeout_index(self, timeout: int) -> int:
+        return self._move_timeout_values.index(timeout)
+
+    def _format_timeout(self, timeout: int) -> str:
+        return "Off" if timeout is None else f"{timeout} Sec"
+
     def _create_lobby(self) -> None:
         """Submit the form and request the server to create a new lobby with the entered name and selected board size."""
+        form = self.scene_manager.runtime_state.create_lobby
+        print(f"creating lobby with {form.insert_timeout}, {form.move_timeout}")
         error = self.scene_manager.lobby_service.create_lobby(
             self.name_input.text,
-            self.scene_manager.runtime_state.create_lobby.board_size,
-            is_public=self.scene_manager.runtime_state.create_lobby.is_public,
-            player_limit=self.scene_manager.runtime_state.create_lobby.player_limit,
-            insert_timeout=10,
-            move_timeout=5
+            form.board_size,
+            is_public=form.is_public,
+            player_limit=form.player_limit,
+            insert_timeout=form.insert_timeout,
+            move_timeout=form.move_timeout,
         )
         self.scene_manager.client_settings.set_name(self.name_input.text)
         self.scene_manager.client_settings.write_JSON()
@@ -183,6 +228,10 @@ class CreateLobbyScreen(MenuScreen):
         self.public_button.handle_event(event)
         for button in self.player_limit_buttons:
             button.handle_event(event)
+        if self.insert_timeout_slider.handle_event(event):
+            self.scene_manager.runtime_state.create_lobby.insert_timeout = self._insert_timeout_values[self.insert_timeout_slider.value]
+        if self.move_timeout_slider.handle_event(event):
+            self.scene_manager.runtime_state.create_lobby.move_timeout = self._move_timeout_values[self.move_timeout_slider.value]
         self.create_button.handle_event(event)
 
     def update_content(self, dt: float) -> None:
@@ -193,19 +242,18 @@ class CreateLobbyScreen(MenuScreen):
         super().draw_content(rect)
         self.name_input.draw(self.surface, self.small_font, self.body_font, "Player Name")
         self.random_name_button.draw(self.surface, self.button_font)
-        board_label = render_text(self.body_font, "Board Size", TEXT_PRIMARY)
-        self.surface.blit(board_label, board_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 174)))
+        for label, x, y in self._row_labels:
+            rendered = render_text(self.body_font, label, TEXT_PRIMARY)
+            self.surface.blit(rendered, rendered.get_rect(center=(x, y)))
         for button in self.size_buttons:
             button.draw(self.surface, self.button_font)
-        type_label = render_text(self.body_font, "Lobby Type", TEXT_PRIMARY)
-        self.surface.blit(type_label, type_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 262)))
         self.private_button.draw(self.surface, self.button_font)
         self.public_button.draw(self.surface, self.button_font)
-        limit_label = render_text(self.body_font, "Player Limit", TEXT_PRIMARY)
-        self.surface.blit(limit_label, limit_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 348)))
         for button in self.player_limit_buttons:
             button.draw(self.surface, self.button_font)
+        self.insert_timeout_slider.draw(self.surface, self.small_font, self.small_font)
+        self.move_timeout_slider.draw(self.surface, self.small_font, self.small_font)
         self.create_button.draw(self.surface, self.button_font)
         if self.error_message:
             error = render_text(self.small_font, self.error_message, (150, 58, 48))
-            self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 492)))
+            self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.create_button.rect.bottom + 24)))

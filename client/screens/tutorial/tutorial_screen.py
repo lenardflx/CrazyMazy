@@ -20,7 +20,7 @@ from client.tutorial import (
 )
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
-from client.ui.theme import PANEL, PANEL_ALT, TEXT_PRIMARY, font
+from client.ui.theme import ACCENT_DARK, PANEL, PANEL_SHADOW, TEXT_PRIMARY, draw_pixel_rect, font, render_text
 from shared.game.snapshot import SnapshotGameState
 from shared.types.enums import GamePhase
 
@@ -34,6 +34,13 @@ class TutorialScreen(GameScreen):
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager)
         self.give_up_button = None  # No give-up in tutorial
+        self.settings_button.rect = pg.Rect(surface.get_width() - 320, 24, 112, 40)
+        self.menu_button = Button(
+            pg.Rect(surface.get_width() - 196, 24, 172, 40),
+            "Leave Tutorial",
+            self._confirm_quit,
+            variant="primary",
+        )
         if scene_manager.tutorial_session is None:
             scene_manager.tutorial_session = TutorialSession()
         self.session = scene_manager.tutorial_session
@@ -74,24 +81,12 @@ class TutorialScreen(GameScreen):
             self.scene_manager.client_settings.set_tutorial(True)
 
     def handle_event(self, event: pg.event.Event) -> None:
-        if self.dialog is not None:
-            self.dialog.handle_event(event)
+        if self.dialog is not None or self.settings_overlay_open:
+            super().handle_event(event)
             return
 
-        self.menu_button.handle_event(event)
         self.continue_button.handle_event(event)
-
-        snapshot = self._game_snapshot
-        layout = self._game_layout()
-        if snapshot is None or layout is None:
-            return
-        if self._game_runtime.shift_animation is not None or self._game_runtime.move_animation is not None:
-            return
-        if event.type != pg.MOUSEBUTTONDOWN or event.button != 1:
-            return
-
-        click = self.board_view.resolve_click(event.pos, layout, snapshot)
-        self._handle_board_click(click)
+        super().handle_event(event)
 
     def _handle_board_click(self, click) -> None:
         self.session.handle_board_click(click)
@@ -105,6 +100,8 @@ class TutorialScreen(GameScreen):
     def _draw_overlay(self, layout: GameBoardLayout) -> None:
         self._draw_focus_mask(layout)
         self._draw_step_overlay(layout)
+        self.settings_button.draw(self.surface, self.button_font)
+        self.menu_button.draw(self.surface, self.button_font)
 
     def _step_overlay_rect(self) -> pg.Rect:
         return pg.Rect(self.surface.get_width() - 444, self.surface.get_height() - 170, 420, 140)
@@ -151,8 +148,7 @@ class TutorialScreen(GameScreen):
             return
 
         overlay = self._step_overlay_rect()
-        pg.draw.rect(self.surface, PANEL, overlay, border_radius=16)
-        pg.draw.rect(self.surface, PANEL_ALT, overlay, width=1, border_radius=16)
+        draw_pixel_rect(self.surface, overlay, PANEL, border=ACCENT_DARK, shadow=PANEL_SHADOW)
 
         if isinstance(step, (TutorialTextStep, TutorialRotateStep, TutorialShiftStep, TutorialMoveStep, TutorialNpcStep, TutorialFreeplayStep)):
             self._draw_wrapped_text(step.text, overlay.x + 16, overlay.y + 14, overlay.width - 150)
@@ -179,7 +175,7 @@ class TutorialScreen(GameScreen):
             lines.append(line)
 
         for index, current in enumerate(lines):
-            rendered = self.body_font.render(current, True, TEXT_PRIMARY)
+            rendered = render_text(self.body_font, current, TEXT_PRIMARY)
             self.surface.blit(rendered, (x, y + index * (self.body_font.get_height() + 4)))
 
 

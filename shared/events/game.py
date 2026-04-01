@@ -14,15 +14,15 @@ from shared.lib.game import (
     parse_client_game_shift_tile_payload,
     parse_server_game_left_payload,
 )
+from shared.lib.parse import parse_int
 from shared.lib.snapshot import parse_game_snapshot_payload
 from shared.protocol import Message
-from shared.types.enums import NpcDifficulty
+from shared.types.enums import NpcDifficulty, PlayerLeaveReason
 from shared.types.payloads import (
     ClientCreateLobbyPayload,
     ClientGameAddNpcPayload,
     ClientJoinGamePayload,
     GameSnapshotPayload,
-    ServerGameLeftPayload,
 )
 
 @dataclass(frozen=True)
@@ -31,8 +31,8 @@ class ClientCreateLobbyEvent(Event):
 
     board_size: int
     player_name: str
-    insert_timeout: int
-    move_timeout: int
+    insert_timeout: int | None
+    move_timeout: int | None
     is_public: bool
     player_limit: int
 
@@ -94,6 +94,28 @@ class ClientJoinGameEvent(Event):
             join_code="" if payload["join_code"] is None else payload["join_code"].strip(),
             player_name=payload["player_name"].strip(),
             join_public=payload["join_public"],
+        )
+
+
+@dataclass(frozen=True)
+class ClientKickPlayerEvent(Event):
+    message_type = "client.player.kick"
+
+    player_id: str
+
+    def to_payload(self) -> Mapping[str, Any]:
+        return {
+            "player_id": self.player_id
+        }
+
+    @classmethod
+    def from_message(cls, msg: Message) -> Self | None:
+        payload = msg["payload"]
+        if payload is None:
+            return None
+        return cls(
+            message_id=msg["id"],
+            player_id=payload["player_id"]
         )
 
 
@@ -231,17 +253,20 @@ class ClientGameGiveUpEvent(Event):
 
 @dataclass(frozen=True)
 class ServerGameLeftEvent(Event):
-    # sent to the player who left, redundant staged for removal!!
     message_type = "server.game.left"
 
-    payload: ServerGameLeftPayload
+    reason: PlayerLeaveReason
 
     def to_payload(self) -> Mapping[str, Any]:
-        return self.payload
+        return {
+            "reason": self.reason,
+        }
 
     @classmethod
     def from_message(cls, msg: Message) -> Self | None:
-        payload = parse_server_game_left_payload(msg["payload"])
+        payload = msg["payload"]
         if payload is None:
             return None
-        return cls(message_id=msg["id"], payload=payload)
+        return cls(message_id=msg["id"],
+                   reason=payload["reason"]
+        )

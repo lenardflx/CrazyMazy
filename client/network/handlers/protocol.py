@@ -35,5 +35,5 @@ def handle_game_snapshot(state: ClientState, event: ServerGameSnapshotEvent) -> 
 @dispatcher.handler(ServerGameLeftEvent)
 def handle_game_left(state: ClientState, event: ServerGameLeftEvent) -> None:
     """Store the game-left payload and bump the version so TransportSync can trigger a scene transition."""
-    state.game_left = event.payload
+    state.game_left = event.reason
     state.game_left_version += 1

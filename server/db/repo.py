@@ -115,6 +115,9 @@ class PlayerRepository(ABC):
     @abstractmethod
     def update_player(self, player: PlayerData) -> PlayerData: ...
 
+    @abstractmethod
+    def delete_player(self, player_id: UUID) -> None: ...
+
 
 class TileRepository(ABC):
     @abstractmethod

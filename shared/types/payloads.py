@@ -63,7 +63,7 @@ class TurnPayload(TypedDict):
     """Serialized turn-state metadata for the current game revision."""
 
     current_player_id: str | None
-    turn_start_timestamp: int | None
+    turn_end_timestamp: int | None
     turn_phase: str | None
     blocked_insertion_side: str | None
     blocked_insertion_index: int | None
@@ -112,8 +112,8 @@ class ClientCreateLobbyPayload(TypedDict):
     player_name: str
     is_public: bool
     player_limit: int
-    insert_timeout: int
-    move_timeout: int
+    insert_timeout: int | None
+    move_timeout: int | None
 
 
 class ClientJoinGamePayload(TypedDict):
@@ -143,9 +143,3 @@ class ClientGameAddNpcPayload(TypedDict):
     """Client request payload for adding an NPC-controlled player to the lobby."""
 
     difficulty: NpcDifficulty
-
-
-class ServerGameLeftPayload(TypedDict):
-    """Server payload describing why the client was removed from a game view."""
-
-    reason: str

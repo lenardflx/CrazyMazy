@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from client.state.runtime_state import BoardShiftAnimation, GameRuntimeState, PlayerMoveAnimation
+from client.state.runtime_state import BoardShiftAnimation, GameRuntimeState, PlayerMoveAnimation, TreasureCollectAnimation
 from server.db.memory_repo import (
     GameRepositoryInMemory,
     PlayerRepositoryInMemory,
@@ -18,6 +18,7 @@ from shared.game.state import GameState
 from shared.game.tile import Tile
 from shared.lib.snapshot import make_game_snapshot_payload
 from shared.protocol import ErrorCode
+from shared.types.data import TreasureData
 from shared.types.enums import InsertionSide, NpcDifficulty, TileOrientation, TileType, TreasureType, TurnPhase
 
 
@@ -35,6 +36,22 @@ class TutorialMatch:
 
     _NPC_SHIFT_DELAY_SECONDS = 0.45
     _NPC_MOVE_DELAY_SECONDS = 0.45
+    _PLAYER_TUTORIAL_TREASURES = (
+        TreasureType.CHEST,
+        TreasureType.BOOK,
+        TreasureType.GENIE,
+        TreasureType.GOLDBAG,
+        TreasureType.SKULL,
+        TreasureType.GHOST,
+    )
+    _NPC_TUTORIAL_TREASURES = (
+        TreasureType.RAT,
+        TreasureType.DRAGON,
+        TreasureType.CROWN,
+        TreasureType.RING,
+        TreasureType.OWL,
+        TreasureType.FLY,
+    )
 
     def __init__(self) -> None:
         self._service = GameService(
@@ -142,7 +159,7 @@ class TutorialMatch:
             self._scripted_npc_turn_done = True
 
     def _bootstrap(self) -> None:
-        created = self._service.create_lobby(board_size=7, leader_display_name="You", connection_id="tutorial")
+        created = self._service.create_lobby(board_size=7, leader_display_name="You", connection_id="tutorial", insert_timeout=None, move_timeout=None)
         if isinstance(created, ErrorCode):
             raise RuntimeError(f"Tutorial lobby creation failed: {created}")
         self._player_id = created.player.id
@@ -165,15 +182,35 @@ class TutorialMatch:
         if state is None:
             raise ValueError("Tutorial game not found")
 
-        board = Board(state.game.board_size)
-        player_target = state.current_treasure(self.player_id).treasure_type
-        npc_target = state.current_treasure(self.npc_id).treasure_type
+        board = self._build_tutorial_board(state.game.board_size)
 
-        #TODO: adapt board to be useful move wise
+        for tile in self._service.tile_repo.list_by_game_id(game_id):
+            self._service.tile_repo.delete_tile(tile.id)
+        for tile in board.to_tile_data(game_id):
+            self._service.tile_repo.create_tile(tile)
+
+        self._assign_tutorial_treasures()
+
+        state.game.last_shift_side = None
+        state.game.last_shift_index = None
+        state.game.last_shift_rotation = None
+        state.game.last_move_player_id = None
+        state.game.last_move_path = None
+        state.game.last_move_collected_treasure_type = None
+        state.game.revision += 1
+        self._service.game_repo.update_game(state.game)
+
+        updated = self._service.get_game_state(game_id)
+        if updated is None:
+            raise ValueError("Tutorial game not found")
+        return updated
+
+    def _build_tutorial_board(self, board_size: int) -> Board:
+        board = Board(board_size)
         board.tiles = {
             (0, 0): Tile(TileType.CORNER,    TileOrientation.EAST),
             (1, 0): Tile(TileType.STRAIGHT,  TileOrientation.NORTH),
-            (2, 0): Tile(TileType.T,         TileOrientation.SOUTH,  player_target),
+            (2, 0): Tile(TileType.T,         TileOrientation.SOUTH,  TreasureType.CHEST),
             (3, 0): Tile(TileType.STRAIGHT,  TileOrientation.NORTH),
             (4, 0): Tile(TileType.T,         TileOrientation.SOUTH,  TreasureType.SWORD),
             (5, 0): Tile(TileType.T,         TileOrientation.EAST,   TreasureType.DRAGON),
@@ -214,34 +251,32 @@ class TutorialMatch:
             (5, 5): Tile(TileType.STRAIGHT,  TileOrientation.NORTH),
             (6, 5): Tile(TileType.CORNER,    TileOrientation.EAST,   TreasureType.OWL),
             (0, 6): Tile(TileType.CORNER,    TileOrientation.NORTH),
-            (1, 6): Tile(TileType.STRAIGHT,  TileOrientation.NORTH,  npc_target),
+            (1, 6): Tile(TileType.STRAIGHT,  TileOrientation.NORTH,  TreasureType.RAT),
             (2, 6): Tile(TileType.T,         TileOrientation.NORTH,  TreasureType.EMERALD),
             (3, 6): Tile(TileType.CORNER,    TileOrientation.SOUTH),
             (4, 6): Tile(TileType.T,         TileOrientation.NORTH,  TreasureType.SKULL),
             (5, 6): Tile(TileType.T,         TileOrientation.SOUTH,  TreasureType.GHOST),
             (6, 6): Tile(TileType.CORNER,    TileOrientation.WEST),
         }
-
         board.spare = Tile(TileType.STRAIGHT, TileOrientation.NORTH)
+        return board
 
-        for tile in self._service.tile_repo.list_by_game_id(game_id):
-            self._service.tile_repo.delete_tile(tile.id)
-        for tile in board.to_tile_data(game_id):
-            self._service.tile_repo.create_tile(tile)
-
-        state.game.last_shift_side = None
-        state.game.last_shift_index = None
-        state.game.last_shift_rotation = None
-        state.game.last_move_player_id = None
-        state.game.last_move_path = None
-        state.game.last_move_collected_treasure_type = None
-        state.game.revision += 1
-        self._service.game_repo.update_game(state.game)
-
-        updated = self._service.get_game_state(game_id)
-        if updated is None:
-            raise ValueError("Tutorial game not found")
-        return updated
+    def _assign_tutorial_treasures(self) -> None:
+        assignments = {
+            self.player_id: self._PLAYER_TUTORIAL_TREASURES,
+            self.npc_id: self._NPC_TUTORIAL_TREASURES,
+        }
+        for player_id, treasure_types in assignments.items():
+            for treasure in self._service.treasure_repo.list_by_player_id(player_id):
+                self._service.treasure_repo.delete_treasure(treasure.id)
+            for order_index, treasure_type in enumerate(treasure_types):
+                self._service.treasure_repo.create_treasure(
+                    TreasureData(
+                        player_id=player_id,
+                        treasure_type=treasure_type,
+                        order_index=order_index,
+                    )
+                )
 
     def _advance_animations(self, dt: float) -> None:
         shift_animation = self.runtime.shift_animation
@@ -254,7 +289,18 @@ class TutorialMatch:
         if move_animation is not None:
             move_animation.advance(dt)
             if move_animation.is_finished:
+                if move_animation.collected_treasure_type is not None:
+                    self.runtime.treasure_collect_animation = TreasureCollectAnimation(
+                        player_id=move_animation.player_id,
+                        treasure_type=move_animation.collected_treasure_type,
+                    )
                 self.runtime.move_animation = None
+
+        treasure_animation = self.runtime.treasure_collect_animation
+        if treasure_animation is not None:
+            treasure_animation.advance(dt)
+            if treasure_animation.is_finished:
+                self.runtime.treasure_collect_animation = None
 
     def _is_npc_turn(self) -> bool:
         return (
@@ -285,6 +331,7 @@ class TutorialMatch:
             state.target_position_for_player(self.npc_id),
             blocked_side=state.game.blocked_insertion_side,
             blocked_index=state.game.blocked_insertion_index,
+            target_on_spare=state.target_on_spare_for_player(self.npc_id),
         )
 
     @property

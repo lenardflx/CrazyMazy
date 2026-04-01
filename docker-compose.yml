@@ -1,0 +1,17 @@
+services:
+  game-server:
+    build: .
+    container_name: game-server
+    restart: unless-stopped
+    environment:
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 5695
+      ENV: dev
+    ports:
+      - "5695:5695"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

@@ -9,7 +9,7 @@ from collections.abc import Callable
 from uuid import UUID
 
 from server.db.runtime import game_service
-from server.handlers._responses import error_response, snapshot_response
+from server.handlers._responses import error_response, snapshot_response, left_response
 from server.network.dispatch import dispatcher
 from server.network.models import OutgoingMessage, RequestContext
 from shared.game.state import GameState
@@ -23,8 +23,9 @@ from shared.events import (
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
     ClientJoinGameEvent,
+    ClientKickPlayerEvent
 )
-from shared.types.enums import InsertionSide
+from shared.types.enums import InsertionSide, PlayerLeaveReason
 from shared.protocol import ErrorCode
 
 
@@ -36,6 +37,8 @@ def handle_create_lobby(ctx: RequestContext, event: ClientCreateLobbyEvent) -> l
         connection_id=ctx.connection_id,
         is_public=event.is_public,
         player_limit=event.player_limit,
+        insert_timeout=event.insert_timeout,
+        move_timeout=event.move_timeout,
     )
     if isinstance(state, ErrorCode):
         return error_response(ctx, state)
@@ -59,6 +62,18 @@ def handle_join_game(ctx: RequestContext, event: ClientJoinGameEvent) -> list[Ou
     if game_state is None:
         return error_response(ctx, ErrorCode.GAME_NOT_FOUND)
     return snapshot_response(game_state)
+
+
+@dispatcher.handler(ClientKickPlayerEvent)
+def handle_kick_player(ctx: RequestContext, event: ClientKickPlayerEvent) -> list[OutgoingMessage]:
+    try:
+        player_id = UUID(event.player_id, version=4)
+        state = game_service.leave_game(player_id, PlayerLeaveReason.KICKED)
+        if isinstance(state, ErrorCode):
+            return error_response(ctx, state)
+        return snapshot_response(state)
+    except ValueError:
+        return error_response(ctx, ErrorCode.PLAYER_NOT_FOUND)
 
 
 @dispatcher.handler(ClientGameStartEvent)
@@ -102,12 +117,12 @@ def handle_give_up(ctx: RequestContext, _: ClientGameGiveUpEvent) -> list[Outgoi
 
 @dispatcher.handler(ClientGameLeaveEvent)
 def handle_leave_game(ctx: RequestContext, _: ClientGameLeaveEvent) -> list[OutgoingMessage]:
-    return _handle_departure_game_update(ctx, lambda player_id: game_service.leave_game(player_id), "LEFT_GAME")
+    return _handle_departure_game_update(ctx, lambda player_id: game_service.leave_game(player_id, reason=PlayerLeaveReason.LEFT), PlayerLeaveReason.LEFT)
 
 
 def _handle_connection_game_update(
     ctx: RequestContext,
-    fn: Callable[[UUID], GameState],
+    fn: Callable[[UUID], GameState | ErrorCode],
 ) -> list[OutgoingMessage]:
     state = game_service.get_connection_state(ctx.connection_id)
     if state is None:
@@ -124,7 +139,7 @@ def _handle_connection_game_update(
 
 def _handle_optional_connection_game_update(
     ctx: RequestContext,
-    fn: Callable[[UUID], GameState | None],
+    fn: Callable[[UUID], GameState | ErrorCode | None],
 ) -> list[OutgoingMessage]:
     state = game_service.get_connection_state(ctx.connection_id)
     if state is None:
@@ -141,8 +156,8 @@ def _handle_optional_connection_game_update(
 
 def _handle_departure_game_update(
     ctx: RequestContext,
-    fn: Callable[[UUID], GameState | None],
-    reason: str,
+    fn: Callable[[UUID], GameState | ErrorCode | None],
+    reason: PlayerLeaveReason,
 ) -> list[OutgoingMessage]:
     state = game_service.get_connection_state(ctx.connection_id)
     if state is None:
@@ -150,9 +165,8 @@ def _handle_departure_game_update(
     game_state = fn(state.player.id)
     if isinstance(game_state, ErrorCode):
         return error_response(ctx, game_state)
-    # outgoing = left_response(ctx, reason)
-    # if game_state is not None:
-    #     outgoing.extend(snapshot_response(game_state))
-    #     game_service.schedule_npc_turns(game_state)
-    # return outgoing
-    return []
+    outgoing = left_response(ctx, reason)
+    if game_state is not None:
+        outgoing.extend(snapshot_response(game_state))
+        game_service.schedule_npc_turns(game_state)
+    return outgoing

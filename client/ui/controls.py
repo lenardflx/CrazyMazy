@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 """
 This file holds the UI control classes used in the client, such as Button, TextInput, Checkbox and Slider.
@@ -26,7 +26,7 @@ from client.ui.theme import (
     render_text,
 )
 
-type ButtonIcon = Literal["dice", "flag_de", "flag_en"]
+type ButtonIcon = Literal["dice", "flag_de", "flag_en", "arrow_left", "arrow_right", "arrow_up", "arrow_down", "star"]
 
 
 class Button:
@@ -40,6 +40,11 @@ class Button:
         "dice": "_draw_icon_dice",
         "flag_de": "_draw_icon_flag_de",
         "flag_en": "_draw_icon_flag_en",
+        "arrow_left": "_draw_icon_arrow_left",
+        "arrow_right": "_draw_icon_arrow_right",
+        "arrow_up": "_draw_icon_arrow_up",
+        "arrow_down": "_draw_icon_arrow_down",
+        "star": "_draw_icon_star",
     }
 
     def __init__(
@@ -51,6 +56,7 @@ class Button:
         variant: str = "secondary",
         enabled: bool = True,
         icon: ButtonIcon | None = None,
+        abs_rect: pg.Rect | None = None
     ) -> None:
         self.rect = rect
         self.label = label
@@ -58,18 +64,35 @@ class Button:
         self.variant = variant
         self.enabled = enabled
         self.icon = icon
+        self.abs_rect = abs_rect
         self.hovered = False
+        self.pressed = False
 
     def handle_event(self, event: pg.event.Event) -> bool:
         if not self.enabled:
+            self.pressed = False
             return False
         if event.type == pg.MOUSEMOTION:
-            self.hovered = self.rect.collidepoint(event.pos)
+            self.hovered = self._collides_with_cursor(event.pos)
+            if self.pressed and not self.hovered:
+                self.pressed = False
             return False
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos):
-            self.on_click()
-            return True
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            self.pressed = self._collides_with_cursor(event.pos)
+            return self.pressed
+        if event.type == pg.MOUSEBUTTONUP and event.button == 1:
+            was_pressed = self.pressed
+            self.pressed = False
+            if was_pressed and self._collides_with_cursor(event.pos):
+                self.on_click()
+                return True
         return False
+
+    def _collides_with_cursor(self, pos: tuple[float, float]) -> bool:
+        if self.abs_rect is not None:
+            return self.abs_rect.collidepoint(pos)
+        else:
+            return self.rect.collidepoint(pos)
 
     def draw(self, surface: pg.Surface, font: pg.font.Font) -> None:
         if not self.enabled:
@@ -82,25 +105,27 @@ class Button:
             fill = PANEL_ALT if not self.hovered else blend_color(PANEL_ALT, PANEL, 0.35)
             text_color = TEXT_PRIMARY
 
-        draw_pixel_rect(surface, self.rect, fill, border=blend_color(fill, ACCENT_DARK, 0.45), shadow=blend_color(fill, ACCENT_DARK, 0.35))
-        if self._draw_icon(surface, text_color):
+        shadow = None if self.pressed else blend_color(fill, ACCENT_DARK, 0.35)
+        draw_rect = self.rect.move(0, 2) if self.pressed else self.rect
+        draw_pixel_rect(surface, draw_rect, fill, border=blend_color(fill, ACCENT_DARK, 0.45), shadow=shadow)
+        if self._draw_icon(surface, text_color, draw_rect):
             return
         label = render_text(font, self.label, text_color)
-        surface.blit(label, label.get_rect(center=self.rect.center))
+        surface.blit(label, label.get_rect(center=draw_rect.center))
 
-    def _draw_icon(self, surface: pg.Surface, color: tuple[int, int, int]) -> bool:
+    def _draw_icon(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> bool:
         if self.icon is None:
             return False
         renderer_name = self._ICON_RENDERERS.get(self.icon)
         if renderer_name is None:
             return False
-        getattr(self, renderer_name)(surface, color)
+        getattr(self, renderer_name)(surface, color, rect)
         return True
 
-    def _draw_icon_dice(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
-        die_size = min(self.rect.width - 20, self.rect.height - 16)
+    def _draw_icon_dice(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        die_size = min(rect.width - 20, rect.height - 16)
         die_rect = pg.Rect(0, 0, die_size, die_size)
-        die_rect.center = self.rect.center
+        die_rect.center = rect.center
         pip_size = max(4, die_size // 6)
         offset = max(6, die_size // 4)
         centers = (
@@ -115,14 +140,54 @@ class Button:
             pip.center = center
             pg.draw.rect(surface, color, pip)
 
-    def _icon_rect(self, *, width: int = 28, height: int = 18) -> pg.Rect:
+    def _icon_rect(self, rect: pg.Rect, *, width: int = 28, height: int = 18) -> pg.Rect:
         icon_rect = pg.Rect(0, 0, width, height)
-        icon_rect.center = self.rect.center
+        icon_rect.center = rect.center
         return icon_rect
 
-    def _draw_icon_flag_de(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
+    def _draw_icon_arrow(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect, direction: str) -> None:
+        icon = self._icon_rect(rect, width=22, height=22)
+        cx, cy = icon.center
+        points = {
+            "left": [(cx - 6, cy), (cx + 4, cy - 7), (cx + 4, cy + 7)],
+            "right": [(cx + 6, cy), (cx - 4, cy - 7), (cx - 4, cy + 7)],
+            "up": [(cx, cy - 6), (cx - 7, cy + 4), (cx + 7, cy + 4)],
+            "down": [(cx, cy + 6), (cx - 7, cy - 4), (cx + 7, cy - 4)],
+        }
+        pg.draw.polygon(surface, color, points[direction])
+
+    def _draw_icon_arrow_left(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "left")
+
+    def _draw_icon_arrow_right(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "right")
+
+    def _draw_icon_arrow_up(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "up")
+
+    def _draw_icon_arrow_down(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        self._draw_icon_arrow(surface, color, rect, "down")
+
+    def _draw_icon_star(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
+        icon = self._icon_rect(rect, width=22, height=22)
+        cx, cy = icon.center
+        points = [
+            (cx, cy - 9),
+            (cx + 3, cy - 3),
+            (cx + 10, cy - 2),
+            (cx + 5, cy + 3),
+            (cx + 7, cy + 10),
+            (cx, cy + 6),
+            (cx - 7, cy + 10),
+            (cx - 5, cy + 3),
+            (cx - 10, cy - 2),
+            (cx - 3, cy - 3),
+        ]
+        pg.draw.polygon(surface, color, points)
+
+    def _draw_icon_flag_de(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
         del color
-        flag = self._icon_rect()
+        flag = self._icon_rect(rect)
         stripe_height = flag.height // 3
         pg.draw.rect(surface, (20, 20, 20), pg.Rect(flag.x, flag.y, flag.width, stripe_height))
         pg.draw.rect(surface, (184, 46, 54), pg.Rect(flag.x, flag.y + stripe_height, flag.width, stripe_height))
@@ -133,9 +198,9 @@ class Button:
         )
         pg.draw.rect(surface, blend_color(PANEL_ALT, ACCENT_DARK, 0.4), flag, 2)
 
-    def _draw_icon_flag_en(self, surface: pg.Surface, color: tuple[int, int, int]) -> None:
+    def _draw_icon_flag_en(self, surface: pg.Surface, color: tuple[int, int, int], rect: pg.Rect) -> None:
         del color
-        flag = self._icon_rect()
+        flag = self._icon_rect(rect)
         pg.draw.rect(surface, (34, 76, 156), flag)
 
         diagonal_white = max(4, flag.height // 4)
@@ -291,18 +356,34 @@ class Slider:
     The value is represented as a percentage, and the slider's fill corresponds to the percentage of the value within the defined range.
     """
     
-    def __init__(self, rect: pg.Rect, label: str, value: int, *, minimum: int = 0, maximum: int = 100) -> None:
+    def __init__(
+        self,
+        rect: pg.Rect,
+        label: str,
+        value: int,
+        *,
+        minimum: int = 0,
+        maximum: int = 100,
+        step: int = 1,
+        value_formatter: Callable[[int], str] | None = None,
+        show_steps: bool = False,
+    ) -> None:
         self.rect = rect
         self.label = label
         self.value = value
         self.minimum = minimum
         self.maximum = maximum
+        self.step = max(1, step)
+        self.value_formatter = value_formatter
+        self.show_steps = show_steps
         self.dragging = False
 
     def _set_from_mouse(self, x: int) -> None:
         amount = (x - self.rect.x) / max(1, self.rect.width)
         amount = max(0.0, min(1.0, amount))
-        self.value = int(round(self.minimum + amount * (self.maximum - self.minimum)))
+        raw_value = self.minimum + amount * (self.maximum - self.minimum)
+        stepped_value = int(round(raw_value / self.step) * self.step)
+        self.value = max(self.minimum, min(self.maximum, stepped_value))
 
     def handle_event(self, event: pg.event.Event) -> bool:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.rect.inflate(0, 24).collidepoint(event.pos):
@@ -320,11 +401,22 @@ class Slider:
     def draw(self, surface: pg.Surface, label_font: pg.font.Font, value_font: pg.font.Font) -> None:
         label = render_text(label_font, self.label, TEXT_PRIMARY)
         surface.blit(label, (self.rect.x, self.rect.y - 32))
-        value = render_text(value_font, f"{self.value}%", TEXT_MUTED)
+        value_text = f"{self.value}%" if self.value_formatter is None else self.value_formatter(self.value)
+        value = render_text(value_font, value_text, TEXT_MUTED)
         surface.blit(value, value.get_rect(midright=(self.rect.right, self.rect.y - 16)))
 
         track = self.rect.inflate(0, 10)
         draw_pixel_rect(surface, track, blend_color(PANEL_ALT, PANEL, 0.1), border=blend_color(PANEL_ALT, ACCENT_DARK, 0.25))
+
+        if self.show_steps and self.maximum > self.minimum:
+            step_count = (self.maximum - self.minimum) // self.step
+            dot_size = 4
+            dot_y = track.centery - dot_size // 2
+            dot_color = blend_color(PANEL_ALT, ACCENT_DARK, 0.45)
+            for index in range(1, step_count):
+                ratio = index / max(1, step_count)
+                dot_x = int(round(self.rect.x + ratio * self.rect.width)) - dot_size // 2
+                pg.draw.rect(surface, dot_color, pg.Rect(dot_x, dot_y, dot_size, dot_size))
 
         fill_width = int(self.rect.width * ((self.value - self.minimum) / max(1, self.maximum - self.minimum)))
         if fill_width > 0:

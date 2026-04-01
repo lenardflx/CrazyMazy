@@ -9,6 +9,7 @@ from client.network.client_connection import ClientConnection
 from shared.events import ClientCreateLobbyEvent, ClientJoinGameEvent
 
 from client.state.runtime_state import RuntimeState
+from shared.events.game import ClientKickPlayerEvent
 from shared.protocol import ErrorCode
 
 
@@ -23,8 +24,8 @@ class LobbyService:
                      board_size: int, *,
                      is_public: bool,
                      player_limit: int,
-                     insert_timeout: int,
-                     move_timeout: int) -> ErrorCode | None:
+                     insert_timeout: int | None,
+                     move_timeout: int | None) -> ErrorCode | None:
         """Validate the form and request the server to create a new lobby.
 
         :param player_name: The display name the player wants to use.
@@ -36,8 +37,11 @@ class LobbyService:
         """
         name = player_name.strip()
         self._runtime.create_lobby.player_name = name
+        self._runtime.create_lobby.board_size = board_size
         self._runtime.create_lobby.is_public = is_public
         self._runtime.create_lobby.player_limit = player_limit
+        self._runtime.create_lobby.insert_timeout = insert_timeout
+        self._runtime.create_lobby.move_timeout = move_timeout
 
         # Client-side validation before sending to the server
         if not name:
@@ -83,3 +87,6 @@ class LobbyService:
         )
 
         return None if sent else ErrorCode.CONNECTION_ERROR
+
+    def kick_player(self, player_id: str):
+        self._connection.send_event(ClientKickPlayerEvent(player_id=player_id))

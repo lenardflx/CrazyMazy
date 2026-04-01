@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 from shared.events.dispatcher import EventDispatcher
 from shared.events.error import ServerResponseErrorEvent
@@ -14,13 +14,14 @@ from shared.events.game import (
     ClientGameShiftTileEvent,
     ClientGameStartEvent,
     ServerGameLeftEvent,
-    ServerGameSnapshotEvent,
+    ServerGameSnapshotEvent, ClientKickPlayerEvent,
 )
 from shared.protocol import Message
 
 EVENT_TYPES: dict[str, type[Event]] = {
     ClientCreateLobbyEvent.message_type: ClientCreateLobbyEvent,
     ClientJoinGameEvent.message_type: ClientJoinGameEvent,
+    ClientKickPlayerEvent.message_type: ClientKickPlayerEvent,
     ClientGameStartEvent.message_type: ClientGameStartEvent,
     ClientGameAddNpcEvent.message_type: ClientGameAddNpcEvent,
     ClientGameShiftTileEvent.message_type: ClientGameShiftTileEvent,
@@ -48,6 +49,7 @@ __all__ = [
     "ClientGameGiveUpEvent",
     "ClientGameLeaveEvent",
     "ClientJoinGameEvent",
+    "ClientKickPlayerEvent",
     "ClientGameMovePlayerEvent",
     "ClientGameShiftTileEvent",
     "ClientGameStartEvent",

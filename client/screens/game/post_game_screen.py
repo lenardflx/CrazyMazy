@@ -24,7 +24,7 @@ class PostGameScreen(MenuScreen):
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Game Over")
-        self.player_panel_view = PlayerPanelView()
+        self.player_panel_view = PlayerPanelView(None, scene_manager.lobby_service)
         self.menu_button = Button(pg.Rect(self.content_rect.x, self.content_rect.bottom - 54, 180, 44), "Main Menu", self._leave_post_game, variant="primary")
         self.play_again_button = Button(
             pg.Rect(self.content_rect.x + 202, self.content_rect.bottom - 54, 180, 44),
@@ -50,6 +50,7 @@ class PostGameScreen(MenuScreen):
         """Handle events for the post game screen."""
         super().handle_content_event(event)
         self.menu_button.handle_event(event)
+        self.play_again_button.enabled = self._can_play_again()
         self.play_again_button.handle_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
@@ -75,6 +76,7 @@ class PostGameScreen(MenuScreen):
 
         # Draw the buttons to return to the main menu or start a new game.
         self.menu_button.draw(self.surface, self.button_font)
+        self.play_again_button.enabled = self._can_play_again()
         self.play_again_button.draw(self.surface, self.button_font)
 
     def _result_title(self) -> str:
@@ -90,3 +92,9 @@ class PostGameScreen(MenuScreen):
         if viewer.placement is not None:
             return f"You Placed {viewer.placement}"
         return "Game Over"
+
+    def _can_play_again(self) -> bool:
+        game_state = self._game_snapshot
+        if game_state is None:
+            return False
+        return game_state.viewer_id == game_state.leader_player_id

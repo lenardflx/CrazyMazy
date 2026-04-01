@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
  
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class LobbyScreen(MenuScreen):
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
         super().__init__(surface, scene_manager, title="Lobby")
-        self.player_panel_view = PlayerPanelView()
+        self.player_panel_view = PlayerPanelView(self.content_rect, scene_manager.lobby_service)
         button_y = self.content_rect.bottom - 54
         self.start_button = Button(pg.Rect(self.content_rect.x, button_y, 160, 44), "Start Game", self._start_game, variant="primary")
         self.add_npc_button = Button(pg.Rect(self.content_rect.x + 180, button_y, 140, 44), "Add NPC", self._add_npc)
@@ -64,6 +64,10 @@ class LobbyScreen(MenuScreen):
         self.add_npc_button.handle_event(event)
         self.start_button.handle_event(event)
         self.leave_button.handle_event(event)
+
+        # Trigger events for player-specific buttons such as KICK
+        # self.player_panel_view.handle_button_click(event)
+        self.player_panel_view.handle_player_panel_event(event)
 
     def draw_content(self, rect: pg.Rect) -> None:
         """Draw the lobby information, player list, and action buttons.

@@ -16,6 +16,7 @@ from client.screens.lobby.lobby_screen import LobbyScreen
 from client.screens.menu.main_menu_screen import MainMenuScreen
 from client.screens.menu.no_server_screen import NoServerScreen
 from client.screens.menu.settings_screen import SettingsScreen
+from client.screens.menu.stats_screen import StatsScreen
 from client.screens.tutorial.tutorial_screen import TutorialPostGameScreen, TutorialScreen
 from shared.types.enums import GamePhase
 
@@ -30,6 +31,8 @@ def create_screen(scene: SceneTypes, surface: pygame.Surface, manager: SceneMana
     match scene:
         case SceneTypes.MAIN_MENU:
             return MainMenuScreen(surface, manager)
+        case SceneTypes.STATS:
+            return StatsScreen(surface, manager)
         case SceneTypes.SERVER_DOWN:
             return NoServerScreen(surface)
         case SceneTypes.SETTINGS:

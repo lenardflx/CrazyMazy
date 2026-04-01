@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 from __future__ import annotations
 
@@ -182,14 +182,14 @@ def _parse_turn_payload(payload: Any) -> TurnPayload | None:
 
     current_player_id = parse_optional_str(payload.get("current_player_id"))
     turn_phase = parse_optional_enum(payload.get("turn_phase"), TurnPhase)
-    turn_start_timestamp = parse_optional_int(payload.get("turn_start_timestamp"))
+    turn_end_timestamp = parse_optional_int(payload.get("turn_end_timestamp"))
     blocked_insertion_side = parse_optional_enum(payload.get("blocked_insertion_side"), InsertionSide)
     blocked_insertion_index = parse_optional_int(payload.get("blocked_insertion_index"))
 
     return {
         "current_player_id": current_player_id,
         "turn_phase": turn_phase,
-        "turn_start_timestamp": turn_start_timestamp,
+        "turn_end_timestamp": turn_end_timestamp,
         "blocked_insertion_side": blocked_insertion_side,
         "blocked_insertion_index": blocked_insertion_index,
     }
@@ -334,7 +334,7 @@ def make_game_snapshot_payload(
         "turn": {
             "current_player_id": str(game.current_player_id) if game.current_player_id is not None else None,
             "turn_phase": game.turn_phase,
-            "turn_start_timestamp": game.turn_start_timestamp,
+            "turn_end_timestamp": game.turn_end_timestamp,
             "blocked_insertion_side": game.blocked_insertion_side,
             "blocked_insertion_index": game.blocked_insertion_index,
         },
