@@ -80,6 +80,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
         *,
         is_public: bool = False,
         player_limit: int = 4,
+        insert_timeout: int = 0
     ) -> GameData:
         """Creates an instance of the table Game and returns it."""
         def op(session: Session) -> GameData:
@@ -89,6 +90,7 @@ class GameRepositorySQL(SQLRepository, GameRepository):
                 board_size=board_size,
                 is_public=is_public,
                 player_limit=player_limit,
+                insert_timeout=insert_timeout
             )
             self.session.add(game)
             self.session.flush()
@@ -180,6 +182,16 @@ class PlayerRepositorySQL(SQLRepository, PlayerRepository):
             return db_player
 
         return self.write(op)
+
+    def delete_player(self, player_id: UUID) -> None:
+        """Deletes an instance of the table Player."""
+        def op(session: Session) -> None:
+            player = self.session.get(PlayerTable, player_id)
+            if player:
+                self.session.delete(player)
+
+        self.write(op)
+
 
 
 class TileRepositorySQL(SQLRepository, TileRepository):
