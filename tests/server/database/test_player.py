@@ -30,3 +30,12 @@ def test_update_player():
     result = player_repository_sql.find_by_id(player.id)
     assert result is not None
     assert result.display_name == player.display_name
+
+def test_delete_player():
+    """Create and delete an instance of the table Player and raise an AssertionError if the row is found in the table"""
+    player_repository_sql = PlayerRepositorySQL(create_engine_for_environment("test"))
+    player = player_repository_sql.create_player("Name", f"{uuid4()}", uuid4(), 0, PlayerColor.BLUE)
+    player_repository_sql.delete_player(player.id)
+    result = player_repository_sql.find_by_id(player.id)
+    assert result is None
+

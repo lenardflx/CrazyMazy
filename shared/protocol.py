@@ -7,7 +7,6 @@ from typing import Any, Mapping, NotRequired, TypedDict, cast
 
 from shared.utils.ids import new_message_id
 
-
 class ErrorCode(StrEnum):
     CONNECTION_ERROR = "CONNECTION_ERROR"
     INVALID_MESSAGE = "INVALID_MESSAGE"
@@ -108,6 +107,10 @@ class ErrorCode(StrEnum):
     When a client sends an NPC create packet but the game is not in 
     lobby state, so no players/NPCs can join. 
     """
+
+class DisplayMessage(StrEnum):
+    SERVER_NOT_REACHABLE = "SERVER_NOT_REACHABLE"
+    UNKNOWN_MESSAGE_TYPE = "UNKNOWN_MESSAGE_TYPE"
 
 
 class Message(TypedDict):

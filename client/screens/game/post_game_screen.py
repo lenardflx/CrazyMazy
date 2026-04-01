@@ -12,6 +12,7 @@ from client.ui.controls import Button
 from client.ui.theme import TEXT_MUTED
 from client.screens.menu.menu_screen import MenuScreen
 from shared.types.enums import GamePhase, PlayerResult
+from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -23,12 +24,12 @@ class PostGameScreen(MenuScreen):
     """
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
-        super().__init__(surface, scene_manager, title="Game Over")
+        super().__init__(surface, scene_manager, title=language_service.get_message(DisplayMessage.GAME_OVER))
         self.player_panel_view = PlayerPanelView(None, scene_manager.lobby_service)
-        self.menu_button = Button(pg.Rect(self.content_rect.x, self.content_rect.bottom - 54, 180, 44), "Main Menu", self._leave_post_game, variant="primary")
+        self.menu_button = Button(pg.Rect(self.content_rect.x, self.content_rect.bottom - 54, 180, 44), language_service.get_message(DisplayMessage.MAIN_MENU), self._leave_post_game, variant="primary")
         self.play_again_button = Button(
             pg.Rect(self.content_rect.x + 202, self.content_rect.bottom - 54, 180, 44),
-            "Play Again",
+            language_service.get_message(DisplayMessage.GAME_PLAY_AGAIN),
             self._play_again,
         )
 
@@ -83,15 +84,15 @@ class PostGameScreen(MenuScreen):
         """Determine the title to display based on the player's result in the game."""
         game_state = self._game_snapshot
         if game_state is None:
-            return "Game Over"
+            return language_service.get_message(DisplayMessage.GAME_OVER)
         viewer = game_state.viewer_player
         if viewer is None:
-            return "Game Over"
+            return language_service.get_message(DisplayMessage.GAME_OVER)
         if viewer.result == PlayerResult.WON:
-            return "You Win"
+            return language_service.get_message(DisplayMessage.GAME_WIN)
         if viewer.placement is not None:
-            return f"You Placed {viewer.placement}"
-        return "Game Over"
+            return language_service.get_message(DisplayMessage.GAME_PLACEMENT) + str(viewer.placement)
+        return language_service.get_message(DisplayMessage.GAME_OVER)
 
     def _can_play_again(self) -> bool:
         game_state = self._game_snapshot
