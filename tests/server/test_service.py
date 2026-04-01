@@ -10,7 +10,7 @@ from server.db.memory_repo import (
 )
 from server.service import GameService
 from shared.protocol import ErrorCode
-from shared.types.enums import GameEndReason, GamePhase, InsertionSide, PlayerResult, PlayerStatus, TurnPhase
+from shared.types.enums import GameEndReason, GamePhase, InsertionSide, PlayerLeaveReason, PlayerResult, PlayerStatus, TurnPhase
 
 
 def make_service() -> GameService:
@@ -19,6 +19,16 @@ def make_service() -> GameService:
         PlayerRepositoryInMemory(),
         TileRepositoryInMemory(),
         TreasureRepositoryInMemory(),
+    )
+
+
+def make_service_without_npc_play() -> GameService:
+    return GameService(
+        GameRepositoryInMemory(),
+        PlayerRepositoryInMemory(),
+        TileRepositoryInMemory(),
+        TreasureRepositoryInMemory(),
+        allow_npc_play=False,
     )
 
 
@@ -106,6 +116,37 @@ def test_join_public_returns_no_public_lobby_when_none_available() -> None:
     assert rejected == ErrorCode.NO_PUBLIC_LOBBY
 
 
+def test_start_game_requires_a_human_when_npc_play_is_disabled() -> None:
+    service = make_service_without_npc_play()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    service.add_npc(created.player.id)
+    service.add_npc(created.player.id)
+    service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
+
+    remaining = service.get_game_state(created.game.id)
+    assert remaining is not None
+    leader = next(player for player in remaining.players if player.id == remaining.game.leader_player_id)
+
+    started = service.start_game(leader.id)
+
+    assert started == ErrorCode.PLAYER_COUNT_INSUFFICIENT
+
+
+def test_game_ends_when_only_npcs_remain_and_npc_play_is_disabled() -> None:
+    service = make_service_without_npc_play()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    service.add_npc(created.player.id)
+    joined = service.join_game(created.game.code, "Bob", "conn_2")
+    started = service.start_game(created.player.id)
+    assert not isinstance(started, ErrorCode)
+
+    state = service.leave_game(joined.player.id, PlayerLeaveReason.LEFT)
+
+    assert state is not None
+    assert state.game.game_phase == GamePhase.POSTGAME
+    assert state.game.end_reason == GameEndReason.PLAYERS_LEFT
+
+
 def test_join_game_rejects_taken_display_name() -> None:
     service = make_service()
     created = service.create_lobby(7, "Ada", "conn_1")
@@ -141,6 +182,32 @@ def test_get_connection_state_returns_game_and_player() -> None:
     assert state is not None
     assert state.game.id == created.game.id
     assert state.player.id == created.player.id
+
+
+def test_get_connection_state_prefers_newest_session_when_connection_id_is_duplicated() -> None:
+    service = make_service()
+    old = service.create_lobby(7, "Ada", "conn_1")
+    new = service.create_lobby(7, "Bea", "conn_1")
+
+    state = service.get_connection_state("conn_1")
+
+    assert state is not None
+    assert state.game.id == new.game.id
+    assert state.player.id == new.player.id
+    assert state.game.id != old.game.id
+
+
+def test_leave_game_clears_connection_id_even_when_player_was_already_departed() -> None:
+    service = make_service()
+    created = service.create_lobby(7, "Ada", "conn_1")
+    created.player.status = PlayerStatus.DEPARTED
+    service.player_repo.update_player(created.player)
+
+    state = service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
+
+    assert state is None
+    player = service.player_repo.find_by_id(created.player.id)
+    assert player is None or player.connection_id is None
 
 
 def test_leave_game_transfers_leadership_to_next_active_player() -> None:

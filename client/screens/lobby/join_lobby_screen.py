@@ -60,7 +60,7 @@ class JoinLobbyScreen(MenuScreen):
             self.code_input.text,
         )
         if error:
-            self.error_message = language_service.get_message(error)
+            self.set_error_message(language_service.get_message(error))
 
     def _join_public_lobby(self) -> None:
         error = self.scene_manager.lobby_service.join_lobby(
@@ -69,7 +69,7 @@ class JoinLobbyScreen(MenuScreen):
             join_public=True,
         )
         if error:
-            self.error_message = language_service.get_message(error)
+            self.set_error_message(language_service.get_message(error))
 
     def _roll_name(self) -> None:
         self.name_input.text = generate_display_name()
@@ -98,6 +98,3 @@ class JoinLobbyScreen(MenuScreen):
         or_label = render_text(self.small_font, language_service.get_message(DisplayMessage.GAME_OR), TEXT_MUTED)
         self.surface.blit(or_label, or_label.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 338)))
         self.join_public_button.draw(self.surface, self.button_font)
-        if self.error_message:
-            error = render_text(self.small_font, self.error_message, (150, 58, 48))
-            self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.content_rect.y + 430)))

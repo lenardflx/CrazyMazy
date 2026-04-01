@@ -1,4 +1,4 @@
-# Author: Lenard Felix
+# Author: Lenard Felix, Raphael Eiden
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.lang import language_service
+from client.state.runtime_state import ErrorPopupAnimation
 from shared.lib.names import generate_display_name
 from shared.lib.lobby import VALID_BOARD_SIZES, VALID_INSERT_TIMEOUTS, VALID_MOVE_TIMEOUTS
 from client.ui.controls import Button, Slider, TextInput
@@ -213,7 +214,7 @@ class CreateLobbyScreen(MenuScreen):
         self.scene_manager.client_settings.write_JSON()
         
         if error:
-            self.error_message = language_service.get_message(error)
+            self.set_error_message(error)
 
     def _roll_name(self) -> None:
         self.name_input.text = generate_display_name()
@@ -237,6 +238,7 @@ class CreateLobbyScreen(MenuScreen):
         self.create_button.handle_event(event)
 
     def update_content(self, dt: float) -> None:
+        super().update_content(dt)
         self.name_input.update(dt)
 
     def draw_content(self, rect: pg.Rect) -> None:
@@ -256,6 +258,3 @@ class CreateLobbyScreen(MenuScreen):
         self.insert_timeout_slider.draw(self.surface, self.small_font, self.small_font)
         self.move_timeout_slider.draw(self.surface, self.small_font, self.small_font)
         self.create_button.draw(self.surface, self.button_font)
-        if self.error_message:
-            error = render_text(self.small_font, self.error_message, (150, 58, 48))
-            self.surface.blit(error, error.get_rect(center=(self.content_rect.centerx, self.create_button.rect.bottom + 24)))

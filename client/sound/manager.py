@@ -29,7 +29,7 @@ class AudioManager:
         
         pygame.mixer.init()
         self._sfx: dict[str, pygame.mixer.Sound] = {
-            key: pygame.mixer.Sound(BASE_DIR / path)
+            key: pygame.mixer.Sound(str(BASE_DIR / path))
             for key, path in SFX.items()
         }
         self._music_paths: dict[str, str] = {

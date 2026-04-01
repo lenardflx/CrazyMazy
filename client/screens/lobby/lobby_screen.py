@@ -27,8 +27,19 @@ class LobbyScreen(MenuScreen):
         super().__init__(surface, scene_manager, title="Lobby")
         self.player_panel_view = PlayerPanelView(self.content_rect, scene_manager.lobby_service)
         button_y = self.content_rect.bottom - 54
-        self.start_button = Button(pg.Rect(self.content_rect.x, button_y, 160, 44), language_service.get_message(DisplayMessage.GAME_START), self._start_game, variant="primary")
-        self.add_npc_button = Button(pg.Rect(self.content_rect.x + 180, button_y, 140, 44), language_service.get_message(DisplayMessage.GAME_ADD_NPC), self._add_npc)
+        self.start_button = Button(
+            pg.Rect(self.content_rect.x, button_y, 160, 44),
+            language_service.get_message(DisplayMessage.GAME_START),
+            self._start_game,
+            variant="primary",
+            enabled=False,
+        )
+        self.add_npc_button = Button(
+            pg.Rect(self.content_rect.x + 180, button_y, 140, 44),
+            language_service.get_message(DisplayMessage.GAME_ADD_NPC),
+            self._add_npc,
+            enabled=False,
+        )
         self.leave_button = Button(pg.Rect(self.content_rect.x + 340, button_y, 160, 44), language_service.get_message(DisplayMessage.GAME_LEAVE_LOBBY), self._confirm_leave)
 
     def _add_npc(self) -> None:

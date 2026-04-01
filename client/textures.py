@@ -8,7 +8,10 @@ from shared.paths import BASE_DIR
 
 def _image_load(path: str) -> pygame.Surface:
     """Load a pygame surface from the given path relative to the project base directory."""
-    return pygame.image.load(BASE_DIR / path)
+    surface = pygame.image.load(BASE_DIR / path)
+    if pygame.display.get_surface() is None:
+        return surface
+    return surface.convert_alpha()
 
 
 PLAYER_IMAGES: dict[PlayerSkin, dict[PlayerColor, pygame.Surface]] = {
@@ -31,6 +34,9 @@ UI_IMAGES = {
     "TURN_ARROW": _image_load("assets/images/ui/turn_arrow.png"),
     "CLOSE": _image_load("assets/images/ui/close.png"),
     "TITLE_BACKGROUND": _image_load("assets/images/ui/titleBackground.png"),
+    "TITLE_ANIMATION_0": _image_load("assets/images/ui/title-bg-0.png"),
+    "TITLE_ANIMATION_1": _image_load("assets/images/ui/title-bg-1.png"),
+    "TITLE_ANIMATION_2": _image_load("assets/images/ui/title-bg-2.png"),
     "SPACE_BACKGROUND": _image_load("assets/images/ui/backgroundSpace.png"),
 }
 
