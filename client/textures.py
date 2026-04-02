@@ -33,6 +33,7 @@ UI_IMAGES = {
     "BUTTONS": _image_load("assets/images/ui/menu_button.png"),
     "TURN_ARROW": _image_load("assets/images/ui/turn_arrow.png"),
     "CLOSE": _image_load("assets/images/ui/close.png"),
+    "GAME_BACKGROUND": _image_load("assets/images/ui/background.png"),
     "TITLE_BACKGROUND": _image_load("assets/images/ui/titleBackground.png"),
     "SMOKE_0": _image_load("assets/images/ui/smoke-frame-0.png"),
     "SMOKE_1": _image_load("assets/images/ui/smoke-frame-1.png"),
