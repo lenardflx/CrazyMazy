@@ -30,6 +30,8 @@ class LobbyScreen(MenuScreen):
         self.player_panel_view = PlayerPanelView(self.content_rect, scene_manager.lobby_service)
         self._waiting_elapsed = 0.0
         self._waiting_prompt_shown = False
+        if self.back_button is not None:
+            self.back_button.on_click = self._confirm_leave
         button_y = self.content_rect.bottom - 54
         self.start_button = Button(
             pg.Rect(self.content_rect.x, button_y, 160, 44),

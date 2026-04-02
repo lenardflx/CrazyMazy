@@ -64,6 +64,7 @@ class SceneManager:
         # Transport sync
         self._transport_sync = TransportSync(transport_state, self.runtime_state, self.client_settings)
         self._last_timer_beep_second: int | None = None
+        self._was_displayed_viewer_turn = False
 
         # Apply the initial audio settings
         self.audio.apply_settings(
@@ -106,10 +107,14 @@ class SceneManager:
             self.current_screen.handle_event(event)
 
     def tick(self, dt: float) -> None:
-        self._play_countdown_sfx()
         if self.current_screen is not None:
             self.current_screen.update(dt)
+            self._play_displayed_turn_sfx()
+            self._play_countdown_sfx()
             self.current_screen.draw()
+        else:
+            self._play_displayed_turn_sfx()
+            self._play_countdown_sfx()
 
         screen = pygame.display.get_surface()
 
@@ -167,6 +172,40 @@ class SceneManager:
     def game_state(self) -> SnapshotGameState | None:
         return self._transport_sync.game_state
 
+    def blocking_actor_id(self) -> str | None:
+        runtime_game = self.runtime_state.game
+        if runtime_game.move_animation is not None:
+            return runtime_game.move_animation.player_id
+        if runtime_game.treasure_collect_animation is not None:
+            return runtime_game.treasure_collect_animation.player_id
+        return None
+
+    def displayed_current_player_id(self) -> str:
+        game_state = self.game_state
+        if game_state is None:
+            return ""
+        blocking_actor_id = self.blocking_actor_id()
+        if blocking_actor_id is not None and blocking_actor_id != game_state.current_player_id:
+            return blocking_actor_id
+        return game_state.current_player_id
+
+    def displayed_viewer_turn(self) -> bool:
+        game_state = self.game_state
+        return (
+            game_state is not None
+            and game_state.phase == GamePhase.GAME
+            and game_state.viewer_id == self.displayed_current_player_id()
+        )
+
+    def remaining_blocking_animation_ms(self) -> int:
+        runtime_game = self.runtime_state.game
+        remaining_ms = 0
+        if runtime_game.move_animation is not None:
+            remaining_ms += round((1.0 - runtime_game.move_animation.progress) * runtime_game.move_animation.duration * 1000)
+        if runtime_game.treasure_collect_animation is not None:
+            remaining_ms += round((1.0 - runtime_game.treasure_collect_animation.progress) * runtime_game.treasure_collect_animation.duration * 1000)
+        return max(0, remaining_ms)
+
     def _play_snapshot_sfx(
         self,
         previous_state: SnapshotGameState | None,
@@ -176,23 +215,9 @@ class SceneManager:
             self._last_timer_beep_second = None
             return
 
-        became_viewer_turn = (
-            current_state.phase == GamePhase.GAME
-            and current_state.viewer_turn
-            and (
-                previous_state is None
-                or previous_state.phase != GamePhase.GAME
-                or not previous_state.viewer_turn
-                or previous_state.current_player_id != current_state.current_player_id
-                or previous_state.turn.phase != current_state.turn.phase
-            )
-        )
-        if became_viewer_turn:
-            self.audio.play_sfx("your_turn")
+        if current_state.phase != GamePhase.GAME or not self.displayed_viewer_turn():
             self._last_timer_beep_second = None
-
-        if current_state.phase != GamePhase.GAME or not current_state.viewer_turn:
-            self._last_timer_beep_second = None
+            self._was_displayed_viewer_turn = False
 
         previous_viewer = None if previous_state is None else previous_state.viewer_player
         current_viewer = current_state.viewer_player
@@ -213,7 +238,7 @@ class SceneManager:
         if (
             game_state is None
             or game_state.phase != GamePhase.GAME
-            or not game_state.viewer_turn
+            or not self.displayed_viewer_turn()
             or game_state.turn.turn_end_timestamp is None
         ):
             self._last_timer_beep_second = None
@@ -231,3 +256,10 @@ class SceneManager:
         if 1 <= remaining_second <= 3 and remaining_second != self._last_timer_beep_second:
             self.audio.play_sfx("timer_beep")
             self._last_timer_beep_second = remaining_second
+
+    def _play_displayed_turn_sfx(self) -> None:
+        displayed_viewer_turn = self.displayed_viewer_turn()
+        if displayed_viewer_turn and not self._was_displayed_viewer_turn:
+            self.audio.play_sfx("your_turn")
+            self._last_timer_beep_second = None
+        self._was_displayed_viewer_turn = displayed_viewer_turn

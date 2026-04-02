@@ -12,6 +12,7 @@ from client.screens.game.views.board_view import BoardClick, BoardView, GameBoar
 from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.screens.menu.settings_screen import SettingsForm
 from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
+from client.textures import UI_IMAGES
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.helper import format_ms_to_clock
@@ -121,37 +122,11 @@ class GameScreen(BaseScreen):
     def _game_snapshot(self) -> SnapshotGameState | None:
         return self.scene_manager.game_state
 
-    def _blocking_actor_id(self) -> str | None:
-        runtime_game = self._game_runtime
-        if runtime_game.move_animation is not None:
-            return runtime_game.move_animation.player_id
-        if runtime_game.treasure_collect_animation is not None:
-            return runtime_game.treasure_collect_animation.player_id
-        return None
-
-    def _displayed_current_player_id(self) -> str:
-        game_state = self._game_snapshot
-        if game_state is None:
-            return ""
-        blocking_actor_id = self._blocking_actor_id()
-        if blocking_actor_id is not None and blocking_actor_id != game_state.current_player_id:
-            return blocking_actor_id
-        return game_state.current_player_id
-
-    def _remaining_blocking_animation_ms(self) -> int:
-        runtime_game = self._game_runtime
-        remaining_ms = 0
-        if runtime_game.move_animation is not None:
-            remaining_ms += round((1.0 - runtime_game.move_animation.progress) * runtime_game.move_animation.duration * 1000)
-        if runtime_game.treasure_collect_animation is not None:
-            remaining_ms += round((1.0 - runtime_game.treasure_collect_animation.progress) * runtime_game.treasure_collect_animation.duration * 1000)
-        return max(0, remaining_ms)
-
     def _displayed_turn_prompt(self) -> str:
         game_state = self._game_snapshot
         if game_state is None:
             return ""
-        blocking_actor_id = self._blocking_actor_id()
+        blocking_actor_id = self.scene_manager.blocking_actor_id()
         if blocking_actor_id is None or blocking_actor_id == game_state.current_player_id:
             return self.turn_prompt()
         if blocking_actor_id == game_state.viewer_id:
@@ -261,7 +236,8 @@ class GameScreen(BaseScreen):
         """Draw the game screen."""
 
         # Fill the background
-        self.surface.fill(BACKGROUND)
+        scaled_static = pg.transform.scale(UI_IMAGES["GAME_BACKGROUND"], self.surface.get_size())
+        self.surface.blit(scaled_static, (0, 0))
 
         # Resolve the game layout based on the current game state
         game_state = self._game_snapshot
@@ -289,7 +265,7 @@ class GameScreen(BaseScreen):
             self.surface,
             layout.players_panel,
             game_state,
-            highlighted_player_id=self._displayed_current_player_id(),
+            highlighted_player_id=self.scene_manager.displayed_current_player_id(),
             treasure_animation=runtime.treasure_collect_animation,
             pending_collect=(
                 None
@@ -323,12 +299,12 @@ class GameScreen(BaseScreen):
         highlight_color = blend_color(TEXT_PRIMARY, PANEL, 0.2)
         if game_state is not None:
             current_player = next(
-                (player for player in game_state.players if player.id == self._displayed_current_player_id()),
+                (player for player in game_state.players if player.id == self.scene_manager.displayed_current_player_id()),
                 None,
             )
             if current_player is not None:
                 highlight_color = PLAYER_COLOR_VALUES[current_player.piece_color]
-            elif game_state.viewer_turn:
+            elif self.scene_manager.displayed_viewer_turn():
                 highlight_color = MOVE_HIGHLIGHT
 
         timer_rect = pg.Rect(header_rect.right - 139, header_rect.y - 3, 130, 38)
@@ -352,9 +328,9 @@ class GameScreen(BaseScreen):
         remaining_ms = self._game_snapshot.turn.remaining_ms()
         if remaining_ms is None:
             remaining_ms = 0
-        blocking_actor_id = self._blocking_actor_id()
+        blocking_actor_id = self.scene_manager.blocking_actor_id()
         if blocking_actor_id is not None and blocking_actor_id != self._game_snapshot.current_player_id:
-            remaining_ms -= self._remaining_blocking_animation_ms()
+            remaining_ms -= self.scene_manager.remaining_blocking_animation_ms()
 
         if remaining_ms <= 0:
             timer_content = "00:00"
