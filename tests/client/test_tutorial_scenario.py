@@ -17,15 +17,18 @@ def test_default_tutorial_steps_follow_expected_sequence() -> None:
 
     assert isinstance(steps[0], TutorialTextStep)
     assert isinstance(steps[1], TutorialTextStep)
-    assert isinstance(steps[2], TutorialShiftStep)
-    assert isinstance(steps[3], TutorialMoveStep)
-    assert isinstance(steps[4], TutorialNpcStep)
-    assert isinstance(steps[5], TutorialRotateStep)
-    assert isinstance(steps[6], TutorialShiftStep)
-    assert isinstance(steps[7], TutorialMoveStep)
-    assert isinstance(steps[8], TutorialFreeplayStep)
+    assert isinstance(steps[2], TutorialTextStep)
+    assert isinstance(steps[3], TutorialTextStep)
+    assert isinstance(steps[4], TutorialTextStep)
+    assert isinstance(steps[5], TutorialShiftStep)
+    assert isinstance(steps[6], TutorialMoveStep)
+    assert isinstance(steps[7], TutorialNpcStep)
+    assert isinstance(steps[8], TutorialRotateStep)
+    assert isinstance(steps[9], TutorialShiftStep)
+    assert isinstance(steps[10], TutorialMoveStep)
+    assert isinstance(steps[11], TutorialFreeplayStep)
 
-    assert steps[5].direction == 1
-    assert steps[6].side == InsertionSide.TOP
-    assert steps[6].index == 1
-    assert steps[7].position == (2, 0)
+    assert steps[8].direction == 1
+    assert steps[9].side == InsertionSide.TOP
+    assert steps[9].index == 1
+    assert steps[10].position == (2, 0)

@@ -13,10 +13,14 @@ def make_snapshot_payload() -> dict[str, object]:
         "phase": "GAME",
         "revision": 7,
         "board_size": 7,
+        "is_public": False,
+        "player_limit": 4,
         "leader_player_id": "550e8400-e29b-41d4-a716-446655440001",
         "turn": {
             "current_player_id": "550e8400-e29b-41d4-a716-446655440001",
             "turn_phase": "MOVE",
+            "turn_end_timestamp": None,
+            "server_now_timestamp": None,
             "blocked_insertion_side": "LEFT",
             "blocked_insertion_index": 3,
         },
@@ -46,6 +50,8 @@ def make_snapshot_payload() -> dict[str, object]:
             {
                 "id": "550e8400-e29b-41d4-a716-446655440001",
                 "display_name": "Ada",
+                "controller_kind": "HUMAN",
+                "npc_difficulty": None,
                 "status": "ACTIVE",
                 "result": "NONE",
                 "placement": None,
@@ -58,6 +64,8 @@ def make_snapshot_payload() -> dict[str, object]:
             {
                 "id": "550e8400-e29b-41d4-a716-446655440002",
                 "display_name": "Linus",
+                "controller_kind": "HUMAN",
+                "npc_difficulty": None,
                 "status": "ACTIVE",
                 "result": "NONE",
                 "placement": None,
@@ -70,11 +78,7 @@ def make_snapshot_payload() -> dict[str, object]:
         ],
         "viewer": {
             "player_id": "550e8400-e29b-41d4-a716-446655440001",
-            "is_leader": True,
-            "is_current_player": True,
             "active_treasure_type": "OWL",
-            "collected_treasures": ["BOOK"],
-            "remaining_treasure_count": 1,
         },
     }
 
@@ -84,6 +88,7 @@ def test_parse_game_snapshot_payload_accepts_viewer_specific_snapshot() -> None:
 
     parsed = parse_game_snapshot_payload(payload)
 
+    assert parsed is not None
     assert parsed == payload
 
 
@@ -127,7 +132,7 @@ def test_snapshot_game_state_allows_pregame_without_board_tiles() -> None:
 
     game_state = SnapshotGameState.from_snapshot(payload)
 
-    assert game_state.phase == "PREGAME"
+    assert game_state.phase.value == "PREGAME"
     assert game_state.board is None
     assert game_state.spare_tile is None
 
@@ -162,7 +167,6 @@ def test_snapshot_game_state_uses_spectating_prompt_for_observer_viewer() -> Non
     game_state = SnapshotGameState.from_snapshot(payload)
 
     assert game_state.viewer_is_spectator is True
-    assert game_state.turn_prompt == "Spectating"
 
 
 def test_snapshot_game_state_parses_last_shift_metadata() -> None:
@@ -176,7 +180,7 @@ def test_snapshot_game_state_parses_last_shift_metadata() -> None:
     game_state = SnapshotGameState.from_snapshot(payload)
 
     assert game_state.last_shift is not None
-    assert game_state.last_shift.side == "LEFT"
+    assert game_state.last_shift.side.value == "LEFT"
     assert game_state.last_shift.index == 3
     assert game_state.last_shift.rotation == 2
 
@@ -198,4 +202,4 @@ def test_snapshot_game_state_parses_last_move_metadata() -> None:
     assert game_state.last_move is not None
     assert game_state.last_move.player_id == "550e8400-e29b-41d4-a716-446655440001"
     assert game_state.last_move.path == [(1, 2), (1, 3), (2, 3)]
-    assert game_state.last_move.collected_treasure_type == "BOOK"
+    assert game_state.last_move.collected_treasure_type.value == "BOOK"

@@ -13,7 +13,7 @@ from shared.events import (
     ServerResponseErrorEvent,
     parse_event,
 )
-from shared.protocol import make_message
+from shared.protocol import ErrorCode, make_message
 from shared.types.enums import NpcDifficulty
 
 
@@ -24,10 +24,14 @@ def make_snapshot_payload() -> dict[str, object]:
         "phase": "GAME",
         "revision": 7,
         "board_size": 7,
+        "is_public": False,
+        "player_limit": 4,
         "leader_player_id": "550e8400-e29b-41d4-a716-446655440001",
         "turn": {
             "current_player_id": "550e8400-e29b-41d4-a716-446655440001",
             "turn_phase": "MOVE",
+            "turn_end_timestamp": None,
+            "server_now_timestamp": None,
             "blocked_insertion_side": "LEFT",
             "blocked_insertion_index": 3,
         },
@@ -95,6 +99,7 @@ def test_event_to_message_uses_event_id_and_payload() -> None:
         message_id="msg_custom",
         join_code="GAME",
         player_name="Ada",
+        join_public=False,
     )
 
     msg = event.to_message()
@@ -104,6 +109,7 @@ def test_event_to_message_uses_event_id_and_payload() -> None:
     assert msg["payload"] == {
         "join_code": "GAME",
         "player_name": "Ada",
+        "join_public": False,
     }
 
 
@@ -111,6 +117,7 @@ def test_event_generates_message_id_by_default() -> None:
     event = ClientJoinGameEvent(
         join_code="GAME",
         player_name="Ada",
+        join_public=False,
     )
 
     assert event.message_id.startswith("msg_")
@@ -120,13 +127,14 @@ def test_parse_event_returns_join_event_for_valid_message() -> None:
     event = parse_event(
         make_message(
             ClientJoinGameEvent.message_type,
-            {"join_code": " GAME ", "player_name": " Ada "},
+            {"join_code": " GAME ", "player_name": " Ada ", "join_public": False},
         )
     )
 
     assert isinstance(event, ClientJoinGameEvent)
     assert event.join_code == "GAME"
     assert event.player_name == "Ada"
+    assert event.join_public is False
 
 
 def test_parse_event_returns_none_for_unknown_message_type() -> None:
@@ -151,13 +159,12 @@ def test_parse_event_returns_error_event_for_error_message() -> None:
     event = parse_event(
         make_message(
             ServerResponseErrorEvent.message_type,
-            {"code": "GAME_NOT_FOUND", "message": "missing"},
+            {"error_code": "GAME_NOT_FOUND"},
         )
     )
 
     assert isinstance(event, ServerResponseErrorEvent)
-    assert event.code == "GAME_NOT_FOUND"
-    assert event.message == "missing"
+    assert event.error_code == ErrorCode.GAME_NOT_FOUND
 
 
 def test_parse_event_returns_game_start_event_for_empty_payload() -> None:
@@ -209,5 +216,4 @@ def test_parse_event_returns_end_turn_event_for_empty_payload() -> None:
     event = parse_event(make_message(ClientGameEndTurnEvent.message_type, {}))
 
     assert isinstance(event, ClientGameEndTurnEvent)
-
 

@@ -14,6 +14,7 @@ from shared.types.data import GameData, PlayerData
 class FakeGame:
     board_size: int
     game_phase: GamePhase
+    player_limit: int
 
 
 @dataclass
@@ -21,8 +22,8 @@ class FakePlayer:
     status: PlayerStatus
 
 
-def make_game(*, board_size: int = 7, phase: GamePhase = GamePhase.PREGAME) -> FakeGame:
-    return FakeGame(board_size=board_size, game_phase=phase)
+def make_game(*, board_size: int = 7, phase: GamePhase = GamePhase.PREGAME, player_limit: int = 4) -> FakeGame:
+    return FakeGame(board_size=board_size, game_phase=phase, player_limit=player_limit)
 
 
 def make_player(*, status: PlayerStatus = PlayerStatus.ACTIVE) -> FakePlayer:

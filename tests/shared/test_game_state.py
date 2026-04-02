@@ -111,7 +111,7 @@ class TestCreateBoard(unittest.TestCase):
             coordinates.append((4, i))
         # t-piece in the middle
         board.change_tile(4,3, Tile(TileType.T, TileOrientation.SOUTH))
-        path = board.pathfind((4,3))
+        path, _ = board.pathfind((4,3))
         path.sort()
         coordinates.sort()
         self.assertTrue(path == coordinates)

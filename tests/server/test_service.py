@@ -50,12 +50,7 @@ def test_create_lobby_creates_game_and_leader() -> None:
 def test_create_lobby_rejects_invalid_board_size() -> None:
     service = make_service()
 
-    try:
-        service.create_lobby(8, "Ada", "conn_1")
-    except ValueError as exc:
-        assert "Invalid board size" in str(exc)
-    else:
-        raise AssertionError("expected ValueError")
+    assert service.create_lobby(8, "Ada", "conn_1") == ErrorCode.INVALID_BOARD_SIZE
 
 
 def test_join_game_assigns_next_slot_automatically() -> None:
@@ -151,12 +146,7 @@ def test_join_game_rejects_taken_display_name() -> None:
     service = make_service()
     created = service.create_lobby(7, "Ada", "conn_1")
 
-    try:
-        service.join_game(created.game.code, " ada ", "conn_2")
-    except ValueError as exc:
-        assert "Display name already taken" in str(exc)
-    else:
-        raise AssertionError("expected ValueError")
+    assert service.join_game(created.game.code, " ada ", "conn_2") == ErrorCode.DISPLAY_NAME_TAKEN
 
 
 def test_join_game_rejects_non_joinable_game() -> None:
@@ -165,12 +155,7 @@ def test_join_game_rejects_non_joinable_game() -> None:
     created.game.game_phase = GamePhase.GAME
     service.game_repo.update_game(created.game)
 
-    try:
-        service.join_game(created.game.code, "Bob", "conn_2")
-    except ValueError as exc:
-        assert "Game is not joinable" in str(exc)
-    else:
-        raise AssertionError("expected ValueError")
+    assert service.join_game(created.game.code, "Bob", "conn_2") == ErrorCode.GAME_NOT_JOINABLE
 
 
 def test_get_connection_state_returns_game_and_player() -> None:
@@ -215,7 +200,7 @@ def test_leave_game_transfers_leadership_to_next_active_player() -> None:
     created = service.create_lobby(7, "Ada", "conn_1")
     joined = service.join_game(created.game.code, "Bob", "conn_2")
 
-    state = service.leave_game(created.player.id)
+    state = service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
 
     assert state is not None
     assert state.game.leader_player_id == joined.player.id
@@ -228,7 +213,7 @@ def test_leave_game_deletes_empty_game() -> None:
     service = make_service()
     created = service.create_lobby(7, "Ada", "conn_1")
 
-    state = service.leave_game(created.player.id)
+    state = service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
 
     assert state is None
     assert service.find_game(created.game.id) is None
@@ -242,7 +227,7 @@ def test_leave_game_moves_active_game_to_postgame_when_one_player_remains() -> N
     created.game.current_player_id = created.player.id
     service.game_repo.update_game(created.game)
 
-    state = service.leave_game(created.player.id)
+    state = service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
 
     assert state is not None
     assert state.game.game_phase == GamePhase.POSTGAME
@@ -259,7 +244,7 @@ def test_leave_game_moves_active_game_to_postgame_when_everyone_has_left() -> No
     created.game.current_player_id = created.player.id
     service.game_repo.update_game(created.game)
 
-    state = service.leave_game(created.player.id)
+    state = service.leave_game(created.player.id, PlayerLeaveReason.LEFT)
 
     assert state is not None
     assert state.game.game_phase == GamePhase.POSTGAME
