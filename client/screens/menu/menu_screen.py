@@ -104,7 +104,8 @@ class MenuScreen(BaseScreen):
         if self.dialog is not None:
             # If a dialog is open, intercept all events so the screen behind it stays non-interactive.
             self.dialog.handle_event(event)
-            return
+            if self.dialog is not None:
+                return
 
         if self.back_button is not None:
             self.back_button.handle_event(event)

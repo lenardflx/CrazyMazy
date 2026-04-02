@@ -64,7 +64,7 @@ class WaitingChessGame:
         if self.game_over or not self.white_to_move:
             return
 
-        legal_moves = list(self.position.gen_moves())
+        legal_moves = self._legal_moves(self.position)
         piece = self.piece_at(square)
         if self.selected_square is None:
             if piece.isupper() and any(move.i == sunfish.parse(square) for move in legal_moves):
@@ -95,7 +95,7 @@ class WaitingChessGame:
         """Push a move onto the history and check for game over (no legal replies)."""
         self.history.append(self.position.move(move))
         self.selected_square = None
-        if not any(self.position.gen_moves()):
+        if not self._legal_moves(self.position):
             self.game_over = True
 
     def piece_at(self, square: str) -> str:
@@ -108,4 +108,19 @@ class WaitingChessGame:
         if self.selected_square is None or self.game_over or not self.white_to_move:
             return set()
         source = sunfish.parse(self.selected_square)
-        return {sunfish.render(move.j) for move in self.position.gen_moves() if move.i == source}
+        return {sunfish.render(move.j) for move in self._legal_moves(self.position) if move.i == source}
+
+    def _legal_moves(self, position: sunfish.Position) -> list[sunfish.Move]:
+        """Filter pseudo-legal sunfish moves down to moves that do not leave the mover's king capturable."""
+        return [move for move in position.gen_moves() if self._is_legal_move(position, move)]
+
+    def _is_legal_move(self, position: sunfish.Position, move: sunfish.Move) -> bool:
+        """A move is legal if, after it is made, the opponent cannot immediately capture the mover's king."""
+        return not self._opponent_can_capture_king(position.move(move))
+
+    def _opponent_can_capture_king(self, position: sunfish.Position) -> bool:
+        """Check whether the side to move in the given position has a pseudo-legal king capture available."""
+        for move in position.gen_moves():
+            if position.board[move.j] == "k":
+                return True
+        return False
