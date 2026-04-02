@@ -14,6 +14,6 @@ SFX: dict[str, str] = {
     "your_turn": "assets/sounds/your_turn.wav",
     "timer_beep": "assets/sounds/timer.wav",
     "treasure_collect": "assets/sounds/collect_sound.wav",
-    "treasure_collect_meow": "assets/sounds/meow.mp3",
+    "treasure_collect_meow": "assets/sounds/meow.wav",
     "error": "assets/sounds/error_sound.wav",
 }
