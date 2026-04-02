@@ -14,6 +14,7 @@ from client.config import FPS, SERVER_HOST, SERVER_PORT, WINDOW_HEIGHT, WINDOW_T
 from client.network.client_connection import ClientConnection
 from client.network.state import ClientState
 from client.screens.core.scene_manager import SceneManager, SceneTypes
+from client.textures import UI_IMAGES
 
 
 def main() -> None:
@@ -22,6 +23,10 @@ def main() -> None:
     surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption(WINDOW_TITLE)
     clock = pygame.time.Clock()
+
+    # Load Application Icon
+    icon = UI_IMAGES["TITLE_BACKGROUND"]
+    pygame.display.set_icon(icon)
 
     # Connect to the server
     conn = ClientConnection()

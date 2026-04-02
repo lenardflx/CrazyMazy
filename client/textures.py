@@ -56,6 +56,7 @@ UI_IMAGES = {
     "TITLE_ANIMATION_1": _image_load("assets/images/ui/title-bg-1.png"),
     "TITLE_ANIMATION_2": _image_load("assets/images/ui/title-bg-2.png"),
     "SPACE_BACKGROUND": _image_load("assets/images/ui/backgroundSpace.png"),
+    "ICON": _image_load("assets/images/ui/icon.png"),
 }
 
 TREASURE_IMAGES = {
