@@ -154,8 +154,8 @@ class GameScreen(BaseScreen):
         if blocking_actor_id is None or blocking_actor_id == game_state.current_player_id:
             return self.turn_prompt()
         if blocking_actor_id == game_state.viewer_id:
-            return "Finishing move..."
-        return "Waiting for another player"
+            return language_service.get_message(DisplayMessage.GAME_FINISHING)
+        return language_service.get_message(DisplayMessage.GAME_WAITING)
 
     def handle_event(self, event: pg.event.Event) -> None:
         """Handle a Pygame event. This covers all actions on the screen. It passes the events to the different UI elements."""

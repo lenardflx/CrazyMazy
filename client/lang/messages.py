@@ -91,6 +91,7 @@ class DisplayMessage(StrEnum):
     GAME_PLAYERS = "game.players"
     GAME_CURRENT_TILE = "game.current_tile"
     GAME_WAITING = "game.waiting"
+    GAME_FINISHING = "game.finishing"
     GAME_MOVE_TILE = "game.move_tile"
     GAME_MOVE_PLAYER = "game.move_player"
     GAME_SPECTATING = "game.spectating"
