@@ -1,7 +1,7 @@
 # Audio asset registry
 
 MUSIC_TRACKS: dict[str, str] = {
-    "lobby": "assets/music/lobby_music.wav",
+    "lobby": "assets/music/lobby_menu_music.wav",
     "ingame": "assets/music/ingame_music.wav",
     "win_music": "assets/music/win_music.wav",
     "lose_music": "assets/music/lose_music.wav",
