@@ -25,7 +25,7 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     # Load Application Icon
-    icon = UI_IMAGES["TITLE_BACKGROUND"]
+    icon = UI_IMAGES["ICON"]
     pygame.display.set_icon(icon)
 
     # Connect to the server
