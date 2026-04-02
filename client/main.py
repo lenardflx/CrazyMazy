@@ -18,15 +18,17 @@ from client.textures import UI_IMAGES
 
 
 def main() -> None:
-    # Initialize Pygame and create the main window
+    # Initialize Pygame
     pygame.init()
-    surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-    pygame.display.set_caption(WINDOW_TITLE)
-    clock = pygame.time.Clock()
 
     # Load Application Icon
     icon = UI_IMAGES["ICON"]
     pygame.display.set_icon(icon)
+
+    # Create the main window
+    surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    pygame.display.set_caption(WINDOW_TITLE)
+    clock = pygame.time.Clock()
 
     # Connect to the server
     conn = ClientConnection()
