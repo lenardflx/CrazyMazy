@@ -200,7 +200,6 @@ class CreateLobbyScreen(MenuScreen):
     def _create_lobby(self) -> None:
         """Submit the form and request the server to create a new lobby with the entered name and selected board size."""
         form = self.scene_manager.runtime_state.create_lobby
-        print(f"creating lobby with {form.insert_timeout}, {form.move_timeout}")
         error = self.scene_manager.lobby_service.create_lobby(
             self.name_input.text,
             form.board_size,

@@ -252,8 +252,11 @@ class SceneManager:
             self._last_timer_beep_second = None
             return
 
-        remaining_second = (remaining_ms - 1) // 1000 + 1
-        if 1 <= remaining_second <= 3 and remaining_second != self._last_timer_beep_second:
+        remaining_second = remaining_ms // 1000 + 1
+        if remaining_second == 1 and self._last_timer_beep_second != 1:
+            self.audio.play_sfx("timer_over")
+            self._last_timer_beep_second = 1
+        elif 2 <= remaining_second <= 4 and remaining_second != self._last_timer_beep_second:
             self.audio.play_sfx("timer_beep")
             self._last_timer_beep_second = remaining_second
 
