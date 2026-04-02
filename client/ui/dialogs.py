@@ -12,6 +12,7 @@ from collections.abc import Callable
 import pygame as pg
 
 from client.ui.controls import Button
+from client.lang import DisplayMessage, language_service
 from client.ui.theme import PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, draw_pixel_rect, font, render_text
 
 ChoiceSpec = tuple[str, Callable[[], None], str]
@@ -60,10 +61,31 @@ class BaseDialog:
 
     def draw_text(self, surface: pg.Surface, *, body_y: int | None = None) -> None:
         title = render_text(self.title_font, self.title, TEXT_PRIMARY)
-        body = render_text(self.body_font, self.message, TEXT_MUTED)
-
         surface.blit(title, (self.rect.x + self.TITLE_X, self.rect.y + self.TITLE_Y))
-        surface.blit(body, (self.rect.x + self.BODY_X, self.rect.y + (body_y if body_y is not None else self.BODY_Y)))
+        max_width = self.rect.width - self.BODY_X * 2
+        current_y = self.rect.y + (body_y if body_y is not None else self.BODY_Y)
+        for line in self._wrap_text(self.message, self.body_font, max_width):
+            body = render_text(self.body_font, line, TEXT_MUTED)
+            surface.blit(body, (self.rect.x + self.BODY_X, current_y))
+            current_y += self.body_font.get_linesize()
+
+    @staticmethod
+    def _wrap_text(text: str, text_font: pg.font.Font, max_width: int) -> list[str]:
+        words = text.split()
+        if not words:
+            return [""]
+
+        lines: list[str] = []
+        current_line = words[0]
+        for word in words[1:]:
+            candidate = f"{current_line} {word}"
+            if text_font.size(candidate)[0] <= max_width:
+                current_line = candidate
+                continue
+            lines.append(current_line)
+            current_line = word
+        lines.append(current_line)
+        return lines
 
     def draw_buttons(self, surface: pg.Surface, buttons: list[Button]) -> None:
         for button in buttons:
@@ -84,8 +106,8 @@ class ConfirmDialog(BaseDialog):
         on_confirm: Callable[[], None],
         on_cancel: Callable[[], None],
         *,
-        confirm_label: str = "Confirm",
-        cancel_label: str = "Cancel",
+        confirm_label: str = language_service.get_message(DisplayMessage.GAME_CONFIRM),
+        cancel_label: str = language_service.get_message(DisplayMessage.GAME_CANCEL),
     ) -> None:
         rect = pg.Rect(surface_rect.centerx - 220, surface_rect.centery - 110, self.WIDTH, 220)
         super().__init__(surface_rect, title, message, rect)
@@ -126,7 +148,7 @@ class ChoiceDialog(BaseDialog):
         choices: list[ChoiceSpec],
         on_cancel: Callable[[], None],
         *,
-        cancel_label: str | None = "Cancel",
+        cancel_label: str | None = language_service.get_message(DisplayMessage.GAME_CANCEL),
     ) -> None:
         has_cancel = cancel_label is not None
         height = 190 + len(choices) * 54 - (58 if not has_cancel else 0)

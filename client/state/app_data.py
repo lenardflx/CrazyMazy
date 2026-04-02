@@ -29,6 +29,7 @@ class ClientData:
         self.music_volume: int = 100
         self.effects_volume: int = 100
         self.fullscreen: bool = False
+        self.accessibility_highlight_tiles: bool = False
         self.name: str = ""
         self.language: langs = langs.ENGLISH
 
@@ -82,6 +83,10 @@ class ClientData:
         """Set the default name for games."""
         self.name = val_name
 
+    def set_accessibility_highlight_tiles(self, value: bool) -> None:
+        """Set whether the viewer tile and target tile should be highlighted on the board."""
+        self.accessibility_highlight_tiles = value
+
 
     def set_language(self, val_language: langs) -> None:
         """Set the language preference."""
@@ -108,6 +113,9 @@ class ClientData:
     def get_name(self) -> str:
         return self.name
 
+    def get_accessibility_highlight_tiles(self) -> bool:
+        return self.accessibility_highlight_tiles
+
     def get_language(self) -> langs:
         return self.language
 
@@ -126,6 +134,7 @@ class ClientData:
             "effects_volume": self.get_effects_volume(),
             "fullscreen": self.get_fullscreen(),
             "name": self.get_name(),
+            "accessibility_highlight_tiles": self.get_accessibility_highlight_tiles(),
             "language": self.get_language().value,
             "tutorial": self.get_tutorial(),
             "stats": self.stats.to_dict(),
@@ -157,6 +166,8 @@ class ClientData:
                     self.set_fullscreen(val)
                 case "name":
                     self.set_name(val)
+                case "accessibility_highlight_tiles":
+                    self.set_accessibility_highlight_tiles(val)
                 case "language":
                     self.set_language(val)
                 case "tutorial":

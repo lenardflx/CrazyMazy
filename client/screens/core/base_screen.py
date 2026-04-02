@@ -24,9 +24,11 @@ class BaseScreen(ABC):
         self.error_animation: ErrorPopupAnimation | None = None
 
     def set_error_message(self, error_message: str) -> None:
-        print("error set")
         self.error_message = error_message
         self._current_error += 1
+        scene_manager = getattr(self, "scene_manager", None)
+        if scene_manager is not None:
+            scene_manager.audio.play_sfx("error")
 
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -49,4 +51,3 @@ class BaseScreen(ABC):
                                       (self.surface.get_width() - 175, WINDOW_HEIGHT - 50),
                                       300,
                                       50)
-

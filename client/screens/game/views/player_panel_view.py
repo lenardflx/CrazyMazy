@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pygame as pg
 
+from client.lang import DisplayMessage, language_service
 from client.network.services.lobby_service import LobbyService
 from client.state.runtime_state import TreasureCollectAnimation
 from client.textures import PLAYER_IMAGES, TREASURE_IMAGES
@@ -49,6 +50,7 @@ class PlayerPanelView:
         players = game_state.ordered_players
         if post_game:
             players = [player for player in players if player.placement is not None]
+            players.sort(key=lambda player: (player.placement, player.join_order))
         if not players:
             return
 
@@ -151,7 +153,13 @@ class PlayerPanelView:
             kick_button_height = 29
             rect = pg.Rect(row.right - 100, row.centery - kick_button_height // 2, 80, kick_button_height)
             abs_rect = pg.Rect(row.right + x_offset - 100, y_offset + row.centery - kick_button_height // 2, 80, kick_button_height)
-            button = Button(rect=rect, label="KICK", on_click=lambda: self.lobby_service.kick_player(player.id), variant="primary", abs_rect=abs_rect)
+            button = Button(
+                rect=rect,
+                label=language_service.get_message(DisplayMessage.GAME_KICK),
+                on_click=lambda: self.lobby_service.kick_player(player.id),
+                variant="primary",
+                abs_rect=abs_rect,
+            )
             self.kick_buttons[player.id] = button
         self.kick_buttons[player.id].draw(surface, font(20))
 
@@ -249,11 +257,12 @@ class PlayerPanelView:
         """
         tags: list[str] = []
         if player.id == game_state.viewer_id:
-            tags.append("You")
+            tags.append(language_service.get_message(DisplayMessage.PLAYER_TAG_YOU))
         if player.controller == PlayerControllerKind.NPC:
-            tags.append("NPC" if player.npc_difficulty is None else f"{player.npc_difficulty.title()} NPC")
+            npc_label = language_service.get_message(DisplayMessage.PLAYER_TAG_NPC)
+            tags.append(npc_label if player.npc_difficulty is None else f"{player.npc_difficulty.title()} {npc_label}")
         if player.id == (game_state.leader_player_id or ""):
-            tags.append("Leader")
+            tags.append(language_service.get_message(DisplayMessage.PLAYER_TAG_LEADER))
         return ", ".join(tags) if tags else None
 
 

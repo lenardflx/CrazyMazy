@@ -14,18 +14,17 @@ DISPLAY_NAMES: tuple[str, ...] = (
     "Scheiß AfD",
     "GommeHD",
     "Bayrischer Foodblogger",
-    "Linksgrün versifft",
     "UwU",
     "FotzenFritz",
     "Obamna",
     "Furry Fox",
-    "Männer in die Küche",
     "ROOOOBERT",
-    "161 Alerta",
     "Skibidi Toilet",
     "Amogus",
     "Charlie Kirkie",
-    "FRANZOSEN GRRR"
+    "FRANZOSEN GRRR",
+    "Soja Sören",
+    "Gordon Schniedel"
 )
 
 

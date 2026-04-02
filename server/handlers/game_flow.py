@@ -66,14 +66,17 @@ def handle_join_game(ctx: RequestContext, event: ClientJoinGameEvent) -> list[Ou
 
 @dispatcher.handler(ClientKickPlayerEvent)
 def handle_kick_player(ctx: RequestContext, event: ClientKickPlayerEvent) -> list[OutgoingMessage]:
+    state = game_service.get_connection_state(ctx.connection_id)
+    if state is None:
+        return error_response(ctx, ErrorCode.PLAYER_NOT_FOUND)
     try:
-        player_id = UUID(event.player_id, version=4)
-        state = game_service.leave_game(player_id, PlayerLeaveReason.KICKED)
-        if isinstance(state, ErrorCode):
-            return error_response(ctx, state)
-        return snapshot_response(state)
+        target_player_id = UUID(event.player_id, version=4)
     except ValueError:
         return error_response(ctx, ErrorCode.PLAYER_NOT_FOUND)
+    game_state = game_service.kick_player(state.player.id, target_player_id)
+    if isinstance(game_state, ErrorCode):
+        return error_response(ctx, game_state)
+    return snapshot_response(game_state)
 
 
 @dispatcher.handler(ClientGameStartEvent)

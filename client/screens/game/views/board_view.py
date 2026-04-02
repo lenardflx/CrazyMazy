@@ -12,6 +12,7 @@ from client.ui.theme import ACCENT_DARK, DISABLED, PANEL, PANEL_ALT, PANEL_SHADO
 from shared.types.enums import InsertionSide, PlayerColor, PlayerSkin, TreasureType
 from shared.game.tile import Tile
 from shared.game.snapshot import SnapshotGameState
+from client.lang import DisplayMessage, language_service
 
 # TODO: finish documentation.... this file is annoying
 
@@ -22,6 +23,8 @@ PLAYER_COLOR_VALUES = {
     PlayerColor.GREEN: (80, 156, 93),
     PlayerColor.YELLOW: (209, 173, 59),
 }
+
+VIEWER_ACCESSIBILITY_COLOR = (0, 42, 63)
 
 # The type for handling clicks on the game board
 BoardClick = (
@@ -85,16 +88,28 @@ class BoardView:
         """Calculate the layout of the game board and related UI elements based on the surface size and board size."""
 
         # Panels for the board, the side UI, the spare tile and the player list
-        board_panel = pg.Rect(24, 96, 770, surface_rect.height - 120)
+        board_panel = pg.Rect(24, 24, 770, surface_rect.height - 48)
         side_panel = pg.Rect(820, 96, surface_rect.width - 844, surface_rect.height - 120)
-        spare_panel = pg.Rect(side_panel.x, side_panel.y, side_panel.width, 236)
-        players_panel = pg.Rect(side_panel.x, side_panel.y + 254, side_panel.width, side_panel.height - 254)
+        spare_panel = pg.Rect(side_panel.x, side_panel.y, side_panel.width, 276)
+        players_gap = 18
+        players_panel = pg.Rect(
+            side_panel.x,
+            spare_panel.bottom + players_gap,
+            side_panel.width,
+            side_panel.bottom - (spare_panel.bottom + players_gap),
+        )
 
         # Calculate the size of each cell on the board based on the available space and the board size, and create rects for each cell and the spare tile.
-        cell_size = min((board_panel.width - 64) // board_size, (board_panel.height - 64) // board_size)
-        tile_gap = max(1, min(4, round(cell_size * 0.04)))
-        board_rect = pg.Rect(board_panel.x + 32, board_panel.y + 32, cell_size * board_size, cell_size * board_size)
-        spare_tile_rect = pg.Rect(spare_panel.x + 18, spare_panel.y + 52, 112, 112)
+        board_padding = 24
+        cell_size = min((board_panel.width - board_padding * 2) // board_size, (board_panel.height - board_padding * 2) // board_size)
+        tile_gap = max(3, min(7, round(cell_size * 0.07)))
+        board_rect = pg.Rect(
+            board_panel.x + board_padding,
+            board_panel.y + board_padding,
+            cell_size * board_size,
+            cell_size * board_size,
+        )
+        spare_tile_rect = pg.Rect(spare_panel.x + 18, spare_panel.y + 88, 112, 112)
 
         # Create rects for each cell on the board and for the arrow targets around the board.
         cells = {
@@ -117,9 +132,9 @@ class BoardView:
             arrows=arrows,
             spare_panel=spare_panel,
             spare_tile_rect=spare_tile_rect,
-            rotate_left_button=pg.Rect(spare_tile_rect.x, spare_tile_rect.bottom + 16, 52, 40),
-            rotate_right_button=pg.Rect(spare_tile_rect.right - 52, spare_tile_rect.bottom + 16, 52, 40),
-            treasure_stack_rect=pg.Rect(spare_panel.right - 136, spare_panel.y + 52, 100, 140),
+            rotate_left_button=pg.Rect(spare_tile_rect.x, spare_tile_rect.bottom + 8, 52, 40),
+            rotate_right_button=pg.Rect(spare_tile_rect.right - 52, spare_tile_rect.bottom + 8, 52, 40),
+            treasure_stack_rect=pg.Rect(spare_panel.right - 136, spare_panel.y + 96, 112, 132),
             players_panel=players_panel,
         )
 
@@ -131,9 +146,18 @@ class BoardView:
         spare_tile: Tile,
         shift_animation: BoardShiftAnimation | None,
         move_animation: PlayerMoveAnimation | None,
+        *,
+        accessibility_highlight_tiles: bool = False,
     ) -> None:
         """Draw the game board and related UI elements based on the current game state and animations."""
-        self._draw_board(surface, layout, game_state, shift_animation, move_animation)
+        self._draw_board(
+            surface,
+            layout,
+            game_state,
+            shift_animation,
+            move_animation,
+            accessibility_highlight_tiles=accessibility_highlight_tiles,
+        )
         self._draw_spare_panel(surface, layout, spare_tile, game_state)
 
     def resolve_click(self, pos: tuple[int, int], layout: GameBoardLayout, game_state: SnapshotGameState) -> BoardClick:
@@ -203,6 +227,8 @@ class BoardView:
         game_state: SnapshotGameState,
         shift_animation: BoardShiftAnimation | None,
         move_animation: PlayerMoveAnimation | None,
+        *,
+        accessibility_highlight_tiles: bool,
     ) -> None:
         """Draw the game board, including the tiles, players, and arrows. Takes into account the current animations for shifting and moving."""
         draw_pixel_rect(
@@ -221,6 +247,9 @@ class BoardView:
                 continue
             players_by_position.setdefault(player.position, []).append(player.piece_color)
 
+        viewer_position = game_state.viewer_position if accessibility_highlight_tiles else None
+        viewer_target = game_state.viewer_target_position if accessibility_highlight_tiles else None
+
         # Tiles
         for position, rect in layout.cells.items():
             tile = game_state.tile_at(position)
@@ -233,6 +262,10 @@ class BoardView:
                 tile,
                 highlight=game_state.is_position_reachable(position),
             )
+            if viewer_target == position:
+                self._draw_tile_highlight(surface, animated_rect, VIEWER_ACCESSIBILITY_COLOR)
+            if viewer_position == position:
+                self._draw_tile_highlight(surface, animated_rect, VIEWER_ACCESSIBILITY_COLOR)
             self._draw_tile_overlays(
                 surface,
                 animated_rect,
@@ -271,7 +304,8 @@ class BoardView:
         """Draw the spare tile panel, including the current spare tile and the rotate buttons. The rotate buttons are only enabled when the player can shift."""
         self._sync_control_buttons(layout, game_state)
         draw_pixel_rect(surface, layout.spare_panel, PANEL, border=ACCENT_DARK, shadow=PANEL_SHADOW)
-        surface.blit(self.title_font.render("Current Tile", True, TEXT_PRIMARY), (layout.spare_panel.x + 18, layout.spare_panel.y + 16))
+        title = self.title_font.render(language_service.get_message(DisplayMessage.GAME_CURRENT_TILE), True, TEXT_PRIMARY)
+        surface.blit(title, (layout.spare_tile_rect.x, layout.spare_tile_rect.y - 32))
 
         self._draw_tile(surface, layout.spare_tile_rect, tile)
         self._draw_tile_overlays(
@@ -302,9 +336,9 @@ class BoardView:
 
         self._draw_stack_card(surface, top_rect, face_up=True)
         if game_state.active_treasure_type is not None:
-            treasure_surface = self._treasure_surface(game_state.active_treasure_type, (68, 68))
+            treasure_surface = self._treasure_surface(game_state.active_treasure_type, (82, 82))
             if treasure_surface is not None:
-                surface.blit(treasure_surface, treasure_surface.get_rect(center=(top_rect.centerx, top_rect.centery - 6)))
+                surface.blit(treasure_surface, treasure_surface.get_rect(center=(top_rect.centerx, top_rect.centery - 4)))
             self._draw_stack_count(surface, top_rect, remaining)
             return
 
@@ -333,7 +367,7 @@ class BoardView:
         )
 
     def _draw_stack_count(self, surface: pg.Surface, rect: pg.Rect, remaining: int) -> None:
-        label = self.xs_font.render("Cards left", True, TEXT_MUTED)
+        label = self.xs_font.render(language_service.get_message(DisplayMessage.GAME_CARDS_LEFT), True, TEXT_MUTED)
         value = self.small_font.render(str(remaining), True, TEXT_PRIMARY)
         label_pos = label.get_rect(midleft=(rect.x + 12, rect.bottom - 16))
         value_pos = value.get_rect(midright=(rect.right - 12, rect.bottom - 16))
@@ -345,8 +379,8 @@ class BoardView:
         if viewer is None:
             return
 
-        go_label = self.small_font.render("Go", True, TEXT_MUTED)
-        home_label = self.title_font.render("HOME", True, PLAYER_COLOR_VALUES[viewer.piece_color])
+        go_label = self.small_font.render(language_service.get_message(DisplayMessage.GAME_GO), True, TEXT_MUTED)
+        home_label = self.title_font.render(language_service.get_message(DisplayMessage.GAME_HOME), True, PLAYER_COLOR_VALUES[viewer.piece_color])
         go_rect = go_label.get_rect(center=(rect.centerx, rect.centery - 18))
         home_rect = home_label.get_rect(center=(rect.centerx, rect.centery + 10))
         surface.blit(go_label, go_rect)
@@ -487,6 +521,12 @@ class BoardView:
         draw_pixel_rect(shadow, shadow.get_rect(), shadow_color, border=shadow_color)
         self._tile_shadow_cache[size] = shadow
         return shadow
+
+    def _draw_tile_highlight(self, surface: pg.Surface, rect: pg.Rect, color: tuple[int, int, int]) -> None:
+        highlight_surface = pg.Surface(rect.size, pg.SRCALPHA)
+        highlight_surface.fill((*color, 70))
+        highlight_surface.blit(self._tile_mask_surface(rect.size), (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        surface.blit(highlight_surface, rect.topleft)
 
     def _animated_rect(
         self,

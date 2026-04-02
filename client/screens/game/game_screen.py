@@ -8,14 +8,14 @@ from typing import TYPE_CHECKING
 import pygame as pg
 
 from client.screens.core.base_screen import BaseScreen
-from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout
+from client.screens.game.views.board_view import BoardClick, BoardView, GameBoardLayout, PLAYER_COLOR_VALUES
 from client.screens.game.views.player_panel_view import PlayerPanelView
 from client.screens.menu.settings_screen import SettingsForm
 from client.state.runtime_state import GameRuntimeState, TreasureCollectAnimation
 from client.ui.controls import Button
 from client.ui.dialogs import ConfirmDialog
 from client.ui.helper import format_ms_to_clock
-from client.ui.theme import BACKGROUND, ERROR, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, render_text
+from client.ui.theme import BACKGROUND, ERROR, TEXT_PRIMARY, blend_color, font, draw_pixel_rect, PANEL, ACCENT_DARK, PANEL_SHADOW, PANEL_ALT, MOVE_HIGHLIGHT, render_text
 from shared.types.enums import GamePhase, TreasureType, TurnPhase
 from shared.game.snapshot import SnapshotGameState
 from client.lang import DisplayMessage, language_service
@@ -37,13 +37,14 @@ class GameScreen(BaseScreen):
         self.player_panel_view = PlayerPanelView(None, scene_manager.lobby_service)
         self.title_font = font(28)
         self.small_font = font(15)
+        self.turn_font = font(18)
         self.button_font = font(18)
         self.dialog: ConfirmDialog | None = None
         self.settings_overlay_open = False
         self._layout_cache: tuple[tuple[int, int], int, GameBoardLayout] | None = None
-        self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), "Give Up", self._confirm_give_up)
-        self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), "Options", self._open_settings)
-        self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), "Menu", self._confirm_quit)
+        self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), language_service.get_message(DisplayMessage.GAME_GIVE_UP), self._confirm_give_up)
+        self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS), self._open_settings)
+        self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU), self._confirm_quit)
         self.settings_overlay_rect = pg.Rect(surface.get_width() // 2 - 310, surface.get_height() // 2 - 230, 620, 460)
         self.settings_form = SettingsForm(
             surface,
@@ -152,10 +153,10 @@ class GameScreen(BaseScreen):
             return ""
         blocking_actor_id = self._blocking_actor_id()
         if blocking_actor_id is None or blocking_actor_id == game_state.current_player_id:
-            return game_state.turn_prompt
+            return self.turn_prompt()
         if blocking_actor_id == game_state.viewer_id:
-            return "Finishing move..."
-        return "Waiting for another player"
+            return language_service.get_message(DisplayMessage.GAME_FINISHING)
+        return language_service.get_message(DisplayMessage.GAME_WAITING)
 
     def handle_event(self, event: pg.event.Event) -> None:
         """Handle a Pygame event. This covers all actions on the screen. It passes the events to the different UI elements."""
@@ -282,6 +283,7 @@ class GameScreen(BaseScreen):
             spare_tile,
             runtime.shift_animation,
             runtime.move_animation,
+            accessibility_highlight_tiles=self.scene_manager.client_settings.get_accessibility_highlight_tiles(),
         )
         self.player_panel_view.draw(
             self.surface,
@@ -313,32 +315,43 @@ class GameScreen(BaseScreen):
             self.dialog.draw(self.surface)
 
     def _draw_turn_indicator(self, layout: GameBoardLayout) -> None:
-        board_panel_rect = layout.board_rect.inflate(24, 24)
-        rect = pg.Rect(board_panel_rect.x, 19, board_panel_rect.width, 65)
-        draw_pixel_rect(surface=self.surface, rect=rect, fill=PANEL, shadow=PANEL_SHADOW, border=ACCENT_DARK)
-
-        # make sure we don't exceed the maximum length reserved for the
-        # turn status text. This does not happen normally, but we cannot
-        # be sure due to variable language.
+        spare_panel = layout.spare_panel
         prompt = self._displayed_turn_prompt()
-        turn_text = prompt[:30]
-        if len(prompt) >= 30:
-            turn_text += "..."
+        header_rect = pg.Rect(spare_panel.x + 18, spare_panel.y + 12, spare_panel.width - 36, 32)
 
-        status = self.title_font.render(turn_text, True, TEXT_PRIMARY)
-        status_rect = status.get_rect(midleft=(rect.left + 14, rect.centery))
-        self.surface.blit(status, status_rect)
+        game_state = self._game_snapshot
+        highlight_color = blend_color(TEXT_PRIMARY, PANEL, 0.2)
+        if game_state is not None:
+            current_player = next(
+                (player for player in game_state.players if player.id == self._displayed_current_player_id()),
+                None,
+            )
+            if current_player is not None:
+                highlight_color = PLAYER_COLOR_VALUES[current_player.piece_color]
+            elif game_state.viewer_turn:
+                highlight_color = MOVE_HIGHLIGHT
+
+        timer_rect = pg.Rect(header_rect.right - 139, header_rect.y - 3, 130, 38)
+        text_rect = pg.Rect(header_rect.x, header_rect.y - 1, timer_rect.left - header_rect.x - 18, 28)
+        max_text_width = text_rect.width
+        turn_lines = self._wrap_turn_text(prompt, max_text_width)
+        line_height = self.turn_font.get_height()
+        text_y = text_rect.y + max(0, (text_rect.height - line_height * len(turn_lines)) // 2)
+        text_color = blend_color(TEXT_PRIMARY, highlight_color, 0.22)
+        for line in turn_lines:
+            status = self.turn_font.render(line, True, text_color)
+            self.surface.blit(status, (text_rect.left, text_y))
+            text_y += line_height
 
         turn_end = self._game_snapshot.turn.turn_end_timestamp
         if turn_end is None:
             return
 
-        timer_rect = pg.Rect(rect.right - 145, rect.top + 8, 130, 50)
         draw_pixel_rect(surface=self.surface, rect=timer_rect, fill=PANEL_ALT, border=PANEL_SHADOW)
 
-        now = time.time_ns() // 1_000_000
-
-        remaining_ms = turn_end - now
+        remaining_ms = self._game_snapshot.turn.remaining_ms()
+        if remaining_ms is None:
+            remaining_ms = 0
         blocking_actor_id = self._blocking_actor_id()
         if blocking_actor_id is not None and blocking_actor_id != self._game_snapshot.current_player_id:
             remaining_ms -= self._remaining_blocking_animation_ms()
@@ -351,6 +364,23 @@ class GameScreen(BaseScreen):
         timer_color = ERROR if 0 < remaining_ms <= 4_000 else TEXT_PRIMARY
         timer_text = self.title_font.render(timer_content, True, timer_color)
         self.surface.blit(timer_text, timer_text.get_rect(center=timer_rect.center))
+
+    def _wrap_turn_text(self, text: str, max_width: int) -> list[str]:
+        words = text.split()
+        if not words:
+            return [""]
+
+        lines = [words[0]]
+        for word in words[1:]:
+            candidate = f"{lines[-1]} {word}"
+            if self.turn_font.size(candidate)[0] <= max_width or len(lines) >= 2:
+                lines[-1] = candidate
+                continue
+            lines.append(word)
+            if len(lines) == 2:
+                continue
+
+        return lines[:2]
 
 
     def _draw_overlay(self, layout: GameBoardLayout) -> None:
@@ -430,3 +460,13 @@ class GameScreen(BaseScreen):
         self.settings_apply_button.label = language_service.get_message(DisplayMessage.SETTINGS_APPLY)
         self.title = language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS)
 
+    def turn_prompt(self) -> str:
+        if self._game_snapshot == None:
+            return "" # fallback
+        if self._game_snapshot.viewer_is_spectator:
+            return language_service.get_message(DisplayMessage.GAME_SPECTATING)
+        if self._game_snapshot.can_shift:
+            return language_service.get_message(DisplayMessage.GAME_MOVE_TILE)
+        if self._game_snapshot.can_move:
+            return language_service.get_message(DisplayMessage.GAME_MOVE_PLAYER)
+        return language_service.get_message(DisplayMessage.GAME_WAITING)

@@ -2,6 +2,7 @@
  
 from __future__ import annotations
 
+import random
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,7 @@ from client.ui.dialogs import ChoiceDialog, ConfirmDialog
 from client.ui.theme import PANEL, PANEL_ALT, PANEL_SHADOW, TEXT_MUTED, TEXT_PRIMARY, draw_pixel_rect, font, render_text, title_font
 from client.screens.core.base_screen import BaseScreen
 from client.screens.core.scene_types import SceneTypes
+from client.lang import DisplayMessage, language_service
 
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
@@ -50,6 +52,10 @@ class MenuScreen(BaseScreen):
         self.background_image: pg.Surface | None = UI_IMAGES["TITLE_BACKGROUND"]
         self.animation_state: int = 0
 
+        # used for the blinking skeleton to make the blinking
+        # behavior look natural
+        self.blinking: int = 0
+
         self.title_font = font(34)
         self.display_title_font = title_font(72)  # ka1 — main menu title only
         self.section_font = font(24)
@@ -66,7 +72,7 @@ class MenuScreen(BaseScreen):
         if not self.is_main_menu:
             self.back_button = Button(
                 pg.Rect(42, 34, 120, 46),
-                "Back",
+                language_service.get_message(DisplayMessage.GAME_BACK),
                 lambda: self.scene_manager.go_to(
                     self.scene_manager.settings_return_scene
                     if self.scene_manager.current_scene == SceneTypes.SETTINGS
@@ -137,15 +143,25 @@ class MenuScreen(BaseScreen):
         ms = pg.time.get_ticks()
         frame_duration = 200
         frame_index = (ms // frame_duration) % MENU_BACKGROUND_ANIMATION_FRAMES
-        current_image = UI_IMAGES["TITLE_ANIMATION_" + str(frame_index)]
-        scaled = pg.transform.scale(current_image, self.surface.get_size())
-        self.surface.blit(scaled, (0, 0))
+        current_fire = UI_IMAGES["FIRE_" + str(frame_index)]
+        current_smoke = UI_IMAGES["SMOKE_" + str(frame_index)]
+        scaled_fire = pg.transform.scale(current_fire, self.surface.get_size())
+        scaled_smoke = pg.transform.scale(current_smoke, self.surface.get_size())
+        if self.blinking > 0:
+            self.blinking -= 1
+        elif random.randint(0, 1000) < 15:
+            self.blinking = 50
+        static_texture = "TITLE_BACKGROUND_BLINK" if self.blinking > 0 else "TITLE_BACKGROUND_STATIC"
+        scaled_static = pg.transform.scale(UI_IMAGES[static_texture], self.surface.get_size())
+        self.surface.blit(scaled_static, (0, 0))
+        self.surface.blit(scaled_smoke, (0, 0))
+        self.surface.blit(scaled_fire, (0, 0))
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         for button in self.buttons:
             button.handle_event(event)
 
-    def show_confirm(self, title: str, message: str, on_confirm: Callable[[], None], *, confirm_label: str = "Confirm", cancel_label: str = "Cancel") -> None:
+    def show_confirm(self, title: str, message: str, on_confirm: Callable[[], None], *, confirm_label: str = language_service.get_message(DisplayMessage.GAME_CONFIRM), cancel_label: str = language_service.get_message(DisplayMessage.GAME_CANCEL)) -> None:
         """Open a ConfirmDialog. The dialog auto-closes on either button press before calling the callback."""
         def handle_confirm() -> None:
             self.dialog = None
@@ -170,7 +186,7 @@ class MenuScreen(BaseScreen):
         message: str,
         choices: list[tuple[str, Callable[[], None], str]],
         *,
-        cancel_label: str | None = "Cancel",
+        cancel_label: str | None = language_service.get_message(DisplayMessage.GAME_CANCEL),
     ) -> None:
         """Open a ChoiceDialog. Each choice auto-closes the dialog before firing its callback."""
         wrapped_choices: list[tuple[str, Callable[[], None], str]] = []

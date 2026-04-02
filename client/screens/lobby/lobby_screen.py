@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pygame as pg
 
+from client.easter_egg import WaitingChessDialog
 from client.screens.game.views.player_panel_view import PlayerPanelView
 from shared.types.enums import GamePhase, NpcDifficulty
 from client.ui.controls import Button
@@ -16,6 +17,7 @@ from client.lang import DisplayMessage, language_service
 if TYPE_CHECKING:
     from client.screens.core.scene_manager import SceneManager
 
+EASTER_EGG_WAITING_DELAY = 20.0
 
 class LobbyScreen(MenuScreen):
     """
@@ -24,8 +26,10 @@ class LobbyScreen(MenuScreen):
     """
 
     def __init__(self, surface: pg.Surface, scene_manager: SceneManager) -> None:
-        super().__init__(surface, scene_manager, title="Lobby")
+        super().__init__(surface, scene_manager, title=language_service.get_message(DisplayMessage.LOBBY_WORD))
         self.player_panel_view = PlayerPanelView(self.content_rect, scene_manager.lobby_service)
+        self._waiting_elapsed = 0.0
+        self._waiting_prompt_shown = False
         button_y = self.content_rect.bottom - 54
         self.start_button = Button(
             pg.Rect(self.content_rect.x, button_y, 160, 44),
@@ -60,11 +64,43 @@ class LobbyScreen(MenuScreen):
 
     def _confirm_leave(self) -> None:
         """Open a confirmation dialog before leaving the lobby."""
-        self.show_confirm("Leave Lobby?", "Return to the main menu?", self._leave_lobby, confirm_label="Leave")
+        self.show_confirm(language_service.get_message(DisplayMessage.GAME_LEAVE_LOBBY), language_service.get_message(DisplayMessage.TUTORIAL_TO_MENU), self._leave_lobby, confirm_label=language_service.get_message(DisplayMessage.GAME_LEAVE))
+
+    def _open_waiting_game(self) -> None:
+        self.dialog = WaitingChessDialog(self.surface.get_rect(), self._close_waiting_game)
+
+    def _close_waiting_game(self) -> None:
+        self.dialog = None
 
     def _leave_lobby(self) -> None:
         """Confirm action to leave the lobby and return to the main menu."""
         self.scene_manager.game_service.leave_game(in_game=False)
+
+    def update_content(self, dt: float) -> None:
+        game_state = self.scene_manager.game_state
+        if game_state is None or game_state.phase != GamePhase.PREGAME:
+            self._waiting_elapsed = 0.0
+            self._waiting_prompt_shown = False
+            if isinstance(self.dialog, WaitingChessDialog):
+                self.dialog = None
+            return
+
+        self._waiting_elapsed += dt
+        if (
+            self._waiting_elapsed >= EASTER_EGG_WAITING_DELAY
+            and not self._waiting_prompt_shown
+            and self.dialog is None
+        ):
+            self._waiting_prompt_shown = True
+            self.show_confirm(
+                language_service.get_message(DisplayMessage.EASTER_EGG_WAITING_TITLE),
+                language_service.get_message(DisplayMessage.EASTER_EGG_WAITING_BODY),
+                self._open_waiting_game,
+                confirm_label=language_service.get_message(DisplayMessage.EASTER_EGG_WAITING_CONFIRM),
+            )
+
+        if isinstance(self.dialog, WaitingChessDialog):
+            self.dialog.update(dt)
 
     def handle_content_event(self, event: pg.event.Event) -> None:
         """Handle events and update button enabled-state based on the current game state."""
@@ -88,12 +124,20 @@ class LobbyScreen(MenuScreen):
         game_state = self.scene_manager.game_state
         if game_state is None or game_state.phase != GamePhase.PREGAME:
             return
-        code = self.section_font.render(f"Code: {game_state.code}", True, TEXT_PRIMARY)
+        code = self.section_font.render(
+            f"{language_service.get_message(DisplayMessage.GAME_CODE)}: {game_state.code}",
+            True,
+            TEXT_PRIMARY,
+        )
         self.surface.blit(code, (self.content_rect.x, self.content_rect.y + 62))
-        size = self.body_font.render(language_service.get_message(DisplayMessage.GAME_NPC_EASY) + str(game_state.board_size), True, TEXT_MUTED)
+        size = self.body_font.render(
+            language_service.get_message(DisplayMessage.GAME_BOARD_SIZE) + str(game_state.board_size),
+            True,
+            TEXT_MUTED,
+        )
         self.surface.blit(size, (self.content_rect.x, self.content_rect.y + 98))
         visibility = self.body_font.render(
-            f"{language_service.get_message(DisplayMessage.JOIN_PUBLIC) if game_state.is_public else language_service.get_message(DisplayMessage.LOBBY_PRIVATE)} Lobby, {game_state.active_player_count}/{game_state.player_limit} {language_service.get_message(DisplayMessage.GAME_PLAYERS)}",
+            f"{language_service.get_message(DisplayMessage.LOBBY_PUBLIC) if game_state.is_public else language_service.get_message(DisplayMessage.LOBBY_PRIVATE)} {language_service.get_message(DisplayMessage.LOBBY_WORD)}, {game_state.active_player_count}/{game_state.player_limit} {language_service.get_message(DisplayMessage.GAME_PLAYERS)}",
             True,
             TEXT_MUTED,
         )

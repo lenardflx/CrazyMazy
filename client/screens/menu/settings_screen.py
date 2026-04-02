@@ -79,7 +79,7 @@ class SettingsForm:
 
         lower_row_width = top_row_width
         lower_left = center_x - lower_row_width // 2
-        language_width = 252
+        language_width = 224
         lower_gap = 20
         fullscreen_width = lower_row_width - language_width - lower_gap
         language_center_x = lower_left + language_width // 2
@@ -90,14 +90,19 @@ class SettingsForm:
             language_service.get_message(DisplayMessage.SETTINGS_FULLSCREEN),
             False,
         )
+        self.highlight_tiles_checkbox = Checkbox(
+            pg.Rect(display_center_x - 90, settings_y + 84, 220, 32),
+            language_service.get_message(DisplayMessage.SETTINGS_HIGHLIGHT_TILE_TARGET),
+            False,
+        )
         self.english_button = Button(
-            pg.Rect(language_center_x - 126, settings_y + 44, 120, 42),
+            pg.Rect(language_center_x - 112, settings_y + 44, 106, 42),
             language_service.get_message(DisplayMessage.SETTINGS_ENGLISH),
             lambda: self._set_language(langs.ENGLISH),
             icon="flag_en",
         )
         self.german_button = Button(
-            pg.Rect(language_center_x + 6, settings_y + 44, 120, 42),
+            pg.Rect(language_center_x + 6, settings_y + 44, 106, 42),
             language_service.get_message(DisplayMessage.SETTINGS_GERMAN),
             lambda: self._set_language(langs.GERMAN),
             icon="flag_de",
@@ -111,6 +116,7 @@ class SettingsForm:
         self.music_slider.value = settings.get_music_volume()
         self.effects_slider.value = settings.get_effects_volume()
         self.fullscreen_checkbox.value = settings.get_fullscreen()
+        self.highlight_tiles_checkbox.value = settings.get_accessibility_highlight_tiles()
         self.language = settings.get_language()
         self._stored_master_volume = self.master_slider.value or 100
         self._sync_mute_button()
@@ -145,6 +151,7 @@ class SettingsForm:
         settings.set_effects_volume(self.effects_slider.value)
         settings.set_language(self.language)
         settings.set_fullscreen(self.fullscreen_checkbox.value)
+        settings.set_accessibility_highlight_tiles(self.highlight_tiles_checkbox.value)
         self.scene_manager.audio.apply_settings(
             settings.master_volume,
             settings.music_volume,
@@ -162,6 +169,7 @@ class SettingsForm:
         self.music_slider.handle_event(event)
         self.effects_slider.handle_event(event)
         self.fullscreen_checkbox.handle_event(event)
+        self.highlight_tiles_checkbox.handle_event(event)
         self.mute_button.handle_event(event)
         self.english_button.handle_event(event)
         self.german_button.handle_event(event)
@@ -174,6 +182,7 @@ class SettingsForm:
         display_label = render_text(self.body_font, language_service.get_message(DisplayMessage.SETTINGS_DISPLAY), TEXT_PRIMARY)
         self.surface.blit(display_label, display_label.get_rect(center=self._display_label_center))
         self.fullscreen_checkbox.draw(self.surface, self.body_font)
+        self.highlight_tiles_checkbox.draw(self.surface, self.body_font)
         language_label = render_text(self.body_font, language_service.get_message(DisplayMessage.SETTINGS_LANGUAGE), TEXT_PRIMARY)
         self.surface.blit(
             language_label,
@@ -184,6 +193,7 @@ class SettingsForm:
 
     def update_labels(self) -> None:
         self.fullscreen_checkbox.label = language_service.get_message(DisplayMessage.SETTINGS_FULLSCREEN)
+        self.highlight_tiles_checkbox.label = language_service.get_message(DisplayMessage.SETTINGS_HIGHLIGHT_TILE_TARGET)
         self.master_slider.label = language_service.get_message(DisplayMessage.SETTINGS_MASTER_VOLUME)
         self.music_slider.label = language_service.get_message(DisplayMessage.SETTINGS_MUSIC_VOLUME)
         self.effects_slider.label = language_service.get_message(DisplayMessage.SETTINGS_EFFECTS_VOLUME)
@@ -238,3 +248,5 @@ class SettingsScreen(MenuScreen):
     def update_labels(self):
         self.apply_button.label = language_service.get_message(DisplayMessage.SETTINGS_APPLY)
         self.title = language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS)
+        if self.back_button is not None:
+            self.back_button.label = language_service.get_message(DisplayMessage.GAME_BACK)
