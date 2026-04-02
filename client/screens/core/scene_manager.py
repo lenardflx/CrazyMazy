@@ -219,7 +219,10 @@ class SceneManager:
             self._last_timer_beep_second = None
             return
 
-        remaining_ms = game_state.turn.turn_end_timestamp - (time.time_ns() // 1_000_000)
+        remaining_ms = game_state.turn.remaining_ms()
+        if remaining_ms is None:
+            self._last_timer_beep_second = None
+            return
         if remaining_ms <= 0:
             self._last_timer_beep_second = None
             return

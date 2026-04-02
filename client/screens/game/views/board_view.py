@@ -88,16 +88,28 @@ class BoardView:
         """Calculate the layout of the game board and related UI elements based on the surface size and board size."""
 
         # Panels for the board, the side UI, the spare tile and the player list
-        board_panel = pg.Rect(24, 96, 770, surface_rect.height - 120)
+        board_panel = pg.Rect(24, 24, 770, surface_rect.height - 48)
         side_panel = pg.Rect(820, 96, surface_rect.width - 844, surface_rect.height - 120)
-        spare_panel = pg.Rect(side_panel.x, side_panel.y, side_panel.width, 236)
-        players_panel = pg.Rect(side_panel.x, side_panel.y + 254, side_panel.width, side_panel.height - 254)
+        spare_panel = pg.Rect(side_panel.x, side_panel.y, side_panel.width, 276)
+        players_gap = 18
+        players_panel = pg.Rect(
+            side_panel.x,
+            spare_panel.bottom + players_gap,
+            side_panel.width,
+            side_panel.bottom - (spare_panel.bottom + players_gap),
+        )
 
         # Calculate the size of each cell on the board based on the available space and the board size, and create rects for each cell and the spare tile.
-        cell_size = min((board_panel.width - 64) // board_size, (board_panel.height - 64) // board_size)
-        tile_gap = max(1, min(4, round(cell_size * 0.04)))
-        board_rect = pg.Rect(board_panel.x + 32, board_panel.y + 32, cell_size * board_size, cell_size * board_size)
-        spare_tile_rect = pg.Rect(spare_panel.x + 18, spare_panel.y + 52, 112, 112)
+        board_padding = 24
+        cell_size = min((board_panel.width - board_padding * 2) // board_size, (board_panel.height - board_padding * 2) // board_size)
+        tile_gap = max(3, min(7, round(cell_size * 0.07)))
+        board_rect = pg.Rect(
+            board_panel.x + board_padding,
+            board_panel.y + board_padding,
+            cell_size * board_size,
+            cell_size * board_size,
+        )
+        spare_tile_rect = pg.Rect(spare_panel.x + 18, spare_panel.y + 88, 112, 112)
 
         # Create rects for each cell on the board and for the arrow targets around the board.
         cells = {
@@ -120,9 +132,9 @@ class BoardView:
             arrows=arrows,
             spare_panel=spare_panel,
             spare_tile_rect=spare_tile_rect,
-            rotate_left_button=pg.Rect(spare_tile_rect.x, spare_tile_rect.bottom + 16, 52, 40),
-            rotate_right_button=pg.Rect(spare_tile_rect.right - 52, spare_tile_rect.bottom + 16, 52, 40),
-            treasure_stack_rect=pg.Rect(spare_panel.right - 136, spare_panel.y + 52, 100, 140),
+            rotate_left_button=pg.Rect(spare_tile_rect.x, spare_tile_rect.bottom + 8, 52, 40),
+            rotate_right_button=pg.Rect(spare_tile_rect.right - 52, spare_tile_rect.bottom + 8, 52, 40),
+            treasure_stack_rect=pg.Rect(spare_panel.right - 136, spare_panel.y + 96, 112, 132),
             players_panel=players_panel,
         )
 
@@ -292,7 +304,8 @@ class BoardView:
         """Draw the spare tile panel, including the current spare tile and the rotate buttons. The rotate buttons are only enabled when the player can shift."""
         self._sync_control_buttons(layout, game_state)
         draw_pixel_rect(surface, layout.spare_panel, PANEL, border=ACCENT_DARK, shadow=PANEL_SHADOW)
-        surface.blit(self.title_font.render(language_service.get_message(DisplayMessage.GAME_CURRENT_TILE), True, TEXT_PRIMARY), (layout.spare_panel.x + 18, layout.spare_panel.y + 16))
+        title = self.title_font.render(language_service.get_message(DisplayMessage.GAME_CURRENT_TILE), True, TEXT_PRIMARY)
+        surface.blit(title, (layout.spare_tile_rect.x, layout.spare_tile_rect.y - 32))
 
         self._draw_tile(surface, layout.spare_tile_rect, tile)
         self._draw_tile_overlays(
@@ -323,9 +336,9 @@ class BoardView:
 
         self._draw_stack_card(surface, top_rect, face_up=True)
         if game_state.active_treasure_type is not None:
-            treasure_surface = self._treasure_surface(game_state.active_treasure_type, (68, 68))
+            treasure_surface = self._treasure_surface(game_state.active_treasure_type, (82, 82))
             if treasure_surface is not None:
-                surface.blit(treasure_surface, treasure_surface.get_rect(center=(top_rect.centerx, top_rect.centery - 6)))
+                surface.blit(treasure_surface, treasure_surface.get_rect(center=(top_rect.centerx, top_rect.centery - 4)))
             self._draw_stack_count(surface, top_rect, remaining)
             return
 

@@ -64,6 +64,7 @@ class TurnPayload(TypedDict):
 
     current_player_id: str | None
     turn_end_timestamp: int | None
+    server_now_timestamp: int | None
     turn_phase: str | None
     blocked_insertion_side: str | None
     blocked_insertion_index: int | None
