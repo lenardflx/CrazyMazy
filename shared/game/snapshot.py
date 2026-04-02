@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import time
 
 from shared.game.board import Board, Position
@@ -161,10 +161,17 @@ class SnapshotGameState:
     viewer: SnapshotViewerState | None = None
     last_shift: SnapshotLastShift | None = None
     last_move: SnapshotLastMove | None = None
+    _ordered_players_cache: list[SnapshotPlayerState] | None = field(default=None, init=False, repr=False)
+    _viewer_player_cached: bool = field(default=False, init=False, repr=False)
+    _viewer_player_cache: SnapshotPlayerState | None = field(default=None, init=False, repr=False)
+    _viewer_target_position_cached: bool = field(default=False, init=False, repr=False)
+    _viewer_target_position_cache: Position | None = field(default=None, init=False, repr=False)
 
     @property
     def ordered_players(self) -> list[SnapshotPlayerState]:
-        return sorted(self.players, key=lambda player: player.join_order)
+        if self._ordered_players_cache is None:
+            self._ordered_players_cache = sorted(self.players, key=lambda player: player.join_order)
+        return self._ordered_players_cache
 
     @property
     def viewer_id(self) -> str:
@@ -172,7 +179,10 @@ class SnapshotGameState:
 
     @property
     def viewer_player(self) -> SnapshotPlayerState | None:
-        return next((player for player in self.players if player.id == self.viewer_id), None)
+        if not self._viewer_player_cached:
+            self._viewer_player_cache = next((player for player in self.players if player.id == self.viewer_id), None)
+            self._viewer_player_cached = True
+        return self._viewer_player_cache
 
     @property
     def viewer_is_leader(self) -> bool:
@@ -248,17 +258,25 @@ class SnapshotGameState:
 
     @property
     def viewer_target_position(self) -> Position | None:
+        if self._viewer_target_position_cached:
+            return self._viewer_target_position_cache
+
         viewer = self.viewer_player
         if viewer is None:
-            return None
-        if self.active_treasure_type is None:
-            return start_position_for_color_snapshot(self.board_size, viewer.piece_color)
-        if self.board is None:
-            return None
-        return next(
-            (position for position, tile in self.board.tiles.items() if tile.treasure == self.active_treasure_type),
-            None,
-        )
+            target = None
+        elif self.active_treasure_type is None:
+            target = start_position_for_color_snapshot(self.board_size, viewer.piece_color)
+        elif self.board is None:
+            target = None
+        else:
+            target = next(
+                (position for position, tile in self.board.tiles.items() if tile.treasure == self.active_treasure_type),
+                None,
+            )
+
+        self._viewer_target_position_cache = target
+        self._viewer_target_position_cached = True
+        return target
 
     @classmethod
     def from_snapshot(cls, snapshot: GameSnapshotPayload) -> "SnapshotGameState":

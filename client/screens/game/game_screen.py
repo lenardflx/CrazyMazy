@@ -42,6 +42,7 @@ class GameScreen(BaseScreen):
         self.dialog: ConfirmDialog | None = None
         self.settings_overlay_open = False
         self._layout_cache: tuple[tuple[int, int], int, GameBoardLayout] | None = None
+        self._background_cache: tuple[tuple[int, int], pg.Surface] | None = None
         self.give_up_button = Button(pg.Rect(surface.get_width() - 400, 24, 112, 40), language_service.get_message(DisplayMessage.GAME_GIVE_UP), self._confirm_give_up)
         self.settings_button = Button(pg.Rect(surface.get_width() - 272, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU_OPTIONS), self._open_settings)
         self.menu_button = Button(pg.Rect(surface.get_width() - 144, 24, 112, 40), language_service.get_message(DisplayMessage.MAIN_MENU), self._confirm_quit)
@@ -235,8 +236,7 @@ class GameScreen(BaseScreen):
         """Draw the game screen."""
 
         # Fill the background
-        scaled_static = pg.transform.scale(UI_IMAGES["GAME_BACKGROUND"], self.surface.get_size())
-        self.surface.blit(scaled_static, (0, 0))
+        self.surface.blit(self._background_surface(), (0, 0))
 
         # Resolve the game layout based on the current game state
         game_state = self._game_snapshot
@@ -288,6 +288,14 @@ class GameScreen(BaseScreen):
         # Render the dialog on top, if one is active
         if self.dialog is not None:
             self.dialog.draw(self.surface)
+
+    def _background_surface(self) -> pg.Surface:
+        size = self.surface.get_size()
+        if self._background_cache is not None and self._background_cache[0] == size:
+            return self._background_cache[1]
+        scaled = pg.transform.scale(UI_IMAGES["GAME_BACKGROUND"], size)
+        self._background_cache = (size, scaled)
+        return scaled
 
     def _draw_turn_indicator(self, layout: GameBoardLayout) -> None:
         spare_panel = layout.spare_panel

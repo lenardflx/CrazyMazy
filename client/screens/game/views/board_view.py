@@ -81,6 +81,7 @@ class BoardView:
         self._tile_surface_cache: dict[tuple[str, int, tuple[int, int], bool], pg.Surface] = {}
         self._tile_mask_cache: dict[tuple[int, int], pg.Surface] = {}
         self._tile_shadow_cache: dict[tuple[int, int], pg.Surface] = {}
+        self._tile_highlight_cache: dict[tuple[tuple[int, int], tuple[int, int, int]], pg.Surface] = {}
         self._player_pin_cache: dict[tuple[PlayerColor, tuple[int, int]], pg.Surface] = {}
         self._treasure_surface_cache: dict[tuple[str, tuple[int, int]], pg.Surface] = {}
 
@@ -523,10 +524,19 @@ class BoardView:
         return shadow
 
     def _draw_tile_highlight(self, surface: pg.Surface, rect: pg.Rect, color: tuple[int, int, int]) -> None:
-        highlight_surface = pg.Surface(rect.size, pg.SRCALPHA)
+        surface.blit(self._tile_highlight_surface(rect.size, color), rect.topleft)
+
+    def _tile_highlight_surface(self, size: tuple[int, int], color: tuple[int, int, int]) -> pg.Surface:
+        key = (size, color)
+        cached = self._tile_highlight_cache.get(key)
+        if cached is not None:
+            return cached
+
+        highlight_surface = pg.Surface(size, pg.SRCALPHA)
         highlight_surface.fill((*color, 70))
-        highlight_surface.blit(self._tile_mask_surface(rect.size), (0, 0), special_flags=pg.BLEND_RGBA_MULT)
-        surface.blit(highlight_surface, rect.topleft)
+        highlight_surface.blit(self._tile_mask_surface(size), (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        self._tile_highlight_cache[key] = highlight_surface
+        return highlight_surface
 
     def _animated_rect(
         self,
