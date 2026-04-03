@@ -1,75 +1,92 @@
-# CrazyMazy
-> Software Engineering, Group 1, Team Spirit
+<p align="center">
+  <img src="./assets/branding/readme_main_menu.png" alt="Crazy Mazy main menu" width="720">
+  <h3>Crazy Mazy</h3>
+</p>
 
-The board game "Das Verrückte Labyrinth" as a multiplayer game built with Python and Pygame.
+Crazy Mazy is a multiplayer Python implemenation of the board game "Das verrückte Labyrinth".
+It was built as a 2-week project during a Software Engineering Praktikum at University.
 
-## Requirements
+## Installation
 
-- Python 3.11+
+0. Prerequisites: Python 3.11+ and pip.
 
-Setup a virtual Environment:
-```shell
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+1. Create and activate a virtual environment.
 
-Install dependencies:
-```shell
-pip install -r requirements.txt
-```
+  ```bash
+  python -m venv .venv
+  source .venv/bin/activate
+  ```
 
-## Setup
+  Windows:
 
-Copy the `.env.example` file to `.env` and adjust as needed
+  ```powershell
+  .venv\Scripts\activate
+  ```
 
-## Run & Debug
+2. Install the dependencies.
 
-Start server and a single client together:
-```shell
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+3. Create your local environment file.
+
+  ```bash
+  cp .env.example .env
+  ```
+
+  The example file is set to use localhost and mostly doesn't require changes.
+
+  For testing NPC vs NPC without a player needing to be an active participant, set `ALLOW_NPC_PLAY` to `true` in the `.env` file.
+
+## Running The Project
+
+Start server and one client:
+
+```bash
 make dev
 ```
 
-Start server with two clients simultaneously:
-```shell
+Start server and two clients:
+
+```bash
 make dev2
 ```
 
-For a custom number of clients, and also Windows users (since the Make command may crash in Windows), use:
-```shell
-./dev.sh -c <number>
+To start the server on Windows, run:
+
+```powershell
+./dev.sh -c <number_of_clients>
 ```
+
+This is sadly required because window's honcho is broken.
+
+If you dont wanna start all at once, you can start the server and clients separately with:
+
+```bash
+python -m server.main
+python -m client.main
+```
+
+This is useful when connecting to a remote server.
 
 ## Testing
 
-```shell
+Run the test suite with:
+
+```bash
 pytest
 ```
 
-## Local Stats
-
-The client keeps a small set of local multiplayer stats in `data/app_data.json`.
-They are shown in the main menu through the star button and currently track:
-
-- games played
-- games won
-- win rate
-- treasures collected
-- moves made
-
-These stats are derived on the client from incoming multiplayer snapshots and are
-meant for personal progress only. They are not authoritative server-side stats.
-
 ## Project Structure
 
-```
-├── client/      # Pygame GUI client (screens, UI, network, state)
-├── server/      # TCP socket server (handlers, game service, db)
-├── shared/      # Models, events, protocol, and game logic used by both
-├── docs/        # Architecture and gameplay documentation
-├── tests/       # Pytest test suite
-└── assets/      # Game images and UI assets
-```
+- `client/`:   Pygame client, screens, UI, sound, and networking
+- `server/`:   authoritative game server and persistence layer
+- `shared/`:   models, protocol, events, and shared game logic
+- `assets/`:   images, fonts, music, sounds, and branding material
+- `docs/`:     architecture and implementation documentation
+- `tests/`:    automated test suite
 
 ## Documentation
 
-Start with [docs/README.md](./docs/README.md).
+Start with [docs/README.md](./docs/README.md) for the implementation overview, as well as the game flow logic.
